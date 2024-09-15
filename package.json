@@ -29,5 +29,8 @@
   },
   "trustedDependencies": [
     "@biomejs/biome"
-  ]
+  ],
+  "engines": {
+    "node": ">=22"
+  }
 }
