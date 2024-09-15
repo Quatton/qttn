@@ -6,11 +6,12 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro check && astro build",
-    "preview": "astro preview",
+    "preview": "wrangler pages dev ./dist",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.3",
+    "@astrojs/cloudflare": "^11.0.4",
     "@astrojs/tailwind": "^5.1.0",
     "@fontsource/dm-sans": "^5.1.0",
     "@fontsource/merriweather": "^5.1.0",
@@ -25,7 +26,8 @@
     "@tailwind-plugin/expose-colors": "^1.1.8",
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/typography": "^0.5.15",
-    "@types/node": "^22.5.5"
+    "@types/node": "^22.5.5",
+    "wrangler": "^3.78.2"
   },
   "trustedDependencies": [
     "@biomejs/biome"
