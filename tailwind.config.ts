@@ -2,10 +2,19 @@ import type { Config } from "tailwindcss";
 import { fontFamily as _fontFamily } from "tailwindcss/defaultTheme";
 import typography from "@tailwindcss/typography";
 import containerQueries from "@tailwindcss/container-queries";
+import exposeColors from "@tailwind-plugin/expose-colors";
 
 export default (<Partial<Config>>{
 	content: ["./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}"],
-	plugins: [typography, containerQueries],
+	plugins: [
+		typography,
+		containerQueries,
+		exposeColors({
+			prefix: "--color",
+			extract: ["coral", "zinc"],
+			mode: "rgb",
+		}),
+	],
 	theme: {
 		extend: {
 			colors: {
@@ -23,26 +32,28 @@ export default (<Partial<Config>>{
 					"950": "#440607",
 				},
 
-				background: "var(--background)",
-				foreground: "var(--foreground)",
+				background: "rgba(var(--background), <alpha-value>)",
+				foreground: "rgba(var(--foreground), <alpha-value>)",
 
-				surface: "var(--surface)",
-				"surface-foreground": "var(--surface-foreground)",
+				surface: "rgba(var(--surface), <alpha-value>)",
+				"surface-foreground": "rgba(var(--surface-foreground), <alpha-value>)",
 
-				primary: "var(--primary)",
-				"primary-foreground": "var(--primary-foreground)",
+				primary: "rgba(var(--primary), <alpha-value>)",
+				"primary-foreground": "rgba(var(--primary-foreground), <alpha-value>)",
 
-				"primary-contrast": "var(--primary-contrast)",
-				"primary-contrast-foreground": "var(--primary-contrast-foreground)",
+				"primary-contrast": "rgba(var(--primary-contrast), <alpha-value>)",
+				"primary-contrast-foreground":
+					"rgba(var(--primary-contrast-foreground), <alpha-value>)",
 
-				"primary-surface": "var(--primary-surface)",
-				"primary-surface-foreground": "var(--primary-surface-foreground)",
-				"primary-border": "var(--primary-border)",
+				"primary-surface": "rgba(var(--primary-surface), <alpha-value>)",
+				"primary-surface-foreground":
+					"rgba(var(--primary-surface-foreground), <alpha-value>)",
+				"primary-border": "rgba(var(--primary-border), <alpha-value>)",
 
-				hover: "var(--hover)",
-				muted: "var(--muted)",
-				"muted-foreground": "var(--muted-foreground)",
-				border: "var(--border)",
+				hover: "rgba(var(--hover), <alpha-value>)",
+				muted: "rgba(var(--muted), <alpha-value>)",
+				"muted-foreground": "rgba(var(--muted-foreground), <alpha-value>)",
+				border: "rgba(var(--border), <alpha-value>)",
 			},
 			fontFamily: {
 				sans: ["var(--font-sans)", ..._fontFamily.sans],

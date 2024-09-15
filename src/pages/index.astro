@@ -1,4 +1,5 @@
 ---
+import Button from "@/components/Button.astro";
 import Layout from "../layouts/Layout.astro";
 ---
 
@@ -7,24 +8,23 @@ import Layout from "../layouts/Layout.astro";
 	<section class="max-w-3xl py-32 px-8">
 		<div class="relative p-8">
 			<div class="-z-10 inset-x-0 inset-y-6 absolute rounded-xl bg-primary translate-y-12"> </div>
-			
+
 			<h1 class="font-bold text-pretty text-3xl md:text-4xl">
 				<span>Your problem,</span><br />
-				<span class="text-primary-surface">others might have it too.</span>
+				<span class="">others might have it too.</span>
 			</h1>
-			<p class="mt-4 text-pretty text-lg text-primary-surface">
-				Hi, I'm Quatton. I like making things my friends and family use.
+			<p class="mt-4 text-pretty text-lg text-primary-foreground">
+				Hi, I'm Quatton. I like making things for my friends and family to use.
 			</p>
-			<p class="mt-2 text-pretty text-lg text-primary-surface">
+			<p class="mt-2 text-pretty text-lg text-primary-foreground">
 				The process is simple, request me to build stuff.
 				In return, let me publish or open-source it for others to use as well!
 			</p>
 		</div>
-	</section>
-	<section>
-		<button class="bg-primary text-pretty text-lg font-bold py-2 px-4 rounded-lg">
+
+		<Button size="lg" variant="outline" class="mt-12">
 			Request a project
-		</button>
+		</Button>
 	</section>
 </main>
 </Layout>

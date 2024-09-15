@@ -4,77 +4,54 @@
 
 @layer base {
   :root {
-    --color-gray-50: theme('colors.zinc.50');
-    --color-gray-100: theme('colors.zinc.100');
-    --color-gray-200: theme('colors.zinc.200');
-    --color-gray-300: theme('colors.zinc.300');
-    --color-gray-400: theme('colors.zinc.400');
-    --color-gray-500: theme('colors.zinc.500');
-    --color-gray-600: theme('colors.zinc.600');
-    --color-gray-700: theme('colors.zinc.700');
-    --color-gray-800: theme('colors.zinc.800');
-    --color-gray-900: theme('colors.zinc.900');
-    --color-gray-950: theme('colors.zinc.950');
 
-    --color-primary-50: theme('colors.coral.50');
-    --color-primary-100: theme('colors.coral.100');
-    --color-primary-200: theme('colors.coral.200');
-    --color-primary-300: theme('colors.coral.300');
-    --color-primary-400: theme('colors.coral.400');
-    --color-primary-500: theme('colors.coral.500');
-    --color-primary-600: theme('colors.coral.600');
-    --color-primary-700: theme('colors.coral.700');
-    --color-primary-800: theme('colors.coral.800');
-    --color-primary-900: theme('colors.coral.900');
-    --color-primary-950: theme('colors.coral.950');
+    --background: var(--color-zinc-100);
+    --foreground: var(--color-zinc-900);
 
-    --background: var(--color-gray-100);
-    --foreground: var(--color-gray-900);
+    --surface: var(--color-zinc-200);
+    --surface-foreground: var(--color-zinc-800);
 
-    --surface: var(--color-gray-200);
-    --surface-foreground: var(--color-gray-800);
+    --primary-surface: var(--color-coral-50);
+    --primary-surface-foreground: var(--color-zinc-800);
+    --primary-border: var(--color-coral-300);
 
-    --primary-surface: var(--color-primary-50);
-    --primary-surface-foreground: var(--color-gray-800);
-    --primary-border: var(--color-primary-300);
+    --primary: var(--color-coral-400);
+    --primary-foreground: var(--color-zinc-50);
 
-    --primary: var(--color-primary-400);
-    --primary-foreground: var(--color-gray-900);
+    --primary-contrast: var(--color-coral-700);
+    --primary-contrast-foreground: var(--color-zinc-100);
 
-    --primary-contrast: var(--color-primary-700);
-    --primary-contrast-foreground: var(--color-gray-100);
+    --hover: var(--color-zinc-200);
 
-    --hover: var(--color-gray-200);
+    --muted: var(--color-zinc-300);
+    --muted-foreground: var(--color-zinc-500);
 
-    --muted: var(--color-gray-300);
-    --muted-foreground: var(--color-gray-500);
-
-    --border: var(--color-gray-300);
+    --border: var(--color-zinc-300);
 
     --font-sans: "DM Sans", "Inter";
     --font-serif: "Merriweather", "Georgia";
   }
 
   .dark:root {
-    --background: var(--color-gray-900);
-    --foreground: var(--color-gray-100);
+    --background: var(--color-zinc-900);
+    --foreground: var(--color-zinc-100);
 
-    --primary-surface: var(--color-primary-800);
-    --primary-surface-foreground: var(--color-gray-50);
+    --primary-surface: var(--color-coral-800);
+    --primary-surface-foreground: var(--color-zinc-50);
 
-    --primary-surface: var(--color-primary-800);
-    --primary-surface-foreground: var(--color-gray-50);
-    --primary-border: var(--color-primary-700);
+    --primary-surface: var(--color-coral-800);
+    --primary-surface-foreground: var(--color-zinc-50);
+    --primary-border: var(--color-coral-700);
 
-    --primary-contrast: var(--color-primary-200);
-    --primary-contrast-foreground: var(--color-gray-800);
+    --primary-contrast: var(--color-coral-200);
+    --primary-contrast-foreground: var(--color-zinc-800);
 
-    --hover: var(--color-gray-800);
+    --hover: var(--color-zinc-800);
 
-    --muted: var(--color-gray-700);
-    --muted-foreground: var(--color-gray-500);
+    --muted: var(--color-zinc-700);
+    --muted-foreground: var(--color-zinc-500);
 
-    --border: var(--color-gray-700);
+    --border: var(--color-zinc-700);
   }
 }
 
