@@ -7,9 +7,10 @@ import { site } from '@/config/site';
 
 interface Props {
 	title?: string;
+	href?: string;
 }
 
-const { title = site.title } = Astro.props;
+const { title, href } = Astro.props;
 ---
 
 <!doctype html>
@@ -20,13 +21,21 @@ const { title = site.title } = Astro.props;
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title>{title}</title>
+		<title>{site.title}{title && ` | ${title}`}</title>
 	</head>
 	<body>
-		<header class="fixed w-full h-16 px-6 py-4 border-b shadow">
-			<a href="/">
-				<h1 class="transition-all hover:-translate-y-1 text-2xl font-semibold font-serif text-content">{title}</h1>
+		<header class="fixed w-full h-16 px-6 py-4 border-b shadow flex items-center gap-4">
+			<a href="/" class="transition-all hover:-translate-y-1 text-2xl font-semibold font-serif">
+				<span>{site.title}</span>
 			</a>
+			{
+				title && (
+					<div class="border-content border-l-2 h-6"></div>
+					<a href={href} class="transition-all hover:-translate-y-1 text-xl font-semibold">
+						<span>{title}</span>
+					</a>
+				)
+			}
 		</header>
 
 		<slot />
