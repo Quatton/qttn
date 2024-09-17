@@ -24,7 +24,7 @@ const { title, href } = Astro.props;
 		<title>{site.title}{title && ` | ${title}`}</title>
 	</head>
 	<body>
-		<header class="fixed w-full h-16 px-6 py-4 border-b shadow flex items-center gap-4">
+		<header class="fixed z-50 w-full h-16 px-6 py-4 border-b shadow flex items-center gap-4 glass">
 			<a href="/" class="transition-all hover:-translate-y-1 text-2xl font-semibold font-serif">
 				<span>{site.title}</span>
 			</a>
