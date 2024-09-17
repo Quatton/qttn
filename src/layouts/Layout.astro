@@ -1,43 +1,52 @@
 ---
-import '@fontsource/merriweather';
-import '@fontsource/dm-sans';
+import "@fontsource/merriweather";
+import "@fontsource/dm-sans";
 
-import '@/styles/globals.css'
-import { site } from '@/config/site';
+import "@/styles/globals.css";
+import { site } from "@/config/site";
 
 interface Props {
-	title?: string;
-	href?: string;
+  title?: string;
 }
 
-const { title, href } = Astro.props;
+const { title } = Astro.props;
+const app = Astro.url.pathname.split("/app")
+const baseRoute = app[1]?.split("/")[1]
 ---
 
 <!doctype html>
-<html lang="en" data-theme="bumblebee">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="description" content="Astro description" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{site.title}{title && ` | ${title}`}</title>
-	</head>
-	<body>
-		<header class="fixed z-50 w-full h-16 px-6 py-4 border-b shadow flex items-center gap-4 glass">
-			<a href="/" class="transition-all hover:-translate-y-1 text-2xl font-semibold font-serif">
-				<span>{site.title}</span>
-			</a>
-			{
-				title && (
-					<div class="border-content border-l-2 h-6"></div>
-					<a href={href} class="transition-all hover:-translate-y-1 text-xl font-semibold">
-						<span>{title}</span>
-					</a>
-				)
-			}
-		</header>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Astro description" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{site.title}{title && ` | ${title}`}</title>
+  </head>
+  <body>
+    <header
+      class="fixed z-50 w-full h-16 px-6 py-4 border-b shadow flex items-center gap-4 glass"
+    >
+      <a
+        href="/"
+        class="transition-all hover:-translate-y-1 text-2xl font-semibold font-serif"
+      >
+        <span>{site.title}</span>
+      </a>
+      {
+        baseRoute && (
+            <div class="border-content border-l-2 h-6" />
+            <a
+              href={`/app/${baseRoute}`}
+              class="transition-all hover:-translate-y-1 text-xl font-semibold"
+            >
+              <span>{title}</span>
+            </a>
+        )
+      }
+    </header>
 
-		<slot />
-	</body>
-	</html>	
+    <slot />
+  </body>
+</html>
