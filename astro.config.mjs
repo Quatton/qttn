@@ -3,7 +3,7 @@ import { defineConfig } from "astro/config";
 
 import tailwind from "@astrojs/tailwind";
 
-import cloudflare from "@astrojs/cloudflare";
+import vercel from "@astrojs/vercel/serverless";
 
 // https://astro.build/config
 export default defineConfig({
@@ -12,4 +12,6 @@ export default defineConfig({
 			applyBaseStyles: false,
 		}),
 	],
+	output: "hybrid",
+	adapter: vercel(),
 });
