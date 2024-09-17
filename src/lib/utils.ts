@@ -6,9 +6,5 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getAppHref(subdomain: string) {
-  if (import.meta.env.DEV) {
-    return `/app/${subdomain}`
-  } 
-
-  return `https://${subdomain}.qttn.dev`
+  return `/app/${subdomain}`
 }
