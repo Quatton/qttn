@@ -3,10 +3,15 @@ import { fontFamily as _fontFamily } from "tailwindcss/defaultTheme";
 import typography from "@tailwindcss/typography";
 import containerQueries from "@tailwindcss/container-queries";
 import exposeColors from "@tailwind-plugin/expose-colors";
+import daisyUI from "daisyui";
 
 export default <Partial<Config>>{
   content: ["./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}"],
+  daisyui: {
+    themes: ["bumblebee"],
+  },
   plugins: [
+    daisyUI,
     typography,
     containerQueries,
     exposeColors({
@@ -32,34 +37,30 @@ export default <Partial<Config>>{
           "950": "#440607",
         },
 
-        background: "rgba(var(--background), <alpha-value>)",
-        foreground: "rgba(var(--foreground), <alpha-value>)",
+        background: "oklch(var(--b1))",
+        content: "oklch(var(--bc))",
 
         surface: {
-          DEFAULT: "rgba(var(--surface), <alpha-value>)",
-          foreground: "rgba(var(--surface-foreground), <alpha-value>)",
+          DEFAULT: "oklch(var(--b2))",
+          content: "oklch(var(--bc))",
         },
 
         primary: {
-          DEFAULT: "rgba(var(--primary), <alpha-value>)",
-          foreground: "rgba(var(--primary-foreground), <alpha-value>)",
-          contrast: "rgba(var(--primary-contrast), <alpha-value>)",
-          "contrast-foreground":
-            "rgba(var(--primary-contrast-foreground), <alpha-value>)",
-
+          DEFAULT: "oklch(var(--p))",
+          content: "oklch(var(--pc))",
           surface: "rgba(var(--primary-surface), <alpha-value>)",
-          "surface-foreground":
-            "rgba(var(--primary-surface-foreground), <alpha-value>)",
+          "surface-content":
+            "rgba(var(--primary-surface-content), <alpha-value>)",
           border: "rgba(var(--primary-border), <alpha-value>)",
         },
 
         muted: {
           DEFAULT: "rgba(var(--muted), <alpha-value>)",
-          foreground: "rgba(var(--muted-foreground), <alpha-value>)",
+          content: "rgba(var(--muted-content), <alpha-value>)",
         },
 
         hover: "rgba(var(--hover), <alpha-value>)",
-        border: "rgba(var(--border), <alpha-value>)",
+        border: "oklch(var(--b3))",
       },
       fontFamily: {
         sans: ["var(--font-sans)", ..._fontFamily.sans],

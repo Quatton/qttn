@@ -4,27 +4,26 @@
 
 @layer base {
   :root {
-
     --background: var(--color-zinc-100);
-    --foreground: var(--color-zinc-900);
+    --content: var(--color-zinc-900);
 
     --surface: var(--color-zinc-200);
-    --surface-foreground: var(--color-zinc-800);
+    --surface-content: var(--color-zinc-800);
 
     --primary-surface: var(--color-coral-50);
-    --primary-surface-foreground: var(--color-zinc-800);
+    --primary-surface-content: var(--color-zinc-800);
     --primary-border: var(--color-coral-300);
 
     --primary: var(--color-coral-400);
-    --primary-foreground: var(--color-zinc-50);
+    --primary-content: var(--color-zinc-50);
 
     --primary-contrast: var(--color-coral-700);
-    --primary-contrast-foreground: var(--color-zinc-100);
+    --primary-contrast-content: var(--color-zinc-100);
 
     --hover: var(--color-zinc-200);
 
     --muted: var(--color-zinc-300);
-    --muted-foreground: var(--color-zinc-500);
+    --muted-content: var(--color-zinc-500);
 
     --border: var(--color-zinc-300);
 
@@ -34,27 +33,26 @@
 
   .dark:root {
     --background: var(--color-zinc-900);
-    --foreground: var(--color-zinc-100);
+    --content: var(--color-zinc-100);
 
     --primary-surface: var(--color-coral-800);
-    --primary-surface-foreground: var(--color-zinc-50);
+    --primary-surface-content: var(--color-zinc-50);
 
     --primary-surface: var(--color-coral-800);
-    --primary-surface-foreground: var(--color-zinc-50);
+    --primary-surface-content: var(--color-zinc-50);
     --primary-border: var(--color-coral-700);
 
     --primary-contrast: var(--color-coral-200);
-    --primary-contrast-foreground: var(--color-zinc-800);
+    --primary-contrast-content: var(--color-zinc-800);
 
     --hover: var(--color-zinc-800);
 
     --muted: var(--color-zinc-700);
-    --muted-foreground: var(--color-zinc-500);
+    --muted-content: var(--color-zinc-500);
 
     --border: var(--color-zinc-700);
   }
 }
-
 
 @layer base {
   * {

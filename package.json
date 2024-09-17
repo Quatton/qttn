@@ -28,6 +28,7 @@
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^22.5.5",
+    "daisyui": "^4.12.10",
     "wrangler": "^3.78.2"
   },
   "trustedDependencies": [
