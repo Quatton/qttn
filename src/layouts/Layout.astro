@@ -4,6 +4,7 @@ import "@fontsource/dm-sans";
 
 import "@/styles/globals.css";
 import { site } from "@/config/site";
+import { getAppHref } from "@/lib/utils";
 
 interface Props {
   title?: string;
@@ -29,7 +30,7 @@ const baseRoute = app[1]?.split("/")[1]
       class="fixed z-50 w-full h-16 px-6 py-4 border-b shadow flex items-center gap-4 glass"
     >
       <a
-        href="/"
+        href={`${site.url.full}`}
         class="transition-all hover:-translate-y-1 text-2xl font-semibold font-serif"
       >
         <span>{site.title}</span>
@@ -38,7 +39,7 @@ const baseRoute = app[1]?.split("/")[1]
         baseRoute && (
             <div class="border-content border-l-2 h-6" />
             <a
-              href={`/app/${baseRoute}`}
+              href={getAppHref(baseRoute)}
               class="transition-all hover:-translate-y-1 text-xl font-semibold"
             >
               <span>{title}</span>
