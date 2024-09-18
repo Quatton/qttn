@@ -5,6 +5,7 @@ import "@fontsource/dm-sans";
 import "@/styles/globals.css";
 import { site } from "@/config/site";
 import { getAppHref } from "@/lib/utils";
+import { ViewTransitions } from "astro:transitions";
 
 interface Props {
   title?: string;
@@ -23,6 +24,7 @@ const baseRoute = app[1]?.split("/")[1]
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
+    <ViewTransitions />
     <title>{site.title}{title && ` | ${title}`}</title>
   </head>
   <body>
