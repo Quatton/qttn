@@ -1,17 +1,8 @@
 <script lang="ts">
+  import { keys, rules, type RuleType } from "@/lib/const/rules";
   import { cn } from "@/lib/utils";
-
-  const rules = {
-    beginWithLetter: "Only begin with Letter [A-Z]",
-    useGivenWords: "Use given words/phrases in order",
-    // includeColor: "Include a color in every sentence",
-    // includeNumber: "Include a number in every sentence",
-    // syllableWords: "Only [number]-syllable words",
-  } as const;
-
-  type RuleType = keyof typeof rules;
-
-  const keys = Object.keys(rules) as RuleType[];
+  import { actions } from "astro:actions";
+  import { navigate } from "astro:transitions/client";
 
   let selectedRules: RuleType[] = [];
 
@@ -31,36 +22,13 @@
 
   const alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-  let prompt = "";
-
   async function generatePrompt() {
-    if (selectedRules.length === 0) {
-      alert("Please select at least one rule");
-      return;
-    }
+    const { data } = await actions.createNewGame({
+      rules: selectedRules,
+    });
 
-    prompt = "";
-    // Generate prompt based on selected rules
-    // 1. Begin with letter
-    // 2. Use given words/phrases in order
-
-    if (isRuleSelected("beginWithLetter")) {
-      const randomLetter =
-        alphabets[Math.floor(Math.random() * alphabets.length)];
-      prompt += `Begin with letter ${randomLetter}. `;
-    }
-
-    if (isRuleSelected("useGivenWords")) {
-      prompt += "Use given the following words/phrases in order: ";
-
-      const url = "https://random-word-api.herokuapp.com/word?number=10";
-
-      const response = await fetch(url);
-      const words = (await response.json()) as string[];
-
-      prompt += words.join(", ");
-
-      prompt += ". ";
+    if (data) {
+      navigate(`/game/${data}`);
     }
   }
 
@@ -104,10 +72,6 @@
         {rules[rule]}
       </button>
     {/each}
-  </div>
-
-  <div class="mt-4">
-    <p class="text-sm text-gray-600">{prompt}</p>
   </div>
 
   <div class="flex justify-center">

@@ -6,6 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function getAppHref(subdomain: string) {
-  return `${site.url.protocol}://${subdomain}.${site.url.host}`;
+export function getAppHref(subdomain: string, pathname = "/") {
+  return `${site.url.protocol}://${subdomain}.${site.url.host}${pathname}`;
 }
