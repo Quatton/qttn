@@ -8,7 +8,10 @@
     "build": "astro check && astro build",
     "preview": "wrangler pages dev ./dist",
     "deploy": "bun run build && wrangler pages deploy",
-    "astro": "astro"
+    "astro": "astro",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.3",
@@ -18,9 +21,11 @@
     "@fontsource/dm-sans": "^5.1.0",
     "@fontsource/merriweather": "^5.1.0",
     "@iconify-json/heroicons": "^1.2.0",
+    "@libsql/client": "^0.12.0",
     "astro": "^4.15.6",
     "astro-icon": "^1.1.1",
     "class-variance-authority": "^0.7.0",
+    "drizzle-orm": "^0.33.0",
     "svelte": "^4.2.19",
     "tailwind-merge": "^2.5.2",
     "tailwindcss": "^3.4.11",
@@ -33,6 +38,8 @@
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^22.5.5",
     "daisyui": "^4.12.10",
+    "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.24.2",
     "prettier": "^3.3.3",
     "prettier-plugin-astro": "^0.14.1",
     "wrangler": "^3.78.2"

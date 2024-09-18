@@ -1,9 +1,27 @@
 ---
+import { site } from "@/config/site";
+import { type Word } from "@/db/schema";
 import Layout from "@/layouts/Layout.astro";
+import { Icon } from "astro-icon/components";
+import { actions } from "astro:actions";
 
 const id = Astro.params.id as string;
-const url = "https://random-word-api.herokuapp.com/word?number=10";
-const words: string[] = await fetch(url).then((res) => res.json());
+const cookie = Astro.cookies.get(`const:${id}`)?.json();
+
+let words = cookie as Word[];
+
+if (!words) {
+  const wds = await Astro.callAction(
+    actions.constAction.words.orThrow,
+    undefined,
+  );
+  Astro.cookies.set(`const:${id}`, JSON.stringify(wds), {
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+    path: "/",
+    domain: `.${Astro.url.hostname}`,
+  });
+  words = wds;
+}
 ---
 
 <Layout title="const!">
@@ -14,7 +32,32 @@ const words: string[] = await fetch(url).then((res) => res.json());
       Use the following words to create a story:
 
       <div class="flex gap-2 flex-wrap max-w-md justify-center text-xl">
-        {words.map((word) => <div class="badge">{word}</div>)}
+        {
+          words.map((word) => (
+            <div class="border rounded-full flex items-center gap-2 p-2">
+              <div class="dropdown">
+                <div
+                  tabindex="0"
+                  class="btn-xs btn btn-outline btn-error btn-circle"
+                >
+                  <Icon name="heroicons:x-mark" />
+                </div>
+                <ul
+                  tabindex="0"
+                  class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
+                >
+                  <li>
+                    <a>Too difficult</a>
+                  </li>
+                  <li>
+                    <a>Is this a word?</a>
+                  </li>
+                </ul>
+              </div>
+              {word.name}
+            </div>
+          ))
+        }
       </div>
     </section>
   </main>

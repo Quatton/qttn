@@ -20,10 +20,8 @@
     return selectedRules.includes(rule);
   };
 
-  const alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-
   async function generatePrompt() {
-    const { data } = await actions.createNewGame({
+    const { data } = await actions.constAction.new({
       rules: selectedRules,
     });
 
