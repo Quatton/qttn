@@ -1,0 +1,21 @@
+---
+import Layout from "@/layouts/Layout.astro";
+
+const id = Astro.params.id as string;
+const url = "https://random-word-api.herokuapp.com/word?number=10";
+const words: string[] = await fetch(url).then((res) => res.json());
+---
+
+<Layout title="const!">
+  <main
+    class="h-screen pt-16 container mx-auto flex justify-center items-center"
+  >
+    <section class="max-w-2xl">
+      Use the following words to create a story:
+
+      <div class="flex gap-2 flex-wrap max-w-md justify-center text-xl">
+        {words.map((word) => <div class="badge">{word}</div>)}
+      </div>
+    </section>
+  </main>
+</Layout>
