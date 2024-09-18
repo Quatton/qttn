@@ -38,6 +38,22 @@ async function generateWords(limit: number) {
   return words;
 }
 
+async function defineWord(word: string) {
+  const url = "https://api.dictionaryapi.dev/api/v2/entries/en/";
+
+  const urlWithParam = new URL(`${url}${word}`);
+
+  const response = await fetch(urlWithParam.toString());
+
+  if (!response.ok) {
+    return [] as Definition[];
+  }
+
+  const data = (await response.json()) as Definition[];
+
+  return data;
+}
+
 export const game = {
   new: defineAction({
     input: z.object({
@@ -151,20 +167,8 @@ export const game = {
     input: z.object({
       word: z.string(),
     }),
-    handler: async (input, ctx) => {
-      const url = "https://api.dictionaryapi.dev/api/v2/entries/en/";
-
-      const urlWithParam = new URL(`${url}${input.word}`);
-
-      const response = await fetch(urlWithParam.toString());
-
-      if (!response.ok) {
-        return [] as Definition[];
-      }
-
-      const data = (await response.json()) as Definition[];
-
-      return data;
+    handler: (input, ctx) => {
+      return defineWord(input.word);
     },
   }),
 };
