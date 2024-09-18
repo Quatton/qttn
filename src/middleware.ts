@@ -17,12 +17,12 @@ export const onRequest: MiddlewareHandler = (context, next) => {
   // okay, now check if the it's the subdomain in `subdomains` array
   // if it is, then we will rewrite to /app/[subdomain]
   const parts = context.url.hostname.split(".");
+  const pathname = context.url.pathname.replace(`/app/${parts[0]}`, "");
   if (
     subdomains.includes(parts[0]) &&
     context.url.pathname.split("/")[0] !== "app"
   ) {
-    const url = `http${import.meta.env.DEV ? "" : "s"}://${import.meta.env.PUBLIC_BASE_URL}/app/${parts[0]}`;
-    console.log("Rewriting to", url);
+    const url = `http${import.meta.env.DEV ? "" : "s"}://${import.meta.env.PUBLIC_BASE_URL}/app/${parts[0]}${pathname}`;
     return context.rewrite(url);
   }
 
