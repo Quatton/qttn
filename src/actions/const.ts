@@ -1,4 +1,8 @@
-import { keys, type GameSession } from "@/lib/const/rules";
+import {
+  keys,
+  type GameSession,
+  type WordAndDefinition,
+} from "@/lib/const/rules";
 import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro/zod";
 import { db } from "@/db/drizzle";
@@ -46,12 +50,12 @@ async function defineWord(word: string) {
   const response = await fetch(urlWithParam.toString());
 
   if (!response.ok) {
-    return [] as Definition[];
+    return null;
   }
 
   const data = (await response.json()) as Definition[];
 
-  return data;
+  return data[0];
 }
 
 export const game = {
@@ -62,9 +66,17 @@ export const game = {
     }),
     handler: async (input, ctx) => {
       const words = await generateWords(input.maxWords);
+      const definitions = await Promise.all(
+        words.map((word) => defineWord(word.name)),
+      );
+      const packed: WordAndDefinition[] = words.map((word, i) => ({
+        word,
+        definition: definitions[i],
+      }));
+
       ctx.cookies.set(
         "const:session",
-        JSON.stringify({ rules: input.rules, words }),
+        JSON.stringify({ rules: input.rules, words: packed }),
       );
     },
   }),
@@ -73,18 +85,22 @@ export const game = {
       max: z.number().int().positive().default(10),
     }),
     handler: async (input, ctx) => {
-      const game =
-        ctx.cookies.get("const:session")?.json() ??
-        ({
-          rules: ["useGivenWords"],
-          words: [],
-        } satisfies GameSession);
+      const game: GameSession = ctx.cookies.get("const:session")?.json() ?? {
+        rules: ["useGivenWords"],
+        words: [],
+      };
 
       if (game.words.length < input.max) {
-        game.words = [
-          ...game.words,
-          ...(await generateWords(input.max - game.words.length)),
-        ];
+        const newWords = await generateWords(input.max - game.words.length);
+        const definitions = await Promise.all(
+          newWords.map((word) => defineWord(word.name)),
+        );
+        game.words.push(
+          ...newWords.map((word, i) => ({
+            word,
+            definition: definitions[i],
+          })),
+        );
       }
 
       ctx.cookies.set(
@@ -105,7 +121,6 @@ export const game = {
     },
   }),
   swapOut: defineAction({
-    accept: "form",
     input: z.object({
       wordId: z.number().int(),
     }),
@@ -123,7 +138,7 @@ export const game = {
 
       const { words } = gameSession;
 
-      const word = words.find((w) => w.id === input.wordId);
+      const word = words.find((w) => w.word.id === input.wordId);
 
       if (!word) {
         throw new ActionError({
@@ -138,7 +153,7 @@ export const game = {
           rejected_count: sql`${Words.rejected_count} + 1`,
           rejected_rate: sql`CASE WHEN ${Words.sampled_count} = 0 THEN 0 ELSE (${Words.rejected_count} + 1) / ${Words.sampled_count} END`,
         })
-        .where(eq(Words.id, word.id));
+        .where(eq(Words.id, word.word.id));
 
       const [newWord] = await db
         .select()
@@ -146,7 +161,16 @@ export const game = {
         .orderBy(asc(sql`RANDOM()`))
         .limit(1);
 
-      const newWords = words.map((w) => (w.id === input.wordId ? newWord : w));
+      const newDefinition = await defineWord(newWord.name);
+
+      const newWords = words.map((w) =>
+        w.word.id === input.wordId
+          ? {
+              word: newWord,
+              definition: newDefinition,
+            }
+          : w,
+      );
 
       ctx.cookies.set(
         "const:session",
@@ -159,7 +183,10 @@ export const game = {
         },
       );
 
-      return newWords;
+      return {
+        word: newWord,
+        definition: newDefinition,
+      };
     },
   }),
   dictionary: defineAction({

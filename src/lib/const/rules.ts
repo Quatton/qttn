@@ -1,4 +1,5 @@
 import type { Word } from "@/db/schema";
+import type { Definition } from "./dictionary";
 
 export const keys = ["beginWithLetter", "useGivenWords"] as const;
 
@@ -12,7 +13,12 @@ export const rules = {
   // syllableWords: "Only [number]-syllable words",
 } as const satisfies Record<RuleType, string>;
 
+export type WordAndDefinition = {
+  word: Word;
+  definition: Definition | null;
+};
+
 export type GameSession = {
   rules: RuleType[];
-  words: Word[];
+  words: WordAndDefinition[];
 };

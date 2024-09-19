@@ -11,6 +11,10 @@ import icon from "astro-icon";
 
 import vue from "@astrojs/vue";
 
+import vtbot from "astro-vtbot";
+
+import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+
 // https://astro.build/config
 export default defineConfig({
 	site: import.meta.env.DEV
@@ -23,6 +27,7 @@ export default defineConfig({
 		svelte(),
 		icon(),
 		vue(),
+		vtbot(),
 	],
 	output: "server",
 	adapter: vercel(),
