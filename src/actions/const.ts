@@ -21,7 +21,10 @@ async function generateWords(limit: number) {
 
   const words = await db
     .with(sq)
-    .select()
+    .select({
+      id: sq.id,
+      name: sq.name,
+    })
     .from(sq)
     .orderBy(asc(sq.sampled_count), asc(sq.rejected_rate))
     .limit(limit);
@@ -66,17 +69,10 @@ export const game = {
     }),
     handler: async (input, ctx) => {
       const words = await generateWords(input.maxWords);
-      const definitions = await Promise.all(
-        words.map((word) => defineWord(word.name)),
-      );
-      const packed: WordAndDefinition[] = words.map((word, i) => ({
-        word,
-        definition: definitions[i],
-      }));
 
       ctx.cookies.set(
         "const:session",
-        JSON.stringify({ rules: input.rules, words: packed }),
+        JSON.stringify({ rules: input.rules, words }),
       );
     },
   }),
@@ -92,15 +88,7 @@ export const game = {
 
       if (game.words.length < input.max) {
         const newWords = await generateWords(input.max - game.words.length);
-        const definitions = await Promise.all(
-          newWords.map((word) => defineWord(word.name)),
-        );
-        game.words.push(
-          ...newWords.map((word, i) => ({
-            word,
-            definition: definitions[i],
-          })),
-        );
+        game.words = [...game.words, ...newWords];
       }
 
       ctx.cookies.set(
@@ -138,7 +126,7 @@ export const game = {
 
       const { words } = gameSession;
 
-      const word = words.find((w) => w.word.id === input.wordId);
+      const word = words.find((w) => w.id === input.wordId);
 
       if (!word) {
         throw new ActionError({
@@ -153,24 +141,18 @@ export const game = {
           rejected_count: sql`${Words.rejected_count} + 1`,
           rejected_rate: sql`CASE WHEN ${Words.sampled_count} = 0 THEN 0 ELSE (${Words.rejected_count} + 1) / ${Words.sampled_count} END`,
         })
-        .where(eq(Words.id, word.word.id));
+        .where(eq(Words.id, word.id));
 
       const [newWord] = await db
-        .select()
+        .select({
+          id: Words.id,
+          name: Words.name,
+        })
         .from(Words)
         .orderBy(asc(sql`RANDOM()`))
         .limit(1);
 
-      const newDefinition = await defineWord(newWord.name);
-
-      const newWords = words.map((w) =>
-        w.word.id === input.wordId
-          ? {
-              word: newWord,
-              definition: newDefinition,
-            }
-          : w,
-      );
+      const newWords = words.map((w) => (w.id === input.wordId ? newWord : w));
 
       ctx.cookies.set(
         "const:session",
@@ -183,14 +165,10 @@ export const game = {
         },
       );
 
-      return {
-        word: newWord,
-        definition: newDefinition,
-      };
+      return newWord;
     },
   }),
   dictionary: defineAction({
-    accept: "form",
     input: z.object({
       word: z.string(),
     }),

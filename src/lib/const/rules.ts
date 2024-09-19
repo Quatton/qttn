@@ -18,7 +18,8 @@ export type WordAndDefinition = {
   definition: Definition | null;
 };
 
+export type CompressedWord = Pick<Word, "id" | "name">;
 export type GameSession = {
   rules: RuleType[];
-  words: WordAndDefinition[];
+  words: CompressedWord[];
 };

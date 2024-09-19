@@ -1,28 +1,53 @@
 <script setup lang="ts">
-import type { WordAndDefinition } from "@/lib/const/rules";
+import type {
+  CompressedWord,
+  GameSession,
+  WordAndDefinition,
+} from "@/lib/const/rules";
 import { Icon } from "@iconify/vue";
 import { actions } from "astro:actions";
 import { ref } from "vue";
 import { useAutoAnimate } from "@formkit/auto-animate/vue";
+import { useAsyncState } from "@vueuse/core";
 const $props = defineProps<{
-  words: WordAndDefinition[];
+  words: CompressedWord[];
 }>();
 
 const wordsRef = ref($props.words);
 
-const updateWord = (word: WordAndDefinition, idx: number) => {
+const updateWord = (word: CompressedWord, idx: number) => {
   wordsRef.value[idx] = word;
 };
 
 const isLoading = ref<number | false>(false);
 
 const swapOutWord = async (idx: number) => {
+  isLoading.value = idx;
   const { data } = await actions.constAction.swapOut({
-    wordId: wordsRef.value[idx].word.id,
+    wordId: wordsRef.value[idx].id,
   });
   if (data) {
     updateWord(data, idx);
+    isLoading.value = false;
   }
+};
+
+const {
+  state: definition,
+  execute,
+  isLoading: definitionLoading,
+} = useAsyncState(
+  async (word: string) =>
+    await actions.constAction.dictionary.orThrow({ word }),
+  null,
+  {
+    immediate: false,
+    resetOnExecute: true,
+  },
+);
+
+const defineWord = (word: string) => {
+  execute(0, word);
 };
 
 const [parent] = useAutoAnimate();
@@ -42,7 +67,7 @@ const modal = {
 <template>
   <div class="flex gap-2 flex-wrap justify-center text-xl" ref="parent">
     <div
-      v-for="({ word, definition }, idx) in wordsRef"
+      v-for="(word, idx) in wordsRef"
       :key="word.id"
       class="border rounded-full flex items-center gap-2 p-2"
     >
@@ -65,7 +90,10 @@ const modal = {
       {{ word.name }}
       <button
         class="btn-xs btn btn-outline btn-circle"
-        @click="modal.showModal(idx)"
+        @click="
+          defineWord(word.name);
+          modal.showModal(idx);
+        "
       >
         <Icon icon="heroicons:book-open" />
       </button>
@@ -78,9 +106,9 @@ const modal = {
           >
             <Icon icon="heroicons:x-mark" class="text-error" />
           </button>
-          <template v-if="definition">
-            <h1>{{ definition?.word }}</h1>
-            <p>{{ definition?.phonetic }}</p>
+          <template>
+            <h1>{{ word.name }}</h1>
+            <p class="text-sm text-muted-content">{{ definition?.phonetic }}</p>
             <table class="table">
               <thead>
                 <tr>
@@ -89,14 +117,17 @@ const modal = {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="meaning in definition.meanings">
+                <tr v-if="definition" v-for="meaning in definition.meanings">
                   <td>{{ meaning.partOfSpeech }}</td>
                   <td>
                     <ul>
                       <template v-for="(def, i) in meaning.definitions">
                         <li class="mb-4">
                           <p>{{ def.definition }}</p>
-                          <p v-if="def.example">Example: {{ def.example }}</p>
+                          <p v-if="def.example" class="mt-2">
+                            <span class="badge badge-ghost">Example</span>
+                            {{ def.example }}
+                          </p>
                         </li>
                         <div
                           v-if="i < meaning.definitions.length - 1"
@@ -106,12 +137,17 @@ const modal = {
                     </ul>
                   </td>
                 </tr>
+                <tr v-else-if="definitionLoading">
+                  <td colspan="2">
+                    <div class="skeleton w-full h-10"></div>
+                  </td>
+                </tr>
+                <tr v-else>
+                  <td colspan="2" class="text-center">No definition found</td>
+                </tr>
               </tbody>
             </table>
           </template>
-          <div v-else>
-            <h1>Word not found</h1>
-          </div>
         </div>
         <form method="dialog" class="modal-backdrop">
           <button>close</button>
