@@ -19,6 +19,8 @@ export type WordAndDefinition = {
 };
 
 export type CompressedWord = Pick<Word, "id" | "name">;
+export type CompressedWordWithMatch = CompressedWord & { match: boolean };
+
 export type GameSession = {
   rules: RuleType[];
   words: CompressedWord[];

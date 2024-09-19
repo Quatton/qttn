@@ -1,5 +1,6 @@
 ---
 import Layout from "@/layouts/Layout.astro";
+import { getAppHref } from "@/lib/utils";
 ---
 
 <Layout title="const!">
@@ -34,7 +35,9 @@ import Layout from "@/layouts/Layout.astro";
       </div>
 
       <div class="flex gap-2 mt-12">
-        <a class="btn btn-lg btn-primary" href="/generate"> Let's Play </a>
+        <a class="btn btn-lg btn-primary" href={getAppHref("const", "/game")}>
+          Let's Play
+        </a>
       </div>
     </section>
   </main>

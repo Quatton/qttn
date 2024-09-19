@@ -12,19 +12,38 @@ export const GET: EndpointHandler["GET"] = async (ctx) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // const words = (await fetch(
-  //   "https://raw.githubusercontent.com/dwyl/english-words/master/words_dictionary.json",
-  // ).then(async (res) => Object.keys(await res.json()))) as string[];
+  const words = (
+    await fetch(
+      "https://raw.githubusercontent.com/meetDeveloper/freeDictionaryAPI/refs/heads/master/meta/wordList/english.txt",
+    ).then(async (res) => res.text())
+  ).split("\n");
 
-  // console.log(words.length);
-  // const wordChunks = words.slice(370100);
-  // let rowsAffected = 0;
+  const totalWords = words.length;
+  const wordWithSpaceCount = words.filter((word) => word.includes(" ")).length;
 
-  // const result = await db
-  //   .insert(Words)
-  //   .values(wordChunks.map((name) => ({ name })))
-  //   .onConflictDoNothing();
-  // rowsAffected += result.rowsAffected;
+  const workChunker = (arr: string[], chunkSize: number) => {
+    const chunks = [];
+    for (let i = 0; i < arr.length; i += chunkSize) {
+      chunks.push(arr.slice(i, i + chunkSize));
+    }
+
+    if (arr.length - chunks.length * chunkSize > 0) {
+      chunks.push(arr.slice(chunks.length * chunkSize));
+    }
+
+    return chunks;
+  };
+
+  let rowsAffected = 0;
+  const wordChunks = workChunker(words, 1000).slice(0, 0);
+
+  for (const chunk of wordChunks) {
+    const result = await db
+      .insert(Words)
+      .values(chunk.map((name) => ({ name, is_phrase: name.includes(" ") })))
+      .onConflictDoNothing();
+    rowsAffected += result.rowsAffected;
+  }
 
   const res = await db
     .select({ count: count() })
@@ -33,7 +52,10 @@ export const GET: EndpointHandler["GET"] = async (ctx) => {
 
   return new Response(
     JSON.stringify({
-      count: res,
+      dbCount: res,
+      rowsAffected,
+      wordWithSpaceCount,
+      count: totalWords,
     }),
     {
       headers: {

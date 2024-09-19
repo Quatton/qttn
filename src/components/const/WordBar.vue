@@ -13,6 +13,7 @@ const $props = defineProps<{
 }>();
 
 const wordsRef = ref($props.words);
+const $wordMatches = useStore(wordStore);
 
 const updateWord = (word: CompressedWord, idx: number) => {
   wordsRef.value[idx] = word;
@@ -63,9 +64,20 @@ const modal = {
   },
 };
 
-onMounted(() => {
-  wordStore.set(wordsRef.value);
-});
+watch(
+  () => wordsRef.value,
+  () => {
+    wordStore.set(
+      wordsRef.value.map((word) => ({
+        ...word,
+        match: false,
+      })),
+    );
+  },
+  {
+    immediate: true,
+  },
+);
 </script>
 
 <template>
@@ -74,6 +86,9 @@ onMounted(() => {
       v-for="(word, idx) in wordsRef"
       :key="word.id"
       class="border rounded-full flex items-center gap-2 p-2 bg-base-100"
+      :class="{
+        'bg-green-200': !!$wordMatches?.[idx]?.match,
+      }"
     >
       <div class="dropdown">
         <div tabindex="0" class="btn-xs btn btn-outline btn-error btn-circle">

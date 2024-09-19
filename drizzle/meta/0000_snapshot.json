@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e7710c3d-fc8f-4f8d-965b-d7ae07b59c9e",
+  "id": "128c76cf-23a9-40da-8715-631e286ddc3c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "words": {
@@ -27,7 +27,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "(current_timestamp)"
+          "default": "(unixepoch())"
         },
         "sampled_count": {
           "name": "sampled_count",
@@ -45,8 +45,32 @@
           "autoincrement": false,
           "default": 0
         },
+        "success_count": {
+          "name": "success_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "likely_not_a_word_count": {
+          "name": "likely_not_a_word_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
         "rejected_rate": {
           "name": "rejected_rate",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "success_rate": {
+          "name": "success_rate",
           "type": "real",
           "primaryKey": false,
           "notNull": true,

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "61495507-53da-46a8-977c-5929413a8d42",
-  "prevId": "e7710c3d-fc8f-4f8d-965b-d7ae07b59c9e",
+  "id": "472bba50-3035-4379-8b90-5f4b2f88a9ec",
+  "prevId": "128c76cf-23a9-40da-8715-631e286ddc3c",
   "tables": {
     "words": {
       "name": "words",
@@ -45,6 +45,22 @@
           "autoincrement": false,
           "default": 0
         },
+        "success_count": {
+          "name": "success_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "likely_not_a_word_count": {
+          "name": "likely_not_a_word_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
         "rejected_rate": {
           "name": "rejected_rate",
           "type": "real",
@@ -52,6 +68,22 @@
           "notNull": true,
           "autoincrement": false,
           "default": 0
+        },
+        "success_rate": {
+          "name": "success_rate",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "is_phrase": {
+          "name": "is_phrase",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         }
       },
       "indexes": {
