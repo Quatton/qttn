@@ -1,8 +1,4 @@
-import {
-  keys,
-  type GameSession,
-  type WordAndDefinition,
-} from "@/lib/const/rules";
+import { keys, type GameSession } from "@/lib/const/rules";
 import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro/zod";
 import { db } from "@/db/drizzle";
@@ -26,7 +22,11 @@ async function generateWords(limit: number) {
       name: sq.name,
     })
     .from(sq)
-    .orderBy(asc(sq.sampled_count), asc(sq.rejected_rate))
+    .orderBy(
+      asc(Words.likely_not_a_word_count),
+      asc(sq.sampled_count),
+      asc(sq.rejected_rate),
+    )
     .limit(limit);
 
   await db
@@ -48,7 +48,7 @@ async function generateWords(limit: number) {
 async function defineWord(word: string) {
   const url = "https://api.dictionaryapi.dev/api/v2/entries/en/";
 
-  const urlWithParam = new URL(`${url}${word}`);
+  const urlWithParam = new URL(encodeURIComponent(word), url);
 
   const response = await fetch(urlWithParam.toString());
 
@@ -58,7 +58,7 @@ async function defineWord(word: string) {
 
   const data = (await response.json()) as Definition[];
 
-  return data[0];
+  return data;
 }
 
 export const game = {
@@ -111,6 +111,7 @@ export const game = {
   swapOut: defineAction({
     input: z.object({
       wordId: z.number().int(),
+      reason: z.enum(["difficult", "notAWord"]),
     }),
     handler: async (input, ctx) => {
       const gameSession = ctx.cookies
@@ -140,6 +141,10 @@ export const game = {
         .set({
           rejected_count: sql`${Words.rejected_count} + 1`,
           rejected_rate: sql`CASE WHEN ${Words.sampled_count} = 0 THEN 0 ELSE (${Words.rejected_count} + 1) / ${Words.sampled_count} END`,
+          likely_not_a_word_count:
+            input.reason === "notAWord"
+              ? sql`${Words.likely_not_a_word_count} + 1`
+              : undefined,
         })
         .where(eq(Words.id, word.id));
 
@@ -149,7 +154,7 @@ export const game = {
           name: Words.name,
         })
         .from(Words)
-        .orderBy(asc(sql`RANDOM()`))
+        .orderBy(asc(Words.likely_not_a_word_count), asc(sql`RANDOM()`))
         .limit(1);
 
       const newWords = words.map((w) => (w.id === input.wordId ? newWord : w));
