@@ -82,7 +82,9 @@ watch(
 </script>
 
 <template>
-  <div class="flex gap-4 flex-wrap justify-center text-xl" ref="parent">
+  <div
+    class="flex gap-4 flex-wrap justify-center text-xs md:text-sm lg:text-base"
+  >
     <div
       v-for="(word, idx) in wordsRef"
       :key="word.id"

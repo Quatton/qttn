@@ -4,6 +4,7 @@ import WordBar from "@/components/const/WordBar.vue";
 import Layout from "@/layouts/Layout.astro";
 import type { GameSession } from "@/lib/const/rules";
 import { actions } from "astro:actions";
+import { Icon } from "astro-icon/components";
 
 const cookie = Astro.cookies.get("const:session")?.json();
 
@@ -27,15 +28,25 @@ const words = gameSession.words;
 ---
 
 <Layout title="const!">
-  <main
-    class="max-w-full h-screen pt-16 container mx-auto flex justify-center items-center"
-  >
-    <section class="flex flex-col max-w-3xl gap-8 animate-fade animate-once">
+  <main class="min-h-screen max-w-6xl mx-auto flex justify-center items-center">
+    <section
+      class="p-4 md:p-16 flex flex-col items-center justify-center smax-w-6xl gap-8 animate-fade animate-once"
+    >
       <WordBar words={words} client:only="vue" />
 
-      <div class="h-96 rounded-xl shadow overflow-clip bg-neutral">
+      <!-- <div class="collapse">
+        <input type="checkbox" name="my-accordion-1" checked="checked" />
+        <div class="collapse-title">
+          <Icon name="heroicons:eye" />
+        </div>
+        <div class="collapse-content"> -->
+      <div
+        class="h-80 md:h-96 rounded-xl shadow overflow-clip bg-neutral w-[min(90%,64rem)] mx-auto"
+      >
         <MonacoEditor client:only="vue" />
       </div>
+      <!-- </div>
+      </div> -->
     </section>
   </main>
 </Layout>
