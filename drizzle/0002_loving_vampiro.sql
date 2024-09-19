@@ -1,0 +1,1 @@
+ALTER TABLE `words` ADD `inappropriate_count` integer DEFAULT 0 NOT NULL;

@@ -1,10 +1,15 @@
 import { keys, type GameSession } from "@/lib/const/rules";
-import { ActionError, defineAction } from "astro:actions";
+import {
+  ActionError,
+  defineAction,
+  type ActionAPIContext,
+} from "astro:actions";
 import { z } from "astro/zod";
 import { db } from "@/db/drizzle";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { Words, type Word } from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
+import { TimeSpan } from "oslo";
 
 async function generateWords(limit: number) {
   const sq = db.$with("sq").as(
@@ -23,6 +28,7 @@ async function generateWords(limit: number) {
     })
     .from(sq)
     .orderBy(
+      asc(sq.inappropriate_count),
       asc(sq.likely_not_a_word_count),
       asc(sq.sampled_count),
       asc(sq.rejected_rate),
@@ -61,19 +67,57 @@ async function defineWord(word: string) {
   return data;
 }
 
+const ratelimiter =
+  (duration: TimeSpan, number: number, cookieKey = "const:ratelimited") =>
+  (ctx: ActionAPIContext) => {
+    const cookie = ctx.cookies.get(cookieKey)?.number();
+    const cookieOption = {
+      expires: new Date(Date.now() + duration.milliseconds()),
+      domain: `.${ctx.url.hostname}`,
+      secure: import.meta.env.PROD,
+      path: "/",
+    };
+    if (cookie) {
+      ctx.cookies.set(cookieKey, (cookie + 1).toString(), cookieOption);
+      if (cookie >= number) {
+        throw new ActionError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Rate limited",
+        });
+      }
+    } else {
+      ctx.cookies.set(cookieKey, "1", cookieOption);
+    }
+  };
+
+const fiveSeconds = ratelimiter(new TimeSpan(5, "s"), 1);
+const fivePerFiveSeconds = ratelimiter(new TimeSpan(5, "s"), 5);
+
 export const game = {
   new: defineAction({
-    input: z.object({
-      rules: z.array(z.enum(keys)),
-      maxWords: z.number().int().positive().default(10),
-    }),
+    input: z
+      .object({
+        rules: z.array(z.enum(keys)).default(["useGivenWords"]),
+        maxWords: z.number().int().positive().default(10),
+      })
+      .default({ rules: ["useGivenWords"], maxWords: 10 }),
     handler: async (input, ctx) => {
+      fivePerFiveSeconds(ctx);
+
       const words = await generateWords(input.maxWords);
 
       ctx.cookies.set(
         "const:session",
         JSON.stringify({ rules: input.rules, words }),
+        {
+          expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+          path: "/",
+          domain: `.${ctx.url.hostname}`,
+          secure: import.meta.env.PROD,
+        },
       );
+
+      return words;
     },
   }),
   words: defineAction({
@@ -81,6 +125,8 @@ export const game = {
       max: z.number().int().positive().default(10),
     }),
     handler: async (input, ctx) => {
+      fivePerFiveSeconds(ctx);
+
       const game: GameSession = ctx.cookies.get("const:session")?.json() ?? {
         rules: ["useGivenWords"],
         words: [],
@@ -94,7 +140,7 @@ export const game = {
       ctx.cookies.set(
         "const:session",
         JSON.stringify({
-          rules: game.rules,
+          ...game,
           words: game.words.slice(0, input.max),
         }),
         {
@@ -111,9 +157,11 @@ export const game = {
   swapOut: defineAction({
     input: z.object({
       wordId: z.number().int(),
-      reason: z.enum(["difficult", "notAWord"]),
+      reason: z.enum(["difficult", "notAWord", "inappropriate"]),
     }),
     handler: async (input, ctx) => {
+      fivePerFiveSeconds(ctx);
+
       const gameSession = ctx.cookies
         .get("const:session")
         ?.json() as GameSession;
@@ -154,14 +202,20 @@ export const game = {
           name: Words.name,
         })
         .from(Words)
-        .orderBy(asc(Words.likely_not_a_word_count), asc(sql`RANDOM()`))
+        .orderBy(
+          asc(Words.inappropriate_count),
+          asc(Words.likely_not_a_word_count),
+          asc(Words.sampled_count),
+          asc(Words.rejected_rate),
+          asc(sql`RANDOM()`),
+        )
         .limit(1);
 
       const newWords = words.map((w) => (w.id === input.wordId ? newWord : w));
 
       ctx.cookies.set(
         "const:session",
-        JSON.stringify({ rules: gameSession.rules, words: newWords }),
+        JSON.stringify({ ...game, words: newWords }),
         {
           expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
           path: "/",
@@ -178,6 +232,7 @@ export const game = {
       word: z.string(),
     }),
     handler: (input, ctx) => {
+      fivePerFiveSeconds(ctx);
       return defineWord(input.word);
     },
   }),

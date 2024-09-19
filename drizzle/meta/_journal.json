@@ -15,6 +15,13 @@
       "when": 1726772737255,
       "tag": "0001_sour_blizzard",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1726781569517,
+      "tag": "0002_loving_vampiro",
+      "breakpoints": true
     }
   ]
 }

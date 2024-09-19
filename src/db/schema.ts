@@ -15,6 +15,7 @@ export const Words = sqliteTable("words", {
   likely_not_a_word_count: integer("likely_not_a_word_count")
     .notNull()
     .default(0),
+  inappropriate_count: integer("inappropriate_count").notNull().default(0),
   rejected_rate: real("rejected_rate").notNull().default(0),
   success_rate: real("success_rate").notNull().default(0),
   is_phrase: integer("is_phrase", { mode: "boolean" }).notNull().default(false),

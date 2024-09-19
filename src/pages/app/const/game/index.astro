@@ -4,7 +4,8 @@ import WordBar from "@/components/const/WordBar.vue";
 import Layout from "@/layouts/Layout.astro";
 import type { GameSession } from "@/lib/const/rules";
 import { actions } from "astro:actions";
-import { Icon } from "astro-icon/components";
+import ShareButton from "@/components/const/ShareButton.vue";
+import RefreshButton from "@/components/const/RefreshButton.vue";
 
 const cookie = Astro.cookies.get("const:session")?.json();
 
@@ -30,7 +31,7 @@ const words = gameSession.words;
 <Layout title="const!">
   <main class="min-h-screen max-w-6xl mx-auto flex justify-center items-center">
     <section
-      class="p-4 md:p-16 flex flex-col items-center justify-center smax-w-6xl gap-8 animate-fade animate-once"
+      class="bg-base-100 w-full p-4 md:p-16 flex flex-col items-center justify-center smax-w-6xl gap-8 animate-fade animate-once"
     >
       <WordBar words={words} client:only="vue" />
 
@@ -41,12 +42,14 @@ const words = gameSession.words;
         </div>
         <div class="collapse-content"> -->
       <div
-        class="h-80 md:h-96 rounded-xl shadow overflow-clip bg-neutral w-[min(90%,64rem)] mx-auto"
+        class="h-80 md:h-96 rounded-xl shadow overflow-hidden bg-neutral w-[min(90%,64rem)] mx-auto"
       >
         <MonacoEditor client:only="vue" />
       </div>
-      <!-- </div>
-      </div> -->
+      <div class="flex gap-4">
+        <RefreshButton client:only="vue" />
+        <ShareButton client:only="vue" />
+      </div>
     </section>
   </main>
 </Layout>

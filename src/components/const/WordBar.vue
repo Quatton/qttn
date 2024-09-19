@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import type { CompressedWord } from "@/lib/const/rules";
+import type {
+  CompressedWord,
+  CompressedWordWithMatch,
+} from "@/lib/const/rules";
 import { Icon } from "@iconify/vue";
 import { actions } from "astro:actions";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, toRef, watch } from "vue";
 import { useAutoAnimate } from "@formkit/auto-animate/vue";
 import { useAsyncState } from "@vueuse/core";
 import { useStore } from "@nanostores/vue";
@@ -12,16 +15,27 @@ const $props = defineProps<{
   words: CompressedWord[];
 }>();
 
-const wordsRef = ref($props.words);
 const $wordMatches = useStore(wordStore);
+const wordsRef = computed({
+  get: () => [...$wordMatches.value] as CompressedWordWithMatch[],
+  set: (value) => {
+    wordStore.set(value);
+  },
+});
 
 const updateWord = (word: CompressedWord, idx: number) => {
-  wordsRef.value[idx] = word;
+  wordsRef.value[idx] = {
+    ...word,
+    match: false,
+  };
 };
 
 const isLoading = ref<number | false>(false);
 
-const swapOutWord = async (idx: number, reason: "difficult" | "notAWord") => {
+const swapOutWord = async (
+  idx: number,
+  reason: "difficult" | "notAWord" | "inappropriate",
+) => {
   isLoading.value = idx;
   const { data } = await actions.constAction.swapOut({
     wordId: wordsRef.value[idx].id,
@@ -49,7 +63,7 @@ const {
 );
 
 const defineWord = (word: string) => {
-  execute(0, word).then(console.log);
+  execute(0, word);
 };
 
 const [parent] = useAutoAnimate();
@@ -65,25 +79,18 @@ const modal = {
   },
 };
 
-watch(
-  () => wordsRef.value,
-  () => {
-    wordStore.set(
-      wordsRef.value.map((word) => ({
-        ...word,
-        match: false,
-      })),
-    );
-  },
-  {
-    immediate: true,
-  },
-);
+onMounted(() => {
+  wordsRef.value = $props.words.map((word) => ({
+    ...word,
+    match: false,
+  }));
+});
 </script>
 
 <template>
   <div
     class="flex gap-4 flex-wrap justify-center text-xs md:text-sm lg:text-base"
+    ref="parent"
   >
     <div
       v-for="(word, idx) in wordsRef"
@@ -108,7 +115,12 @@ watch(
           </li>
           <li>
             <button @click="swapOutWord(idx, 'notAWord')">
-              Report not a word
+              Likely not a word
+            </button>
+          </li>
+          <li>
+            <button @click="swapOutWord(idx, 'inappropriate')">
+              Report inappropriate
             </button>
           </li>
         </ul>
@@ -123,7 +135,7 @@ watch(
       >
         <Icon icon="heroicons:book-open" />
       </button>
-      <dialog class="modal" :id="`definition-${idx}`">
+      <dialog class="modal max-w-" :id="`definition-${idx}`">
         <div class="modal-box space-y-4 pt-8">
           <button
             class="btn btn-ghost btn-circle btn-sm text-lg btn-error absolute top-2 left-2"
@@ -132,16 +144,16 @@ watch(
           >
             <Icon icon="heroicons:x-mark" class="text-error" />
           </button>
-          <h1>{{ word.name }}</h1>
+          <h1 class="text-2xl">{{ word.name }}</h1>
           <div
             v-if="definitions && definitions.length > 0"
-            v-for="definition in definitions"
+            v-for="definition in definitions.slice(0, 1)"
           >
-            <p class="text-sm text-muted-content">
+            <p class="text-muted-content">
               {{ definition.phonetic }}
             </p>
             <div class="max-h-64 overflow-y-scroll">
-              <table class="table table-pin-rows">
+              <table class="table max-sm:table-xs table-pin-rows">
                 <thead>
                   <tr>
                     <th>Part of Speech</th>

@@ -51,7 +51,7 @@ onMounted(() => {
         $words.value.map((word) => word.name).join("|"),
         true,
         true,
-        true,
+        false,
         " ",
         true,
       );
