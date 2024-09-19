@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro check && astro build",
-    "preview": "wrangler pages dev ./dist",
+    "preview": "astro preview",
     "deploy": "bun run build && wrangler pages deploy",
     "astro": "astro",
     "db:generate": "drizzle-kit generate",

@@ -10,5 +10,5 @@ export function getAppHref(subdomain: string, pathname = "/") {
   if (import.meta.env.DEV) {
     return `${site.url.protocol}://${site.url.host}/app/${subdomain}${pathname}`;
   }
-  return `${subdomain}.${site.url.host}${pathname}`;
+  return `${site.url.protocol}://${subdomain}.${site.url.host}${pathname}`;
 }
