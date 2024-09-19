@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { wordStore } from "@/store/word";
+import { useStore } from "@nanostores/vue";
 import { shikiToMonaco } from "@shikijs/monaco";
 import * as monaco from "monaco-editor";
 import { createHighlighter } from "shiki";
@@ -10,22 +12,21 @@ const highlighter = await createHighlighter({
   langs: ["markdown"],
 });
 
-const options: monaco.editor.IStandaloneEditorConstructionOptions = {
-  language: "markdown",
-  fontFamily: "Geist Mono",
-  fontSize: 18,
-  wordBasedSuggestions: "off",
-  minimap: { enabled: false },
-  lineNumbers: "off",
-  padding: { top: 16, bottom: 16 },
-  placeholder: "Write your story here...",
-  scrollBeyondLastLine: false,
-};
-
+const $words = useStore(wordStore);
 onMounted(() => {
   monaco.languages.register({ id: "markdown" });
   shikiToMonaco(highlighter, monaco);
-  monaco.editor.create(element.value as HTMLElement, options);
+  monaco.editor.create(element.value as HTMLElement, {
+    language: "markdown",
+    fontFamily: "Geist Mono",
+    fontSize: 18,
+    wordBasedSuggestions: "off",
+    minimap: { enabled: false },
+    lineNumbers: "off",
+    padding: { top: 16, bottom: 16 },
+    placeholder: $words.value.map((word) => word.name).join("\n"),
+    scrollBeyondLastLine: false,
+  });
 });
 </script>
 

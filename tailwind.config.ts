@@ -4,6 +4,7 @@ import typography from "@tailwindcss/typography";
 import containerQueries from "@tailwindcss/container-queries";
 import exposeColors from "@tailwind-plugin/expose-colors";
 import daisyUI from "daisyui";
+import tailwindCSSAnimated from "tailwindcss-animated";
 
 export default <Partial<Config>>{
   content: ["./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}"],
@@ -19,6 +20,7 @@ export default <Partial<Config>>{
       extract: ["coral", "zinc"],
       mode: "rgb",
     }),
+    tailwindCSSAnimated,
   ],
   theme: {
     extend: {

@@ -2,9 +2,12 @@
 import type { CompressedWord } from "@/lib/const/rules";
 import { Icon } from "@iconify/vue";
 import { actions } from "astro:actions";
-import { ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useAutoAnimate } from "@formkit/auto-animate/vue";
 import { useAsyncState } from "@vueuse/core";
+import { useStore } from "@nanostores/vue";
+import { wordStore } from "@/store/word";
+
 const $props = defineProps<{
   words: CompressedWord[];
 }>();
@@ -33,8 +36,9 @@ const {
   execute,
   isLoading: definitionLoading,
 } = useAsyncState(
-  async (word: string) =>
-    await actions.constAction.dictionary.orThrow({ word }),
+  async (word: string) => {
+    return await actions.constAction.dictionary.orThrow({ word });
+  },
   null,
   {
     immediate: false,
@@ -58,14 +62,18 @@ const modal = {
     (document.getElementById(`definition-${idx}`) as HTMLDialogElement).close();
   },
 };
+
+onMounted(() => {
+  wordStore.set(wordsRef.value);
+});
 </script>
 
 <template>
-  <div class="flex gap-2 flex-wrap justify-center text-xl" ref="parent">
+  <div class="flex gap-4 flex-wrap justify-center text-xl" ref="parent">
     <div
       v-for="(word, idx) in wordsRef"
       :key="word.id"
-      class="border rounded-full flex items-center gap-2 p-2"
+      class="border rounded-full flex items-center gap-2 p-2 bg-base-100"
     >
       <div class="dropdown">
         <div tabindex="0" class="btn-xs btn btn-outline btn-error btn-circle">
@@ -73,7 +81,7 @@ const modal = {
         </div>
         <ul
           tabindex="0"
-          class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
+          class="dropdown-content menu bg-base-100 rounded-box z-50 w-60 p-2 shadow"
         >
           <li>
             <button @click="swapOutWord(idx)">Too difficult</button>
@@ -83,7 +91,7 @@ const modal = {
           </li>
         </ul>
       </div>
-      {{ word.name }}
+      <div class="animate-rotate-y animate-once">{{ word.name }}</div>
       <button
         class="btn-xs btn btn-outline btn-circle"
         @click="
@@ -102,48 +110,46 @@ const modal = {
           >
             <Icon icon="heroicons:x-mark" class="text-error" />
           </button>
-          <template>
-            <h1>{{ word.name }}</h1>
-            <p class="text-sm text-muted-content">{{ definition?.phonetic }}</p>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Part of Speech</th>
-                  <th>Definition</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="definition" v-for="meaning in definition.meanings">
-                  <td>{{ meaning.partOfSpeech }}</td>
-                  <td>
-                    <ul>
-                      <template v-for="(def, i) in meaning.definitions">
-                        <li :class="{ 'mt-2': i > 0 }">
-                          <p>{{ def.definition }}</p>
-                          <p v-if="def.example" class="mt-2">
-                            <span class="badge badge-ghost">Example</span>
-                            {{ def.example }}
-                          </p>
-                        </li>
-                        <div
-                          v-if="i < meaning.definitions.length - 1"
-                          class="divider"
-                        ></div>
-                      </template>
-                    </ul>
-                  </td>
-                </tr>
-                <tr v-else-if="definitionLoading">
-                  <td colspan="2">
-                    <div class="skeleton w-full h-10"></div>
-                  </td>
-                </tr>
-                <tr v-else>
-                  <td colspan="2" class="text-center">No definition found</td>
-                </tr>
-              </tbody>
-            </table>
-          </template>
+          <h1>{{ word.name }}</h1>
+          <p class="text-sm text-muted-content">{{ definition?.phonetic }}</p>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Part of Speech</th>
+                <th>Definition</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="definition" v-for="meaning in definition.meanings">
+                <td>{{ meaning.partOfSpeech }}</td>
+                <td>
+                  <ul>
+                    <template v-for="(def, i) in meaning.definitions">
+                      <li :class="{ 'mt-2': i > 0 }">
+                        <p>{{ def.definition }}</p>
+                        <p v-if="def.example" class="mt-2">
+                          <span class="badge badge-ghost">Example</span>
+                          {{ def.example }}
+                        </p>
+                      </li>
+                      <div
+                        v-if="i < meaning.definitions.length - 1"
+                        class="divider"
+                      ></div>
+                    </template>
+                  </ul>
+                </td>
+              </tr>
+              <tr v-else-if="definitionLoading">
+                <td colspan="2">
+                  <div class="skeleton w-full h-10"></div>
+                </td>
+              </tr>
+              <tr v-else>
+                <td colspan="2" class="text-center">No definition found</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         <form method="dialog" class="modal-backdrop">
           <button>close</button>

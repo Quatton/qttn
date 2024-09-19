@@ -30,10 +30,10 @@ const words = gameSession.words;
   <main
     class="max-w-full h-screen pt-16 container mx-auto flex justify-center items-center"
   >
-    <section class="flex flex-col max-w-3xl gap-8">
+    <section class="flex flex-col max-w-3xl gap-8 animate-fade animate-once">
       <WordBar words={words} client:only="vue" />
 
-      <div class="h-96 rounded-xl shadow overflow-clip">
+      <div class="h-96 rounded-xl shadow overflow-clip bg-neutral">
         <MonacoEditor client:only="vue" />
       </div>
     </section>
