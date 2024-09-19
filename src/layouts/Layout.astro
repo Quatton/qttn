@@ -1,7 +1,7 @@
 ---
 import "@fontsource/merriweather";
 import "@fontsource/dm-sans";
-import '@fontsource/geist-mono';
+import "@fontsource/geist-mono";
 
 import "@/styles/globals.css";
 import { site } from "@/config/site";
@@ -13,16 +13,16 @@ interface Props {
 }
 
 const { title } = Astro.props;
-const app = Astro.url.pathname.split("/app")
-const baseRoute = app[1]?.split("/")[1]
+const app = Astro.url.pathname.split("/app");
+const baseRoute = app[1]?.split("/")[1];
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="Astro description" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="I make web better." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <ViewTransitions />
@@ -40,6 +40,7 @@ const baseRoute = app[1]?.split("/")[1]
       </a>
       {
         baseRoute && (
+          <>
             <div class="border-content border-l-2 h-6" />
             <a
               href={getAppHref(baseRoute)}
@@ -47,6 +48,7 @@ const baseRoute = app[1]?.split("/")[1]
             >
               <span>{title}</span>
             </a>
+          </>
         )
       }
     </header>

@@ -23,7 +23,7 @@ async function generateWords(limit: number) {
     })
     .from(sq)
     .orderBy(
-      asc(Words.likely_not_a_word_count),
+      asc(sq.likely_not_a_word_count),
       asc(sq.sampled_count),
       asc(sq.rejected_rate),
     )
