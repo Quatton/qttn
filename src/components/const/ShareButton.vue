@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
-import { actions } from "astro:actions";
 import { toPng } from "html-to-image";
 import { ref } from "vue";
 

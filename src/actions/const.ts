@@ -7,7 +7,7 @@ import {
 import { z } from "astro/zod";
 import { db } from "@/db/drizzle";
 import { asc, eq, inArray, sql } from "drizzle-orm";
-import { Words, type Word } from "@/db/schema";
+import { Words } from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
 import { TimeSpan } from "oslo";
 
@@ -90,7 +90,6 @@ const ratelimiter =
     }
   };
 
-const fiveSeconds = ratelimiter(new TimeSpan(5, "s"), 1);
 const fivePerFiveSeconds = ratelimiter(new TimeSpan(5, "s"), 5);
 
 export const game = {
@@ -99,12 +98,16 @@ export const game = {
       .object({
         rules: z.array(z.enum(keys)).default(["useGivenWords"]),
         maxWords: z.number().int().positive().default(10),
+        new: z.boolean().default(false),
       })
       .default({ rules: ["useGivenWords"], maxWords: 10 }),
     handler: async (input, ctx) => {
       fivePerFiveSeconds(ctx);
 
-      const words = await generateWords(input.maxWords);
+      const words =
+        (!input.new
+          ? (ctx.cookies.get("const:session")?.json() as GameSession).words
+          : null) ?? (await generateWords(input.maxWords));
 
       ctx.cookies.set(
         "const:session",

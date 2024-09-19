@@ -5,13 +5,9 @@ import { shikiToMonaco } from "@shikijs/monaco";
 import { useLocalStorage } from "@vueuse/core";
 import * as monaco from "monaco-editor";
 import { createHighlighter } from "shiki";
-import { onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
+import { onMounted, onUnmounted, ref, shallowRef } from "vue";
 
 const element = ref<HTMLElement | null>(null);
-const highlighter = await createHighlighter({
-  themes: ["vitesse-dark"],
-  langs: ["markdown"],
-});
 
 const editor = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 const editorDecorations =
@@ -24,7 +20,12 @@ function onWindowResize() {
 
 const code = useLocalStorage("const:code", "");
 
-onMounted(() => {
+onMounted(async () => {
+  const highlighter = await createHighlighter({
+    themes: ["vitesse-dark"],
+    langs: ["markdown"],
+  });
+
   monaco.languages.register({ id: "markdown" });
   shikiToMonaco(highlighter, monaco);
 
@@ -85,11 +86,11 @@ onMounted(() => {
   editor.value?.onDidDispose(() => {
     editorDecorations.value?.clear();
   });
+});
 
-  onUnmounted(() => {
-    window.removeEventListener("resize", onWindowResize);
-    editor.value?.dispose();
-  });
+onUnmounted(() => {
+  window.removeEventListener("resize", onWindowResize);
+  editor.value?.dispose();
 });
 </script>
 

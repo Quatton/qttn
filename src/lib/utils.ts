@@ -1,4 +1,3 @@
-import { site } from "@/config/site";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

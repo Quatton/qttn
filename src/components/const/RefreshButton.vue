@@ -7,17 +7,14 @@ import { actions } from "astro:actions";
 
 const code = useLocalStorage("const:code", "");
 
-const {
-  error,
-  state: words,
-  isLoading,
-  execute,
-} = useAsyncState(
+const { error, isLoading, execute } = useAsyncState(
   async () => {
-    return await actions.constAction.new.orThrow(undefined);
+    return await actions.constAction.new.orThrow({
+      new: true,
+    });
   },
   undefined,
-  { immediate: true },
+  { immediate: false },
 );
 
 const reset = async () => {
