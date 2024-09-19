@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import type {
-  CompressedWord,
-  GameSession,
-  WordAndDefinition,
-} from "@/lib/const/rules";
+import type { CompressedWord } from "@/lib/const/rules";
 import { Icon } from "@iconify/vue";
 import { actions } from "astro:actions";
 import { ref } from "vue";
@@ -122,7 +118,7 @@ const modal = {
                   <td>
                     <ul>
                       <template v-for="(def, i) in meaning.definitions">
-                        <li class="mb-4">
+                        <li :class="{ 'mt-2': i > 0 }">
                           <p>{{ def.definition }}</p>
                           <p v-if="def.example" class="mt-2">
                             <span class="badge badge-ghost">Example</span>

@@ -26,7 +26,9 @@ export default defineConfig({
 		}),
 		svelte(),
 		icon(),
-		vue(),
+		vue({
+			appEntrypoint: "./src/entrypoint/vue.ts",
+		}),
 		vtbot(),
 	],
 	output: "server",

@@ -1,4 +1,5 @@
 ---
+import MonacoEditor from "@/components/const/MonacoEditor.vue";
 import WordBar from "@/components/const/WordBar.vue";
 import Layout from "@/layouts/Layout.astro";
 import type { GameSession } from "@/lib/const/rules";
@@ -30,51 +31,11 @@ const words = gameSession.words;
     class="max-w-full h-screen pt-16 container mx-auto flex justify-center items-center"
   >
     <section class="flex flex-col max-w-3xl gap-8">
-      <WordBar words={words} client:load />
+      <WordBar words={words} client:only="vue" />
 
-      <div class="*:h-96 rounded-xl shadow overflow-clip">
-        <div id="monaco__editor"></div>
+      <div class="h-96 rounded-xl shadow overflow-clip">
+        <MonacoEditor client:only="vue" />
       </div>
     </section>
   </main>
 </Layout>
-
-<script>
-  import { shikiToMonaco } from "@shikijs/monaco";
-  import * as monaco from "monaco-editor";
-  import { createHighlighter } from "shiki";
-  import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
-
-  const highlighter = await createHighlighter({
-    themes: ["vitesse-dark"],
-    langs: ["markdown"],
-  });
-
-  monaco.languages.register({ id: "markdown" });
-
-  shikiToMonaco(highlighter, monaco);
-
-  const options: monaco.editor.IStandaloneEditorConstructionOptions = {
-    language: "markdown",
-    fontFamily: "Geist Mono",
-    fontSize: 18,
-    wordBasedSuggestions: "off",
-    minimap: { enabled: false },
-    lineNumbers: "off",
-    padding: { top: 16, bottom: 16 },
-    placeholder: "Write your story here...",
-    scrollBeyondLastLine: false,
-  };
-
-  self.MonacoEnvironment = {
-    getWorker(_, label) {
-      return new editorWorker();
-    },
-  };
-
-  const editor = monaco.editor.create(
-    document.getElementById("monaco__editor")!,
-    options,
-  );
-  document.addEventListener("astro:page-load", () => {});
-</script>
