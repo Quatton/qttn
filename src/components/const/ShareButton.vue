@@ -2,7 +2,7 @@
 import { Icon } from "@iconify/vue";
 import { toPng } from "html-to-image";
 import { ref } from "vue";
-
+import { alphabet, generateRandomString } from "oslo/crypto";
 const loading = ref(false);
 
 async function share() {
@@ -12,17 +12,27 @@ async function share() {
   loading.value = true;
   el.style.width = "360px";
   el.style.height = "640px";
-  await toPng(el).then((dataUrl) => {
-    const link = document.createElement("a");
-    link.download = "share.png";
-    link.href = dataUrl;
-
-    link.click();
-  });
-
+  const dataUrl = await toPng(el);
   el.style.width = "";
   el.style.height = "";
   loading.value = false;
+
+  const id = generateRandomString(16, alphabet("a-z", "0-9"));
+
+  const file = new File([dataUrl], `${id}.png`, {
+    type: "image/png",
+    lastModified: Date.now(),
+  });
+
+  const shareData = {
+    title: `Const: ${id}`,
+    files: [file],
+  };
+
+  if (navigator.canShare?.(shareData)) {
+    await navigator.share(shareData);
+    return;
+  }
 }
 </script>
 
