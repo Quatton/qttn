@@ -27,3 +27,4 @@ pnpm-debug.log*
 
 dump.sql
 local.db*
+upload_dump.sh

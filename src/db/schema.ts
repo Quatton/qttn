@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type { InferSelectModel } from "drizzle-orm";
 
-const now = sql`(unixepoch())`;
+export const now = sql`(unixepoch())`;
 export const Words = sqliteTable("words", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").unique().notNull(),

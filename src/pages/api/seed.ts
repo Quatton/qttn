@@ -1,5 +1,5 @@
 import { db } from "@/db/drizzle";
-import { Words } from "@/db/schema";
+import { now, Words } from "@/db/schema";
 import type { EndpointHandler } from "astro";
 import { count, eq, sql } from "drizzle-orm";
 
@@ -14,7 +14,7 @@ export const GET: EndpointHandler["GET"] = async (ctx) => {
 
   const words = (
     await fetch(
-      "https://raw.githubusercontent.com/first20hours/google-10000-english/refs/heads/master/google-10000-english-usa-no-swears-medium.txt",
+      "https://raw.githubusercontent.com/first20hours/google-10000-english/refs/heads/master/google-10000-english-no-swears.txt",
     ).then(async (res) => res.text())
   ).split("\n");
 
@@ -56,10 +56,7 @@ export const GET: EndpointHandler["GET"] = async (ctx) => {
         .onConflictDoUpdate({
           target: [Words.name],
           set: {
-            sampled_count: sql`${Words.sampled_count} + 100`,
-            success_count: sql`${Words.success_count} + 100`,
-            rejected_rate: sql`${Words.rejected_count} / (${Words.sampled_count} + 100)`,
-            success_rate: sql`(${Words.success_count} + 100) / (${Words.sampled_count} + 100)`,
+            created_at: now,
           },
         })
         .then((res) => res.rowsAffected),
