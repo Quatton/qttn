@@ -1,4 +1,5 @@
 import type { MiddlewareHandler } from "astro";
+import { site } from "./config/site";
 
 const subdomains = ["const"];
 const ignorePattern = /\/api|\/[^/]+\.[^/]+|\/_actions/;
@@ -9,18 +10,17 @@ export const onRequest: MiddlewareHandler = (context, next) => {
   if (context.url.pathname.match(ignorePattern)) {
     return next();
   }
-
   // okay, now check if the it's the subdomain in `subdomains` array
   // if it is, then we will rewrite to /app/[subdomain]
-  const parts = context.url.hostname.split(".");
-  const pathnames = context.url.pathname.split("/").slice(1);
+  const [subdomain, ...rest] = context.url.host.split(".");
+  const pathnames = context.url.pathname
+    .replace(`/app/${subdomain}`, "")
+    .split("/");
 
-  if (
-    subdomains.includes(parts[0]) &&
-    context.url.pathname.split("/")[0] !== "app"
-  ) {
-    const pathname = pathnames.join("/").replace(`/app/${parts[0]}`, "");
-    const url = `http${import.meta.env.DEV ? "" : "s"}://${import.meta.env.PUBLIC_BASE_URL}/app/${parts[0]}/${pathname}`;
+  if (subdomains.includes(subdomain)) {
+    const pathname = pathnames.join("/").replace(/^\/+|\/$/, "");
+    const url = `${site.url.protocol}://${rest.join(".")}/app/${subdomain}/${pathname}`;
+    console.log(url);
     return context.rewrite(url);
   }
 
