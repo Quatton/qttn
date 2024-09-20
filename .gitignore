@@ -26,3 +26,4 @@ pnpm-debug.log*
 .env*.local
 
 dump.sql
+local.db*
