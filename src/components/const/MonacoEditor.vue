@@ -46,39 +46,44 @@ onMounted(async () => {
   editor.value.onDidChangeModelContent((e) => {
     code.value = editor.value?.getValue() ?? "";
 
-    const matches = editor.value
-      ?.getModel()
-      ?.findMatches(
-        $words.value.map((word) => word.name).join("|"),
-        true,
-        true,
-        false,
-        " ",
-        true,
-      );
+    const matches = editor.value?.getModel()?.findMatches(
+      `(${Object.values($words.value)
+        .map((word) => word.name)
+        .join("|")})[,.!?]?`,
+      true,
+      true,
+      false,
+      " ",
+      true,
+    );
 
     editorDecorations.value?.clear();
 
-    editorDecorations.value =
-      editor.value?.createDecorationsCollection(
-        matches?.map((match) => ({
-          range: match.range,
-          options: {
-            isWholeLine: false,
-            inlineClassName: "bracket-highlighting-1",
-          },
-        })),
-      ) ?? null;
+    console.log(matches);
 
-    const wordMatches = $words.value.map((word) => {
-      return {
-        ...word,
-        match:
-          (matches?.findIndex((match) => match.matches?.[0] === word.name) ??
-            -1) !== -1,
-      };
-    });
-    wordStore.set(wordMatches);
+    if (matches) {
+      editorDecorations.value =
+        editor.value?.createDecorationsCollection(
+          matches.map((match) => ({
+            range: match.range,
+            options: {
+              isWholeLine: false,
+              inlineClassName: "bracket-highlighting-1",
+            },
+          })),
+        ) ?? null;
+    }
+
+    for (const id in $words.value) {
+      const match = matches?.find(
+        (m) =>
+          m.matches?.[1].toLowerCase() === $words.value[id].name.toLowerCase(),
+      );
+      wordStore.setKey(id, {
+        ...$words.value[id],
+        match: !!match,
+      });
+    }
 
     window.addEventListener("resize", onWindowResize);
   });

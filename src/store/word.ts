@@ -1,4 +1,13 @@
 import type { CompressedWordWithMatch } from "@/lib/const/rules";
-import { atom } from "nanostores";
+import { atom, deepMap } from "nanostores";
 
-export const wordStore = atom<CompressedWordWithMatch[]>([]);
+export const wordStore = deepMap<
+  Record<
+    string,
+    {
+      id: number;
+      name: string;
+      match: boolean;
+    }
+  >
+>({});

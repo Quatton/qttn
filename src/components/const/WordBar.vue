@@ -7,7 +7,7 @@ import { Icon } from "@iconify/vue";
 import { actions } from "astro:actions";
 import { computed, onMounted, ref, toRef, watch } from "vue";
 import { useAutoAnimate } from "@formkit/auto-animate/vue";
-import { useAsyncState } from "@vueuse/core";
+import { reactiveComputed, useAsyncState } from "@vueuse/core";
 import { useStore } from "@nanostores/vue";
 import { wordStore } from "@/store/word";
 
@@ -15,25 +15,18 @@ const $props = defineProps<{
   words: CompressedWord[];
 }>();
 
-const $wordMatches = useStore(wordStore);
-const wordsRef = computed({
-  get: () => [...$wordMatches.value] as CompressedWordWithMatch[],
-  set: (value) => {
-    wordStore.set(value);
-  },
-});
-
-const updateWord = (word: CompressedWord, idx: number) => {
-  wordsRef.value[idx] = {
+const wordsRef = useStore(wordStore);
+const updateWord = (idx: number | string, word: CompressedWord) => {
+  wordStore.setKey(`${idx}`, {
     ...word,
     match: false,
-  };
+  });
 };
 
-const isLoading = ref<number | false>(false);
+const isLoading = ref<string | number | false>(false);
 
 const swapOutWord = async (
-  idx: number,
+  idx: number | string,
   reason: "difficult" | "notAWord" | "inappropriate",
 ) => {
   isLoading.value = idx;
@@ -42,7 +35,7 @@ const swapOutWord = async (
     reason,
   });
   if (data) {
-    updateWord(data, idx);
+    updateWord(idx, data);
     isLoading.value = false;
   }
 };
@@ -69,21 +62,23 @@ const defineWord = (word: string) => {
 const [parent] = useAutoAnimate();
 
 const modal = {
-  showModal: (idx: number) => {
+  showModal: (idx: number | string) => {
     (
       document.getElementById(`definition-${idx}`) as HTMLDialogElement
     ).showModal();
   },
-  close: (idx: number) => {
+  close: (idx: number | string) => {
     (document.getElementById(`definition-${idx}`) as HTMLDialogElement).close();
   },
 };
 
 onMounted(() => {
-  wordsRef.value = $props.words.map((word) => ({
-    ...word,
-    match: false,
-  }));
+  $props.words.forEach((word, idx) => {
+    wordStore.setKey(`${idx}`, {
+      ...word,
+      match: false,
+    });
+  });
 });
 </script>
 
@@ -93,11 +88,11 @@ onMounted(() => {
     ref="parent"
   >
     <div
-      v-for="(word, idx) in wordsRef"
+      v-for="[idx, word] in Object.entries(wordsRef)"
       :key="word.id"
       class="border rounded-full flex items-center gap-2 p-2 bg-base-100"
       :class="{
-        'bg-green-200': !!$wordMatches?.[idx]?.match,
+        'bg-green-200': !!wordsRef[idx]?.match,
       }"
     >
       <div class="dropdown">
@@ -135,8 +130,8 @@ onMounted(() => {
       >
         <Icon icon="heroicons:book-open" />
       </button>
-      <dialog class="modal max-w-" :id="`definition-${idx}`">
-        <div class="modal-box space-y-4 pt-8">
+      <dialog class="modal" :id="`definition-${idx}`">
+        <div class="modal-box space-y-4 pt-8 h-96 flex flex-col">
           <button
             class="btn btn-ghost btn-circle btn-sm text-lg btn-error absolute top-2 left-2"
             aria-label="Close"
@@ -146,26 +141,35 @@ onMounted(() => {
           </button>
           <h1 class="text-2xl">{{ word.name }}</h1>
           <div
+            class="flex-1 min-h-0 flex flex-col"
             v-if="definitions && definitions.length > 0"
             v-for="definition in definitions.slice(0, 1)"
           >
             <p class="text-muted-content">
               {{ definition.phonetic }}
             </p>
-            <div class="max-h-64 overflow-y-scroll">
-              <table class="table max-sm:table-xs table-pin-rows">
+            <div class="flex-1 min-h-0 overflow-y-scroll">
+              <table class="sticky table max-sm:table-xs table-pin-rows">
                 <thead>
                   <tr>
                     <th>Part of Speech</th>
-                    <th>Definition</th>
+                    <th>Definitions</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr v-for="meaning in definition.meanings">
-                    <td>{{ meaning.partOfSpeech }}</td>
-                    <td>
-                      <ul>
-                        <template v-for="(def, i) in meaning.definitions">
+              </table>
+              <table class="table max-sm:table-xs table-pin-rows">
+                <template v-for="meaning in definition.meanings">
+                  <thead>
+                    <tr>
+                      <th>{{ meaning.partOfSpeech }}</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(def, i) in meaning.definitions">
+                      <td></td>
+                      <td>
+                        <ul>
                           <li :class="{ 'mt-2': i > 0 }">
                             <p>{{ def.definition }}</p>
                             <p v-if="def.example" class="mt-2">
@@ -173,23 +177,20 @@ onMounted(() => {
                               {{ def.example }}
                             </p>
                           </li>
-                          <div
-                            v-if="i < meaning.definitions.length - 1"
-                            class="divider my-2"
-                          ></div>
-                        </template>
-                      </ul>
-                    </td>
-                  </tr>
-                </tbody>
+                        </ul>
+                      </td>
+                    </tr>
+                  </tbody>
+                </template>
               </table>
             </div>
           </div>
-          <div v-else-if="definitionLoading">
-            <div class="skeleton w-full h-10"></div>
-          </div>
-          <div v-else>
-            <div colspan="2" class="text-center">No definition found</div>
+          <div
+            class="skeleton w-full h-full"
+            v-else-if="definitionLoading"
+          ></div>
+          <div class="text-center h-full pt-28" v-else>
+            (No definition found)
           </div>
         </div>
         <form method="dialog" class="modal-backdrop">
