@@ -1,7 +1,7 @@
 import { db } from "@/db/drizzle";
 import { Words } from "@/db/schema";
 import type { EndpointHandler } from "astro";
-import { count } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 
 export const GET: EndpointHandler["GET"] = async (ctx) => {
   if (
@@ -14,7 +14,7 @@ export const GET: EndpointHandler["GET"] = async (ctx) => {
 
   const words = (
     await fetch(
-      "https://raw.githubusercontent.com/meetDeveloper/freeDictionaryAPI/refs/heads/master/meta/wordList/english.txt",
+      "https://raw.githubusercontent.com/first20hours/google-10000-english/refs/heads/master/google-10000-english-usa-no-swears-medium.txt",
     ).then(async (res) => res.text())
   ).split("\n");
 
@@ -35,15 +35,38 @@ export const GET: EndpointHandler["GET"] = async (ctx) => {
   };
 
   let rowsAffected = 0;
-  const wordChunks = workChunker(words, 1000).slice(0, 0);
+  const wordChunks: string[][] = [];
+  // const wordChunks = workChunker(words, 1000);
 
-  for (const chunk of wordChunks) {
-    const result = await db
-      .insert(Words)
-      .values(chunk.map((name) => ({ name, is_phrase: name.includes(" ") })))
-      .onConflictDoNothing();
-    rowsAffected += result.rowsAffected;
-  }
+  const rowsAffecteds = await Promise.all(
+    wordChunks.map(async (chunk) =>
+      db
+        .insert(Words)
+        .values(
+          chunk.map((name) => ({
+            name,
+            is_phrase: name.includes(" "),
+            sampled_count: 100,
+            success_count: 100,
+            rejected_count: 0,
+            rejected_rate: 0,
+            success_rate: 0,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [Words.name],
+          set: {
+            sampled_count: sql`${Words.sampled_count} + 100`,
+            success_count: sql`${Words.success_count} + 100`,
+            rejected_rate: sql`${Words.rejected_count} / (${Words.sampled_count} + 100)`,
+            success_rate: sql`(${Words.success_count} + 100) / (${Words.sampled_count} + 100)`,
+          },
+        })
+        .then((res) => res.rowsAffected),
+    ),
+  );
+
+  rowsAffected = rowsAffecteds.reduce((acc, cur) => acc + cur, 0);
 
   const res = await db
     .select({ count: count() })
@@ -56,6 +79,7 @@ export const GET: EndpointHandler["GET"] = async (ctx) => {
       rowsAffected,
       wordWithSpaceCount,
       count: totalWords,
+      words: words.slice(0, 100),
     }),
     {
       headers: {
