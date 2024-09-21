@@ -23,7 +23,9 @@ export default defineConfig({
 		vtbot(),
 	],
 	output: "server",
-	adapter: vercel(),
+	adapter: vercel({
+		edgeMiddleware: true,
+	}),
 	vite: {
 		ssr: {
 			noExternal: ["monaco-editor"],
