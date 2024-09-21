@@ -83,7 +83,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex gap-2 @sm:gap-4 flex-wrap justify-center" ref="parent">
+  <div
+    class="min-h-48 flex gap-2 @sm:gap-4 flex-wrap justify-center"
+    ref="parent"
+  >
     <div
       v-for="[idx, word] in Object.entries(wordsRef)"
       :key="word.id"

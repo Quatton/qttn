@@ -9,23 +9,34 @@ import RefreshButton from "@/components/const/RefreshButton.vue";
 
 const cookie = Astro.cookies.get("const:session")?.json();
 
-let gameSession =
+const game =
   (cookie as GameSession) ??
   ({
     rules: ["useGivenWords"],
     words: [],
   } as GameSession);
 
-if (gameSession.words.length < 10) {
-  gameSession.words = await Astro.callAction(
-    actions.constAction.words.orThrow,
+if (!cookie || game.words.length < 10) {
+  game.words = await Astro.callAction(actions.constAction.words.orThrow, {
+    max: 10,
+  });
+
+  Astro.cookies.set(
+    "const:session",
     {
-      max: 10,
+      ...game,
+      words: game.words.slice(0, 10),
+    },
+    {
+      // expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      path: "/",
+      // domain: `${Astro.url.hostname}`,
+      // secure: import.meta.env.PROD,
     },
   );
 }
 
-const words = gameSession.words;
+const words = game.words;
 ---
 
 <Layout title="const!">

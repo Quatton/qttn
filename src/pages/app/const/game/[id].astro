@@ -1,0 +1,35 @@
+---
+import MonacoEditor from "@/components/const/MonacoEditor.vue";
+import RefreshButton from "@/components/const/RefreshButton.vue";
+import ShareButton from "@/components/const/ShareButton.vue";
+import WordBar from "@/components/const/WordBar.vue";
+import Layout from "@/layouts/Layout.astro";
+
+const words: any[] = [];
+---
+
+<Layout title="const!">
+  <main
+    class="min-h-[100dvh] max-w-6xl mx-auto flex justify-center items-center"
+  >
+    <section
+      class="w-full flex flex-col items-center justify-center max-w-3xl animate-fade animate-once"
+    >
+      <div
+        id="photoframe"
+        class="w-full space-y-6 px-4 pt-16 pb-8 bg-base-100 @container-normal"
+      >
+        <WordBar words={words} client:only="vue" />
+        <div
+          class="h-64 md:h-72 rounded-xl shadow overflow-hidden bg-neutral w-[min(90%,64rem)] mx-auto"
+        >
+          <MonacoEditor client:only="vue" />
+        </div>
+      </div>
+      <div class="flex gap-4">
+        <RefreshButton client:only="vue" />
+        <ShareButton client:only="vue" />
+      </div>
+    </section>
+  </main>
+</Layout>
