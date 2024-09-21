@@ -45,7 +45,7 @@ async function share() {
 
 <template>
   <div
-    class="fixed inset-0 animate-fade bg-white animate-duration-75"
+    class="fixed z-50 inset-0 animate-fade bg-white animate-duration-75"
     v-if="loading"
   />
 
