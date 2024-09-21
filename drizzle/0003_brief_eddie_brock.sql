@@ -1,0 +1,1 @@
+ALTER TABLE `words` ADD `updated_at` integer DEFAULT (unixepoch()) NOT NULL;--> statement breakpoint
