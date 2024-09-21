@@ -153,50 +153,60 @@ export const game = {
       }),
     handler: async (input, ctx) => {
       fiveSecond(ctx);
-      console.log("handling");
 
       const existingGame: GameSession = ctx.cookies
         .get("const:session")
         ?.json();
-      console.log("handling");
 
       if (existingGame) {
         if (!input.new) {
           return existingGame.id;
         }
       }
-      console.log("handling");
 
-      const [{ id }] = await db.insert(Games).values({}).returning({
-        id: Games.id,
-      });
-      console.log("handling");
+      return await db
+        .transaction(async (db) => {
+          const [{ id }] = await db.insert(Games).values({}).returning({
+            id: Games.id,
+          });
 
-      const words = await generateWords(input.maxWords);
+          const words = await generateWords(input.maxWords);
 
-      await db.insert(GameWords).values(
-        words.map((word, index) => ({
-          game_id: id,
-          word_id: word.id,
-          index,
-        })),
-      );
-      console.log("handling");
+          await db
+            .insert(GameWords)
+            .values(
+              words.map((word, index) => ({
+                game_id: id,
+                word_id: word.id,
+                index,
+              })),
+            )
+            .catch((_) => {
+              db.rollback();
+              throw new ActionError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to insert words",
+              });
+            });
 
-      ctx.cookies.set(
-        "const:session",
-        JSON.stringify({
-          id,
-        }),
-        {
-          expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-          path: "/",
-          domain: `.${ctx.url.hostname}`,
-          secure: import.meta.env.PROD,
-        },
-      );
+          ctx.cookies.set(
+            "const:session",
+            JSON.stringify({
+              id,
+            }),
+            {
+              expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+              path: "/",
+              domain: `.${ctx.url.hostname}`,
+              secure: import.meta.env.PROD,
+            },
+          );
 
-      return id;
+          return id;
+        })
+        .catch((e) => {
+          throw e;
+        });
     },
   }),
   words: defineAction({
@@ -206,7 +216,55 @@ export const game = {
     handler: async (input, ctx) => {
       fivePerFiveSeconds(ctx);
 
-      return generateWords(input.max);
+      const gameSession = ctx.cookies
+        .get("const:session")
+        ?.json() as GameSession;
+
+      if (!gameSession) {
+        throw new ActionError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      const { id } = gameSession;
+
+      return await db
+        .transaction(async (db) => {
+          const words = await generateWords(input.max);
+
+          await db
+            .delete(GameWords)
+            .where(eq(GameWords.game_id, id))
+            .catch((_) => {
+              throw new ActionError({
+                code: "NOT_FOUND",
+                message: "Game not found",
+              });
+            });
+
+          await db
+            .insert(GameWords)
+            .values(
+              words.map((word, index) => ({
+                game_id: id,
+                word_id: word.id,
+                index,
+              })),
+            )
+            .catch((_) => {
+              db.rollback();
+              throw new ActionError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to insert words",
+              });
+            });
+
+          return words;
+        })
+        .catch((e) => {
+          throw e;
+        });
     },
   }),
   swapOut: defineAction({
@@ -230,69 +288,93 @@ export const game = {
 
       const { id } = gameSession;
 
-      const [{ index }] = await db
-        .delete(GameWords)
-        .where(
-          and(eq(GameWords.game_id, id), eq(GameWords.word_id, input.wordId)),
-        )
-        .returning({
-          index: GameWords.index,
-        })
-        .catch((_) => {
-          throw new ActionError({
-            code: "NOT_FOUND",
-            message: "Word not found",
-          });
-        });
-
-      await db
-        .update(Words)
-        .set({
-          rejected_count: sql`${Words.rejected_count} + 1`,
-          rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / ${Words.sampled_count}`,
-          likely_not_a_word_count:
-            input.reason === "notAWord"
-              ? sql`${Words.likely_not_a_word_count} + 1`
-              : undefined,
-          inappropriate_count:
-            input.reason === "inappropriate"
-              ? sql`${Words.inappropriate_count} + 1`
-              : undefined,
-        })
-        .where(eq(Words.id, input.wordId))
-        .catch((e) => {
-          if (e instanceof LibsqlError) {
-            throw new ActionError({
-              code: "NOT_FOUND",
-              message: "Word not found",
+      return await db
+        .transaction(async (db) => {
+          const [{ index }] = await db
+            .delete(GameWords)
+            .where(
+              and(
+                eq(GameWords.game_id, id),
+                eq(GameWords.word_id, input.wordId),
+              ),
+            )
+            .returning({
+              index: GameWords.index,
+            })
+            .catch((_) => {
+              throw new ActionError({
+                code: "NOT_FOUND",
+                message: "Word not found",
+              });
             });
-          }
-        });
 
-      const [newWord] = await db
-        .select({
-          id: Words.id,
-          name: Words.name,
+          await db
+            .update(Words)
+            .set({
+              rejected_count: sql`${Words.rejected_count} + 1`,
+              rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / ${Words.sampled_count}`,
+              likely_not_a_word_count:
+                input.reason === "notAWord"
+                  ? sql`${Words.likely_not_a_word_count} + 1`
+                  : undefined,
+              inappropriate_count:
+                input.reason === "inappropriate"
+                  ? sql`${Words.inappropriate_count} + 1`
+                  : undefined,
+            })
+            .where(eq(Words.id, input.wordId))
+            .catch((e) => {
+              db.rollback();
+              throw new ActionError({
+                code: "NOT_FOUND",
+                message: "Word not found",
+              });
+            });
+
+          const [newWord] = await db
+            .select({
+              id: Words.id,
+              name: Words.name,
+            })
+            .from(Words)
+            .where(
+              and(
+                gte(Words.success_rate, 0),
+                eq(Words.likely_not_a_word_count, 0),
+                eq(Words.inappropriate_count, 0),
+                gte(Words.sampled_count, 100),
+              ),
+            )
+            .orderBy(asc(Words.rejected_rate), asc(sql`RANDOM()`))
+            .limit(1)
+            .catch((e) => {
+              db.rollback();
+              throw new ActionError({
+                code: "NOT_FOUND",
+                message: "Word not found",
+              });
+            });
+
+          await db
+            .insert(GameWords)
+            .values({
+              game_id: id,
+              word_id: newWord.id,
+              index,
+            })
+            .catch((e) => {
+              db.rollback();
+              throw new ActionError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to insert word",
+              });
+            });
+
+          return newWord;
         })
-        .from(Words)
-        .where(
-          and(
-            gte(Words.success_rate, 0),
-            eq(Words.likely_not_a_word_count, 0),
-            eq(Words.inappropriate_count, 0),
-            gte(Words.sampled_count, 100),
-          ),
-        )
-        .orderBy(asc(Words.rejected_rate), asc(sql`RANDOM()`))
-        .limit(1);
-
-      await db.insert(GameWords).values({
-        game_id: id,
-        word_id: newWord.id,
-        index,
-      });
-
-      return newWord;
+        .catch((e) => {
+          throw e;
+        });
     },
   }),
   dictionary: defineAction({
