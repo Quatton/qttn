@@ -54,7 +54,6 @@ async function generateWords(limit: number) {
       sampled_count: sql`${Words.sampled_count} + 1`,
       rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / (${Words.sampled_count} + 1)`,
       success_rate: sql`CAST (${Words.success_count} as REAL) / (${Words.sampled_count} + 1)`,
-      updated_at: now,
     })
     .where(
       inArray(
@@ -215,7 +214,6 @@ export const game = {
             input.reason === "inappropriate"
               ? sql`${Words.inappropriate_count} + 1`
               : undefined,
-          updated_at: now,
         })
         .where(eq(Words.id, word.id));
 
