@@ -38,7 +38,6 @@ async function generateWords(limit: number) {
 
   const _t = [...words.slice(0, eighty), ...words.slice(words.length - twenty)];
 
-  console.table(_t);
   const t = _t.map((word) => ({
     id: word.id,
     name: word.name,
