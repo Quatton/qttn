@@ -62,3 +62,12 @@ const words: CompressedWordWithMatch[] = game.gameToWords.map((g) => ({
     </section>
   </main>
 </Layout>
+
+<script>
+  const id = window.location.pathname.split("/").pop();
+  const pastGames = JSON.parse(localStorage.getItem("const:games") ?? "[]");
+  if (id && !pastGames.includes(id)) {
+    pastGames.push(id);
+    localStorage.setItem("const:games", JSON.stringify(pastGames));
+  }
+</script>

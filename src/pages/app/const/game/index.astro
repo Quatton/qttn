@@ -233,6 +233,12 @@ if (result) {
   const form = document.querySelector("form");
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const pastGames = JSON.parse(localStorage.getItem("const:games") ?? "[]");
+    const pastGame = localStorage.getItem("const:session");
+    if (pastGame) {
+      pastGames.push(pastGame);
+      localStorage.setItem("const:games", JSON.stringify(pastGames));
+    }
     const { data } = await actions.constAction.new({});
     if (data) navigate(`/game/${data}`);
   });
