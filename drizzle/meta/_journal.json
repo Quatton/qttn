@@ -22,6 +22,13 @@
       "when": 1726781569517,
       "tag": "0002_loving_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1726916500754,
+      "tag": "0003_brief_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

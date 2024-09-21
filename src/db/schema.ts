@@ -9,6 +9,9 @@ export const Words = sqliteTable("words", {
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(now),
+  updated_at: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(now),
   sampled_count: integer("sampled_count").notNull().default(0),
   rejected_count: integer("rejected_count").notNull().default(0),
   success_count: integer("success_count").notNull().default(0),
