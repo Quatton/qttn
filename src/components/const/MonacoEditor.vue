@@ -108,6 +108,8 @@ onMounted(async () => {
     window.addEventListener("resize", onWindowResize);
   });
 
+  editor.value.setValue(code.value);
+
   editor.value?.onDidDispose(() => {
     editorDecorations.value?.clear();
   });
