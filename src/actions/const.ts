@@ -18,7 +18,12 @@ async function generateWords(limit: number) {
       .from(Words)
       .orderBy(asc(sql`RANDOM()`))
       .where(
-        and(gte(Words.success_rate, 0), eq(Words.likely_not_a_word_count, 0)),
+        and(
+          gte(Words.success_rate, 0),
+          eq(Words.likely_not_a_word_count, 0),
+          eq(Words.inappropriate_count, 0),
+          gte(Words.sampled_count, 100),
+        ),
       )
       .limit(limit * 5),
   );
@@ -218,13 +223,15 @@ export const game = {
           name: Words.name,
         })
         .from(Words)
-        .orderBy(
-          asc(Words.inappropriate_count),
-          asc(Words.likely_not_a_word_count),
-          asc(Words.sampled_count),
-          asc(Words.rejected_rate),
-          asc(sql`RANDOM()`),
+        .where(
+          and(
+            gte(Words.success_rate, 0),
+            eq(Words.likely_not_a_word_count, 0),
+            eq(Words.inappropriate_count, 0),
+            gte(Words.sampled_count, 100),
+          ),
         )
+        .orderBy(asc(Words.rejected_rate), asc(sql`RANDOM()`))
         .limit(1);
 
       const newWords = words.map((w) => (w.id === input.wordId ? newWord : w));
