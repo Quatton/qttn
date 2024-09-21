@@ -1,0 +1,28 @@
+---
+import Layout from "@/layouts/Layout.astro";
+
+const params = Astro.params;
+const splitted = params.catch?.split("/") ?? [];
+const comma =
+  splitted.length >= 2 && splitted[0] === "app"
+    ? splitted.slice(2).join(", ")
+    : "";
+---
+
+<Layout>
+  <main class="h-[100dvh] pt-16 container mx-auto">
+    <section class="max-w-3xl py-32 px-8 prose">
+      <h1>Hi</h1>
+      <p>the page you're looking at is made to fix my rewriting bugs</p>
+      <p></p>
+      basically vercel (for astro) decided not to care about the rewritten urls if
+      it was not found in the first place. so it doesn't go into the middleware and
+      doesn't get rewritten. so i just made sure that every page is there (here)
+      and it works now.
+
+      <p>
+        we might get a change to make {comma} in the future so stay tuned!
+      </p>
+    </section>
+  </main>
+</Layout>
