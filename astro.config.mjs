@@ -10,25 +10,25 @@ import vtbot from "astro-vtbot";
 
 // https://astro.build/config
 export default defineConfig({
-	site: import.meta.env.DEV
-		? `http://${process.env.BASE_URL}`
-		: `https://${process.env.BASE_URL}`,
-	integrations: [
-		tailwind(),
-		svelte(),
-		icon(),
-		vue({
-			appEntrypoint: "./src/entrypoint/vue.ts",
-		}),
-		vtbot(),
-	],
-	output: "server",
-	adapter: vercel({
-		webAnalytics: { enabled: true },
-	}),
-	vite: {
-		ssr: {
-			noExternal: ["monaco-editor"],
-		},
-	},
+  site: import.meta.env.DEV
+    ? `http://${process.env.BASE_URL}`
+    : `https://${process.env.BASE_URL}`,
+  integrations: [
+    tailwind(),
+    svelte(),
+    icon(),
+    vue({
+      appEntrypoint: "./src/entrypoint/vue.ts",
+    }),
+    vtbot(),
+  ],
+  output: "server",
+  adapter: vercel({
+    webAnalytics: { enabled: true },
+  }),
+  vite: {
+    ssr: {
+      noExternal: ["monaco-editor"],
+    },
+  },
 });
