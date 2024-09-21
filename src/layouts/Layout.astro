@@ -31,21 +31,21 @@ const baseRoute = app[1]?.split("/")[1];
   </head>
   <body class="overflow-x-hidden bg-base-100">
     <header
-      class="fixed z-50 w-screen h-16 px-6 py-4 border-b shadow flex items-center gap-4 glass"
+      class="glass fixed z-50 flex h-16 w-screen items-center gap-4 border-b px-6 py-4 shadow"
     >
       <a
         href={`${site.url.full}`}
-        class="transition-all hover:-translate-y-1 text-2xl font-semibold font-serif"
+        class="font-serif text-2xl font-semibold transition-all hover:-translate-y-1"
       >
         <span>{site.title}</span>
       </a>
       {
         baseRoute && (
           <>
-            <div class="border-content border-l-2 h-6" />
+            <div class="h-6 border-l-2 border-content" />
             <a
               href={getAppHref(baseRoute)}
-              class="transition-all hover:-translate-y-1 text-xl font-semibold"
+              class="text-xl font-semibold transition-all hover:-translate-y-1"
             >
               <span>{title}</span>
             </a>
