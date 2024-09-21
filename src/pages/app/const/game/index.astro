@@ -1,66 +1,235 @@
 ---
-import MonacoEditor from "@/components/const/MonacoEditor.vue";
-import WordBar from "@/components/const/WordBar.vue";
+import WordBadge from "@/components/const/WordBadge.vue";
 import Layout from "@/layouts/Layout.astro";
-import type { GameSession } from "@/lib/const/rules";
+import type { Definition } from "@/lib/const/dictionary";
+import type { CompressedWordWithMatch, GameSession } from "@/lib/const/rules";
 import { actions } from "astro:actions";
-import ShareButton from "@/components/const/ShareButton.vue";
-import RefreshButton from "@/components/const/RefreshButton.vue";
 
-const cookie = Astro.cookies.get("const:session")?.json();
+const cookie: GameSession | undefined = Astro.cookies
+  .get("const:session")
+  ?.json();
 
-const game =
-  (cookie as GameSession) ??
-  ({
-    rules: ["useGivenWords"],
-    words: [],
-  } as GameSession);
+const words: CompressedWordWithMatch[] = [
+  {
+    id: 16399,
+    name: "constrained",
+    match: false,
+  },
+  {
+    id: 103172,
+    name: "writing",
+    match: false,
+  },
+];
 
-if (!cookie || game.words.length < 10) {
-  game.words = await Astro.callAction(actions.constAction.words.orThrow, {
-    max: 10,
-  });
+const definitions: Definition[] = [
+  {
+    word: "constrained",
+    phonetic: "/kənˈstɹeɪnd/",
+    phonetics: [
+      {
+        text: "/kənˈstɹeɪnd/",
+        audio: "",
+      },
+    ],
+    meanings: [
+      {
+        partOfSpeech: "verb",
+        definitions: [
+          {
+            definition:
+              "To force physically, by strong persuasion or pressuring; to compel; to oblige.",
+            synonyms: [],
+            antonyms: [],
+          },
+          {
+            definition: "To keep within close bounds; to confine.",
+            synonyms: [],
+            antonyms: [],
+          },
+          {
+            definition: "To reduce a result in response to limited resources.",
+            synonyms: [],
+            antonyms: [],
+          },
+        ],
+        synonyms: [],
+        antonyms: [],
+      },
+      {
+        partOfSpeech: "adjective",
+        definitions: [
+          {
+            definition: "Kept within close bounds; confined.",
+            synonyms: [],
+            antonyms: [],
+          },
+          {
+            definition: "Forced; compelled.",
+            synonyms: [],
+            antonyms: [],
+          },
+        ],
+        synonyms: [],
+        antonyms: [],
+      },
+    ],
 
-  Astro.cookies.set(
-    "const:session",
-    {
-      ...game,
-      words: game.words.slice(0, 10),
+    license: {
+      name: "CC BY-SA 3.0",
+      url: "https://creativecommons.org/licenses/by-sa/3.0",
     },
-    {
-      // expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-      path: "/",
-      // domain: `${Astro.url.hostname}`,
-      // secure: import.meta.env.PROD,
+    sourceUrls: [
+      "https://en.wiktionary.org/wiki/constrain",
+      "https://en.wiktionary.org/wiki/constrained",
+    ],
+  },
+  {
+    word: "writing",
+    phonetic: "/ˈɹaɪtɪŋ/",
+    phonetics: [
+      {
+        text: "/ˈɹaɪtɪŋ/",
+        audio:
+          "https://api.dictionaryapi.dev/media/pronunciations/en/writing-us.mp3",
+        sourceUrl: "https://commons.wikimedia.org/w/index.php?curid=1197734",
+        license: {
+          name: "BY-SA 3.0",
+          url: "https://creativecommons.org/licenses/by-sa/3.0",
+        },
+      },
+    ],
+    meanings: [
+      {
+        partOfSpeech: "noun",
+        definitions: [
+          {
+            definition:
+              "Graphism of symbols such as letters that express some meaning.",
+            synonyms: [],
+            antonyms: [],
+          },
+          {
+            definition:
+              "Something written, such as a document, article or book.",
+            synonyms: [],
+            antonyms: [],
+          },
+          {
+            definition:
+              "The process of representing a language with symbols or letters.",
+            synonyms: [],
+            antonyms: [],
+          },
+          {
+            definition: "A work of an author.",
+            synonyms: [],
+            antonyms: [],
+          },
+          {
+            definition: "The style of writing of a person.",
+            synonyms: [],
+            antonyms: [],
+            example: "I can't read your writing.",
+          },
+          {
+            definition: "(as a modifier) Intended for or used in writing.",
+            synonyms: [],
+            antonyms: [],
+            example: "a writing table",
+          },
+        ],
+        synonyms: [
+          "alphabet",
+          "character",
+          "ideogram",
+          "logogram",
+          "pictogram",
+          "script",
+          "syllabary",
+          "writing system",
+          "document",
+          "manuscript",
+          "text",
+          "hand",
+          "handwriting",
+          "text",
+          "work",
+        ],
+        antonyms: [],
+      },
+    ],
+    license: {
+      name: "CC BY-SA 3.0",
+      url: "https://creativecommons.org/licenses/by-sa/3.0",
     },
-  );
+    sourceUrls: ["https://en.wiktionary.org/wiki/writing"],
+  },
+];
+
+const result = Astro.getActionResult(actions.constAction.new);
+if (result) {
+  if (result.data) {
+    return Astro.redirect(result.data);
+  } else {
+    console.log(result.error);
+  }
 }
-
-const words = game.words;
 ---
 
 <Layout title="const!">
   <main
-    class="min-h-[100dvh] max-w-6xl mx-auto flex justify-center items-center"
+    class="min-h-[100dvh] max-w-6xl mx-auto flex flex-col justify-center items-center gap-4"
   >
     <section
-      class="w-full flex flex-col items-center justify-center max-w-3xl animate-fade animate-once"
+      class="w-full flex flex-col items-center justify-center animate-fade animate-once prose"
     >
-      <div
-        id="photoframe"
-        class="space-y-6 px-4 pt-16 pb-8 bg-base-100 @container-normal"
-      >
-        <WordBar words={words} client:only="vue" />
-        <div
-          class="h-64 @md:h-96 rounded-xl shadow overflow-hidden bg-neutral w-[min(90%,64rem)] mx-auto"
-        >
-          <MonacoEditor client:only="vue" />
-        </div>
-      </div>
-      <div class="flex gap-4">
-        <RefreshButton client:only="vue" />
-        <ShareButton client:only="vue" />
-      </div>
+      <h2>How to play</h2>
+      <ul>
+        <li>You will be given a set of words.</li>
+        <li>Use these words to write a story or a poem.</li>
+        <li>You can view the definition of the words by hovering over them.</li>
+        <li>You can refresh the words if you don't like them.</li>
+        <li>
+          If so please report with reasons so that I can improve the game.
+        </li>
+      </ul>
+    </section>
+    <section class="flex flex-wrap gap-2">
+      {
+        words.map((word, idx) => (
+          <WordBadge
+            idx={idx}
+            word={word}
+            definitions={[definitions[idx]]}
+            client:only="vue"
+          />
+        ))
+      }
+    </section>
+    <section class="flex gap-4 mt-12">
+      <form>
+        <button type="submit" class="btn btn-primary">Start a new game</button>
+      </form>
+      {
+        cookie && (
+          <a class="btn btn-outline" href={`/game/${cookie.id}`}>
+            Continue from where you left off
+          </a>
+        )
+      }
     </section>
   </main>
 </Layout>
+
+<script>
+  import { actions } from "astro:actions";
+  import { navigate } from "astro:transitions/client";
+
+  const form = document.querySelector("form");
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const { data } = await actions.constAction.new({});
+    if (data) navigate(`/game/${data}`);
+  });
+</script>

@@ -7,9 +7,10 @@ import {
 import { z } from "astro/zod";
 import { db } from "@/db/drizzle";
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { now, Words } from "@/db/schema";
+import { Games, GameWords, now, Words } from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
 import { TimeSpan } from "oslo";
+import { LibsqlError } from "@libsql/client";
 
 async function generateWords(limit: number) {
   const sq = db.$with("sq").as(
@@ -105,6 +106,7 @@ const ratelimiter =
   };
 
 const fivePerFiveSeconds = ratelimiter(new TimeSpan(5, "s"), 5);
+const fiveSecond = ratelimiter(new TimeSpan(5, "s"), 1);
 
 export const game = {
   new: defineAction({
@@ -114,51 +116,47 @@ export const game = {
         maxWords: z.number().int().positive().default(10),
         new: z.boolean().default(false),
       })
-      .default({ rules: ["useGivenWords"], maxWords: 10 }),
-    handler: async (input, ctx) => {
-      fivePerFiveSeconds(ctx);
-
-      const words =
-        (!input.new
-          ? (ctx.cookies.get("const:session")?.json() as GameSession).words
-          : null) ?? (await generateWords(input.maxWords));
-
-      ctx.cookies.set(
-        "const:session",
-        JSON.stringify({ rules: input.rules, words }),
-        {
-          expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-          path: "/",
-          domain: `.${ctx.url.hostname}`,
-          secure: import.meta.env.PROD,
-        },
-      );
-
-      return words;
-    },
-  }),
-  words: defineAction({
-    input: z.object({
-      max: z.number().int().positive().default(10),
-    }),
-    handler: async (input, ctx) => {
-      fivePerFiveSeconds(ctx);
-
-      const game: GameSession = ctx.cookies.get("const:session")?.json() ?? {
+      .default({
         rules: ["useGivenWords"],
-        words: [],
-      };
+        maxWords: 10,
+        new: false,
+      }),
+    handler: async (input, ctx) => {
+      fiveSecond(ctx);
+      console.log("handling");
 
-      if (game.words.length < input.max) {
-        const newWords = await generateWords(input.max - game.words.length);
-        game.words = [...game.words, ...newWords];
+      const existingGame: GameSession = ctx.cookies
+        .get("const:session")
+        ?.json();
+      console.log("handling");
+
+      if (existingGame) {
+        if (!input.new) {
+          return existingGame.id;
+        }
       }
+      console.log("handling");
+
+      const [{ id }] = await db.insert(Games).values({}).returning({
+        id: Games.id,
+      });
+      console.log("handling");
+
+      const words = await generateWords(input.maxWords);
+
+      await db.insert(GameWords).values(
+        words.map((word, index) => ({
+          game_id: id,
+          word_id: word.id,
+          index,
+        })),
+      );
+      console.log("handling");
 
       ctx.cookies.set(
         "const:session",
         JSON.stringify({
-          ...game,
-          words: game.words.slice(0, input.max),
+          id,
         }),
         {
           expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
@@ -168,7 +166,17 @@ export const game = {
         },
       );
 
-      return game.words;
+      return id;
+    },
+  }),
+  words: defineAction({
+    input: z.object({
+      max: z.number().int().positive().default(10),
+    }),
+    handler: async (input, ctx) => {
+      fivePerFiveSeconds(ctx);
+
+      return generateWords(input.max);
     },
   }),
   swapOut: defineAction({
@@ -190,16 +198,22 @@ export const game = {
         });
       }
 
-      const { words } = gameSession;
+      const { id } = gameSession;
 
-      const word = words.find((w) => w.id === input.wordId);
-
-      if (!word) {
-        throw new ActionError({
-          code: "NOT_FOUND",
-          message: "Word not found",
+      const [{ index }] = await db
+        .delete(GameWords)
+        .where(
+          and(eq(GameWords.game_id, id), eq(GameWords.word_id, input.wordId)),
+        )
+        .returning({
+          index: GameWords.index,
+        })
+        .catch((_) => {
+          throw new ActionError({
+            code: "NOT_FOUND",
+            message: "Word not found",
+          });
         });
-      }
 
       await db
         .update(Words)
@@ -215,7 +229,15 @@ export const game = {
               ? sql`${Words.inappropriate_count} + 1`
               : undefined,
         })
-        .where(eq(Words.id, word.id));
+        .where(eq(Words.id, input.wordId))
+        .catch((e) => {
+          if (e instanceof LibsqlError) {
+            throw new ActionError({
+              code: "NOT_FOUND",
+              message: "Word not found",
+            });
+          }
+        });
 
       const [newWord] = await db
         .select({
@@ -234,18 +256,11 @@ export const game = {
         .orderBy(asc(Words.rejected_rate), asc(sql`RANDOM()`))
         .limit(1);
 
-      const newWords = words.map((w) => (w.id === input.wordId ? newWord : w));
-
-      ctx.cookies.set(
-        "const:session",
-        JSON.stringify({ ...game, words: newWords }),
-        {
-          expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-          path: "/",
-          domain: `.${ctx.url.hostname}`,
-          secure: import.meta.env.PROD,
-        },
-      );
+      await db.insert(GameWords).values({
+        game_id: id,
+        word_id: newWord.id,
+        index,
+      });
 
       return newWord;
     },

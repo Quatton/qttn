@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   integer,
   primaryKey,
@@ -40,6 +40,12 @@ export const Games = sqliteTable("games", {
     .notNull()
     .default(now),
   content: text("content").notNull().default(""),
+  state: text("state", {
+    mode: "text",
+    enum: ["in_progress", "abandoned", "completed"],
+  })
+    .notNull()
+    .default("in_progress"),
 });
 
 export const GameWords = sqliteTable(
@@ -71,4 +77,24 @@ export const GameWords = sqliteTable(
   }),
 );
 
+export const gameWordRelations = relations(GameWords, ({ one }) => ({
+  word: one(Words, {
+    fields: [GameWords.word_id],
+    references: [Words.id],
+  }),
+  game: one(Games, {
+    fields: [GameWords.game_id],
+    references: [Games.id],
+  }),
+}));
+
+export const gameRelations = relations(Games, ({ many }) => ({
+  gameToWords: many(GameWords),
+}));
+
+export const wordRelations = relations(Words, ({ many }) => ({
+  wordToGames: many(GameWords),
+}));
+
+export type Game = InferSelectModel<typeof Games>;
 export type Word = InferSelectModel<typeof Words>;

@@ -3,9 +3,38 @@ import MonacoEditor from "@/components/const/MonacoEditor.vue";
 import RefreshButton from "@/components/const/RefreshButton.vue";
 import ShareButton from "@/components/const/ShareButton.vue";
 import WordBar from "@/components/const/WordBar.vue";
+import { db } from "@/db/drizzle";
 import Layout from "@/layouts/Layout.astro";
+import type { CompressedWordWithMatch } from "@/lib/const/rules";
 
-const words: any[] = [];
+const id = Astro.params.id;
+if (!id) {
+  return Astro.redirect("/game");
+}
+const game = await db.query.Games.findFirst({
+  where: (fields, { eq }) => eq(fields.id, id),
+  with: {
+    gameToWords: {
+      with: {
+        word: {
+          columns: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: (fields, { asc }) => asc(fields.index),
+    },
+  },
+});
+if (!game) {
+  return Astro.redirect("/game");
+}
+const words: CompressedWordWithMatch[] = game.gameToWords.map((g) => ({
+  id: g.word.id,
+  name: g.word.name,
+  match: false,
+}));
 ---
 
 <Layout title="const!">

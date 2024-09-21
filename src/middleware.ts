@@ -17,20 +17,10 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
 
   if (subdomains.includes(subdomain)) {
     const pathname = pathnames.join("/").replace(/^\/+|\/$/, "");
-    const url = `${site.url.protocol}://${rest.join(".")}/app/${subdomain}/${pathname}`;
-    console.log(url);
+    const url = new URL(
+      `${site.url.protocol}://${rest.join(".")}/app/${subdomain}/${pathname}?${context.url.search}`,
+    );
     return context.rewrite(url);
   }
-
-  // if (
-  //   context.request.url.replace(/\/$/, "") === "https://const.qttn.dev/game"
-  // ) {
-  //   return context.rewrite("https://qttn.dev/app/const/game");
-  // }
-
-  // if (context.request.url.replace(/\/$/, "") === "https://const.qttn.dev") {
-  //   return context.rewrite("https://qttn.dev/app/const");
-  // }
-
   return next();
 };
