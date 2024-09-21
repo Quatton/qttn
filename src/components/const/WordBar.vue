@@ -73,11 +73,11 @@ onMounted(() => {
 
 <template>
   <div
-    class="min-h-48 flex gap-2 @sm:gap-4 flex-wrap justify-center items-end"
+    class="flex gap-2 @sm:gap-4 flex-wrap justify-center items-end"
     ref="parent"
   >
     <WordBadge
-      v-for="(word, idx) in words"
+      v-for="(word, idx) in wordsRef"
       :key="word.id"
       :idx="idx"
       :word="word"

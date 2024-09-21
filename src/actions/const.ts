@@ -109,6 +109,36 @@ const fivePerFiveSeconds = ratelimiter(new TimeSpan(5, "s"), 5);
 const fiveSecond = ratelimiter(new TimeSpan(5, "s"), 1);
 
 export const game = {
+  saveContent: defineAction({
+    input: z.object({
+      content: z.string(),
+    }),
+    handler: async (input, ctx) => {
+      fiveSecond(ctx);
+
+      const gameSession = ctx.cookies
+        .get("const:session")
+        ?.json() as GameSession;
+
+      if (!gameSession) {
+        throw new ActionError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      const { id } = gameSession;
+
+      await db
+        .update(Games)
+        .set({
+          content: input.content,
+        })
+        .where(eq(Games.id, id));
+
+      return id;
+    },
+  }),
   new: defineAction({
     input: z
       .object({

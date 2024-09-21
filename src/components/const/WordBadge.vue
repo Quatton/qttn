@@ -24,7 +24,7 @@ const $emit = defineEmits<{
 
 withDefaults(
   defineProps<{
-    idx: number;
+    idx: number | string;
     word: CompressedWordWithMatch;
     definitions?: Definition[] | null;
     definitionLoading?: boolean;
@@ -146,7 +146,10 @@ withDefaults(
             Provided by <a :href="apiByURL" target="_blank">{{ apiBy }}</a>
           </p>
         </div>
-        <div class="skeleton w-full h-full" v-else-if="definitionLoading"></div>
+        <div
+          class="skeleton w-full min-h-96"
+          v-else-if="definitionLoading"
+        ></div>
         <div class="text-center h-full pt-28" v-else>(No definition found)</div>
       </div>
       <form method="dialog" class="modal-backdrop">

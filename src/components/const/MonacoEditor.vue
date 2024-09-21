@@ -11,6 +11,15 @@ import * as monaco from "monaco-editor";
 import { createHighlighter } from "shiki";
 import { onMounted, onUnmounted, ref, shallowRef } from "vue";
 
+const $props = withDefaults(
+  defineProps<{
+    defaultCode?: string;
+  }>(),
+  {
+    defaultCode: "",
+  },
+);
+
 const element = ref<HTMLElement | null>(null);
 
 const editor = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -22,14 +31,14 @@ const breakpoint = useBreakpoints(breakpointsTailwind);
 
 function onWindowResize(e: UIEvent) {
   editor.value?.layout();
-  const parent = document.getElementById("photoframe");
-  if (!parent) return;
+  const parent = editor.value?.getDomNode()?.parentElement;
   editor.value?.updateOptions({
-    fontSize: parent?.clientWidth < breakpointsTailwind.sm ? 12 : 16,
+    fontSize:
+      (parent ?? document.body).clientWidth > breakpointsTailwind.sm ? 16 : 12,
   });
 }
 
-const code = useLocalStorage("const:code", "");
+const code = useLocalStorage("const:code", $props.defaultCode);
 
 onMounted(async () => {
   const highlighter = await createHighlighter({
@@ -52,16 +61,18 @@ onMounted(async () => {
     placeholder: "Type here...",
     scrollBeyondLastLine: false,
     automaticLayout: true,
+    wordWrap: "on",
   });
 
   editor.value.onDidChangeModelContent((e) => {
     if (!editor.value) return;
     code.value = editor.value.getValue();
 
+    const extension = `[.,;:!?'"-]?(\\([a-z]+\\))?`;
     const matches = editor.value.getModel()?.findMatches(
-      `${Object.values($words.value)
+      `(${Object.values($words.value)
         .map((word) => word.name)
-        .join("|")}`,
+        .join("|")})${extension}`,
       true,
       true,
       false,
@@ -71,23 +82,21 @@ onMounted(async () => {
 
     editorDecorations.value?.clear();
     if (matches) {
-      for (const match of matches) {
-        editorDecorations.value = editor.value?.createDecorationsCollection([
-          {
-            range: match.range,
-            options: {
-              isWholeLine: false,
-              inlineClassName: "bracket-highlighting-1",
-            },
+      editorDecorations.value = editor.value?.createDecorationsCollection(
+        matches.map((match) => ({
+          range: match.range,
+          options: {
+            isWholeLine: false,
+            inlineClassName: "bracket-highlighting-1",
           },
-        ]);
-      }
+        })),
+      );
 
       for (const id in $words.value) {
-        const match = matches?.find(
-          (m) =>
-            m.matches?.[1].toLowerCase() ===
-            $words.value[id].name.toLowerCase(),
+        const match = matches?.find((m) =>
+          m.matches?.[0]
+            .toLowerCase()
+            .match(new RegExp(`(${$words.value[id].name})${extension}`, "i")),
         );
         wordStore.setKey(id, {
           ...$words.value[id],

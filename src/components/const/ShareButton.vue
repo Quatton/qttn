@@ -4,25 +4,21 @@ import { toPng } from "html-to-image";
 import { ref } from "vue";
 import { alphabet, generateRandomString } from "oslo/crypto";
 import { dataURItoBlob } from "@/lib/utils";
+import { useLocalStorage } from "@vueuse/core";
+import { actions } from "astro:actions";
 const loading = ref(false);
 
+const code = useLocalStorage("const:code", "");
+
 async function share() {
+  await actions.constAction.saveContent.orThrow({
+    content: code.value,
+  });
   const el = document.getElementById("photoframe");
   if (!el) return;
-  loading.value = true;
-  await new Promise((r) => setTimeout(r, 100));
-  el.style.width = "360px";
-  el.style.height = "640px";
   const dataUrl = await toPng(el, {
-    canvasWidth: 720,
-    canvasHeight: 1280,
     quality: 1,
-    width: 360,
-    height: 640,
   });
-  el.style.width = "";
-  el.style.height = "";
-  loading.value = false;
 
   const id = generateRandomString(16, alphabet("a-z", "0-9"));
 
