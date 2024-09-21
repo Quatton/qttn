@@ -1,0 +1,8 @@
+drizzle
+*.jsx
+*.tsx
+*.ts
+*.js
+*.mjs
+*.json
+*.vue
