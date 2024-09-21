@@ -46,10 +46,16 @@ export const GameWords = sqliteTable(
   "game_words",
   {
     game_id: text("game_id")
-      .references(() => Games.id)
+      .references(() => Games.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      })
       .notNull(),
     word_id: integer("word_id")
-      .references(() => Words.id)
+      .references(() => Words.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      })
       .notNull(),
     index: integer("index").notNull(),
     created_at: integer("created_at", { mode: "timestamp" })
