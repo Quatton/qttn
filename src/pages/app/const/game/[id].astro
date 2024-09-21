@@ -50,7 +50,7 @@ const words: CompressedWordWithMatch[] = game.gameToWords.map((g) => ({
       >
         <WordBar words={words} client:only="vue" />
         <div
-          class="h-64 md:h-72 rounded-xl shadow overflow-hidden bg-neutral w-[min(90%,64rem)] mx-auto"
+          class="h-64 md:h-80 rounded-xl shadow overflow-hidden bg-neutral w-[min(90%,64rem)] mx-auto"
         >
           <MonacoEditor client:only="vue" defaultCode={game.content} />
         </div>
