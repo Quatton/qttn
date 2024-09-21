@@ -2,7 +2,11 @@
 import { wordStore } from "@/store/word";
 import { useStore } from "@nanostores/vue";
 import { shikiToMonaco } from "@shikijs/monaco";
-import { useLocalStorage } from "@vueuse/core";
+import {
+  breakpointsTailwind,
+  useBreakpoints,
+  useLocalStorage,
+} from "@vueuse/core";
 import * as monaco from "monaco-editor";
 import { createHighlighter } from "shiki";
 import { onMounted, onUnmounted, ref, shallowRef } from "vue";
@@ -14,8 +18,15 @@ const editorDecorations =
   shallowRef<monaco.editor.IEditorDecorationsCollection | null>(null);
 const $words = useStore(wordStore);
 
-function onWindowResize() {
+const breakpoint = useBreakpoints(breakpointsTailwind);
+
+function onWindowResize(e: UIEvent) {
   editor.value?.layout();
+  const parent = document.getElementById("photoframe");
+  if (!parent) return;
+  editor.value?.updateOptions({
+    fontSize: parent?.clientWidth < breakpointsTailwind.sm ? 12 : 16,
+  });
 }
 
 const code = useLocalStorage("const:code", "");
@@ -33,7 +44,7 @@ onMounted(async () => {
     value: code.value,
     language: "markdown",
     fontFamily: "Geist Mono",
-    fontSize: 16,
+    fontSize: breakpoint.greaterOrEqual("sm").value ? 16 : 12,
     wordBasedSuggestions: "off",
     minimap: { enabled: false },
     lineNumbers: "off",
@@ -58,8 +69,6 @@ onMounted(async () => {
     );
 
     editorDecorations.value?.clear();
-
-    console.log(matches);
 
     if (matches) {
       editorDecorations.value =

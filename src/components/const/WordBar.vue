@@ -83,14 +83,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-    class="flex gap-4 flex-wrap justify-center text-xs md:text-sm lg:text-base"
-    ref="parent"
-  >
+  <div class="flex gap-2 @sm:gap-4 flex-wrap justify-center" ref="parent">
     <div
       v-for="[idx, word] in Object.entries(wordsRef)"
       :key="word.id"
-      class="border rounded-full flex items-center gap-2 p-2 bg-base-100"
+      class="border rounded-full flex items-center gap-2 p-2 bg-base-100 text-xs sm:text-sm md:text-base"
       :class="{
         'bg-green-200': !!wordsRef[idx]?.match,
       }"
@@ -149,20 +146,12 @@ onMounted(() => {
               {{ definition.phonetic }}
             </p>
             <div class="flex-1 min-h-0 overflow-y-scroll">
-              <table class="sticky table max-sm:table-xs table-pin-rows">
-                <thead>
-                  <tr>
-                    <th>Part of Speech</th>
-                    <th>Definitions</th>
-                  </tr>
-                </thead>
-              </table>
               <table class="table max-sm:table-xs table-pin-rows">
                 <template v-for="meaning in definition.meanings">
                   <thead>
                     <tr>
                       <th>{{ meaning.partOfSpeech }}</th>
-                      <th></th>
+                      <th>Definitions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -173,7 +162,9 @@ onMounted(() => {
                           <li :class="{ 'mt-2': i > 0 }">
                             <p>{{ def.definition }}</p>
                             <p v-if="def.example" class="mt-2">
-                              <span class="badge badge-ghost">Example</span>
+                              <span class="badge badge-ghost badge-sm"
+                                >Example</span
+                              >
                               {{ def.example }}
                             </p>
                           </li>
