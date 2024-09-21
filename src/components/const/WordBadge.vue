@@ -127,7 +127,7 @@ withDefaults(
             </table>
           </div>
           <div v-if="definition.license" class="mt-8">
-            <p class="text-sm text-muted-content">
+            <p class="text-xs text-muted-content">
               Licensed under
               <a :href="definition.license.url" target="_blank">
                 {{ definition.license.name }}
@@ -138,11 +138,11 @@ withDefaults(
             v-if="definition.sourceUrls"
             v-for="source in definition.sourceUrls"
           >
-            <p class="text-sm text-muted-content">
+            <p class="text-xs text-muted-content">
               <a :href="source" target="_blank">{{ source }}</a>
             </p>
           </div>
-          <p class="text-sm text-muted-content">
+          <p class="text-xs text-muted-content">
             Provided by <a :href="apiByURL" target="_blank">{{ apiBy }}</a>
           </p>
         </div>

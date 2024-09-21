@@ -9,9 +9,7 @@ const code = useLocalStorage("const:code", "");
 
 const { error, isLoading, execute } = useAsyncState(
   async () => {
-    return await actions.constAction.new.orThrow({
-      new: true,
-    });
+    return await actions.constAction.words.orThrow({});
   },
   undefined,
   { immediate: false },
@@ -26,7 +24,12 @@ const reset = async () => {
     return;
   }
   code.value = "";
-  wordStore.set(words.map((word) => ({ ...word, match: false })));
+  words.forEach((word, idx) => {
+    wordStore.setKey(`${idx}`, {
+      ...word,
+      match: false,
+    });
+  });
 };
 </script>
 

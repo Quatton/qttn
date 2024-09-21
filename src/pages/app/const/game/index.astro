@@ -182,7 +182,7 @@ if (result) {
     class="mx-auto flex min-h-[100dvh] max-w-6xl flex-col items-center justify-center gap-4"
   >
     <section
-      class="prose flex w-full animate-fade flex-col items-center justify-center animate-once"
+      class="prose flex w-full animate-fade flex-col items-center justify-center animate-once px-4 pt-8"
     >
       <h2>How to play</h2>
       <ul>
@@ -209,9 +209,11 @@ if (result) {
         ))
       }
     </section>
-    <section class="mt-12 flex gap-4 max-xs:flex-col">
+    <section class="mt-8 flex gap-4 max-xs:flex-col">
       <form>
-        <button type="submit" class="btn btn-primary">Start a new game</button>
+        <button type="submit" class="btn btn-primary w-full"
+          >Start a new game</button
+        >
       </form>
       {
         cookie && (
