@@ -39,7 +39,7 @@ async function generateWords(limit: number) {
     .from(sq)
     .orderBy(desc(sq.success_rate));
 
-  const eighty = Math.floor(limit * 0.8);
+  const eighty = Math.floor(limit / 2);
   const twenty = limit - eighty;
 
   const _t = [...words.slice(0, eighty), ...words.slice(words.length - twenty)];
