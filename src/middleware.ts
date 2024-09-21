@@ -4,7 +4,7 @@ import { site } from "./config/site";
 const subdomains = ["const"];
 const ignorePattern = /\/api|\/[^/]+\.[^/]+|\/_actions/;
 
-export const onRequest: MiddlewareHandler = (context, next) => {
+export const onRequest: MiddlewareHandler = async (context, next) => {
   // if the last part of the path is file name like, [name].[ext]
   // then we will next instantly
   if (context.url.pathname.match(ignorePattern)) {
@@ -21,7 +21,12 @@ export const onRequest: MiddlewareHandler = (context, next) => {
     const pathname = pathnames.join("/").replace(/^\/+|\/$/, "");
     const url = `${site.url.protocol}://${rest.join(".")}/app/${subdomain}/${pathname}`;
     console.log(url);
-    return next(url);
+    return context.rewrite(url);
+  }
+
+  const req = await next();
+  if (req.status === 404) {
+    return context.rewrite("/");
   }
 
   return next();
