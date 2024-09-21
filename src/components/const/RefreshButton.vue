@@ -16,6 +16,12 @@ const { error, isLoading, execute } = useAsyncState(
 );
 
 const reset = async () => {
+  const confirm = window.confirm(
+    "Are you sure you want to reset the game? This will remove all words and start a new game.",
+  );
+  if (!confirm) {
+    return;
+  }
   const words = await execute();
   if (!words) {
     setTimeout(() => {
