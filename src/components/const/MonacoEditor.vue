@@ -71,8 +71,8 @@ onMounted(async () => {
     const extension = `[.,;:!?'"-]?(\\([a-z]+\\))?`;
     const matches = editor.value.getModel()?.findMatches(
       `(${Object.values($words.value)
-        .map((word) => word.name)
-        .join("|")})${extension}`,
+        .map((word) => word.name.replace(/[aeiou]$/, ""))
+        .join("|")})[.,;:!?'"-]?([a-z]+)?`,
       true,
       true,
       false,

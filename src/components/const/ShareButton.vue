@@ -47,6 +47,10 @@ async function share() {
 }
 
 async function save() {
+  await actions.constAction.saveContent.orThrow({
+    content: code.value,
+  });
+  
   const dataUrl = await getDataUrl();
 
   const id = route.value.pathname?.split("/").pop() ?? "";
