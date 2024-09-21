@@ -2,27 +2,35 @@
 import { Icon } from "@iconify/vue";
 import { toPng } from "html-to-image";
 import { ref } from "vue";
-import { alphabet, generateRandomString } from "oslo/crypto";
 import { dataURItoBlob } from "@/lib/utils";
-import { useLocalStorage } from "@vueuse/core";
+import { useBrowserLocation, useLocalStorage } from "@vueuse/core";
 import { actions } from "astro:actions";
 const loading = ref(false);
 
 const code = useLocalStorage("const:code", "");
 
+const route = useBrowserLocation();
+
+async function getDataUrl() {
+  const el = document.getElementById("photoframe");
+  if (!el) {
+    throw new Error("Photo frame not found");
+  }
+  return await toPng(el, {
+    quality: 1,
+  });
+} 
+
 async function share() {
   await actions.constAction.saveContent.orThrow({
     content: code.value,
   });
-  const el = document.getElementById("photoframe");
-  if (!el) return;
-  const dataUrl = await toPng(el, {
-    quality: 1,
-  });
+  
+  const dataUrl = await getDataUrl();
 
-  const id = generateRandomString(16, alphabet("a-z", "0-9"));
+  const id = route.value.pathname?.split("/").pop() ?? "";
 
-  const file = new File([dataURItoBlob(dataUrl)], `${id}.png`, {
+  const file = new File([dataURItoBlob(dataUrl)], `const-${id}.png`, {
     type: "image/png",
     lastModified: Date.now(),
   });
@@ -37,6 +45,18 @@ async function share() {
     return;
   }
 }
+
+async function save() {
+  const dataUrl = await getDataUrl();
+
+  const id = route.value.pathname?.split("/").pop() ?? "";
+  
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = `const-${id}.png`;
+
+  link.click();
+}
 </script>
 
 <template>
@@ -48,5 +68,10 @@ async function share() {
   <button class="btn btn-primary" @click="share">
     <Icon icon="heroicons:share" />
     Share
+  </button>
+
+  <button class="btn btn-secondary" @click="save">
+    <Icon icon="heroicons:arrow-down-tray" />
+    Save
   </button>
 </template>
