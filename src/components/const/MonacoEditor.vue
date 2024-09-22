@@ -63,13 +63,12 @@ onMounted(async () => {
     if (!editor.value) return;
     code.value = editor.value.getValue();
 
-    const extension = `[a-z.,;:!?'"-]*`;
     const matches = editor.value
       .getModel()
       ?.findMatches(
         `(${wordStore.value
           .map((word) => word.name.replace(/[aeiou]$/, ""))
-          .join("|")})${extension}`,
+          .join("|")})[a-zA-Z.,;:!?'"-]*`,
         true,
         true,
         false,

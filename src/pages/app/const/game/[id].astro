@@ -49,14 +49,14 @@ Astro.cookies.set(
 
 <Layout title="const!">
   <main
-    class="pt-16 mx-auto min-h-[100dvh] max-w-6xl flex flex-col items-center"
+    class="mx-auto flex min-h-[100dvh] max-w-6xl flex-col items-center pb-8 pt-16"
   >
     <section
-      class="flex-1 flex w-full max-w-3xl animate-fade flex-col items-stretch animate-once pb-8 justify-evenly"
+      class="flex w-full max-w-3xl flex-1 animate-fade flex-col items-stretch justify-evenly animate-once"
     >
       <div
         id="photoframe"
-        class="w-full space-y-6 bg-base-100 px-4 pb-4 pt-4 @container-normal sm:pt-8"
+        class="space-y-6 bg-base-100 px-4 pb-4 pt-4 @container-normal sm:pt-8"
       >
         <WordBar words={words} client:only="vue" game={game} />
         <div
@@ -66,7 +66,7 @@ Astro.cookies.set(
         </div>
       </div>
       <div
-        class="grid gap-2 grid-cols-2 md:grid-cols-4 px-4 md:w-[min(90%,64rem)] md:mx-auto"
+        class="grid grid-cols-2 gap-2 px-4 md:mx-auto md:w-[min(90%,64rem)] md:grid-cols-4"
       >
         <RefreshButton client:only="vue" gameId={game.id} mode={game.mode} />
         <ShareButton client:only="vue" gameId={game.id} />
