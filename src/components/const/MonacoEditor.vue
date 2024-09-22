@@ -68,11 +68,11 @@ onMounted(async () => {
     if (!editor.value) return;
     code.value = editor.value.getValue();
 
-    const extension = `[.,;:!?'"-]?(\\([a-z]+\\))?`;
+    const extension = `([a-z]+)?[.,;:!?'"-]?`
     const matches = editor.value.getModel()?.findMatches(
       `(${Object.values($words.value)
         .map((word) => word.name.replace(/[aeiou]$/, ""))
-        .join("|")})[.,;:!?'"-]?([a-z]+)?`,
+        .join("|")})${extension}`,
       true,
       true,
       false,
@@ -96,7 +96,9 @@ onMounted(async () => {
         const match = matches?.find((m) =>
           m.matches?.[0]
             .toLowerCase()
-            .match(new RegExp(`(${$words.value[id].name})${extension}`, "i")),
+            .match(new RegExp(`(${
+              $words.value[id].name.replace(/[aeiou]$/,"",)
+            })${extension}`, "i")),
         );
         wordStore.setKey(id, {
           ...$words.value[id],
