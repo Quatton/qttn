@@ -13,8 +13,8 @@ import { createHighlighter } from "shiki";
 import { onMounted, onUnmounted, ref, shallowRef } from "vue";
 
 const $props = defineProps<{
-    game: GameSession
-  }>();
+  game: GameSession;
+}>();
 
 const element = ref<HTMLElement | null>(null);
 
@@ -63,17 +63,19 @@ onMounted(async () => {
     if (!editor.value) return;
     code.value = editor.value.getValue();
 
-    const extension = `[a-z.,;:!?'"-]*`
-    const matches = editor.value.getModel()?.findMatches(
-      `(${wordStore.value
-        .map((word) => word.name.replace(/[aeiou]$/, ""))
-        .join("|")})${extension}`,
-      true,
-      true,
-      false,
-      " ",
-      true,
-    );
+    const extension = `[a-z.,;:!?'"-]*`;
+    const matches = editor.value
+      .getModel()
+      ?.findMatches(
+        `(${wordStore.value
+          .map((word) => word.name.replace(/[aeiou]$/, ""))
+          .join("|")})${extension}`,
+        true,
+        true,
+        false,
+        " ",
+        true,
+      );
 
     editorDecorations.value?.clear();
 
@@ -84,23 +86,25 @@ onMounted(async () => {
           options: {
             isWholeLine: false,
             inlineClassName: `bracket-highlighting-${
-            (match.matches?.[0] ?? "").split("").reduceRight((acc: number, c: string) =>
-              acc * 31 + c.charCodeAt(0),
-            0) % 6 + 1}`
+              ((match.matches?.[0] ?? "")
+                .split("")
+                .reduceRight(
+                  (acc: number, c: string) => acc * 31 + c.charCodeAt(0),
+                  0,
+                ) %
+                6) +
+              1
+            }`,
           },
         })),
       );
 
-      for (let i = 0; i < wordStore.value.length; i++) {
-        const match = matches?.find((m) =>
-          m.matches?.[0]
-            .toLowerCase()
-            .match(new RegExp(`^(${
-              wordStore.value[i].name.replace(/[aeiou]$/,"",)
-            })${extension}`, "i")),
-        );
-        wordStore.value[i].match = !!match;
-      }
+      wordStore.value = wordStore.value.map((word) => ({
+        ...word,
+        match: code.value
+          .toLowerCase()
+          .includes(word.name.replace(/[aeiou]$/, "")),
+      }));
     }
 
     window.addEventListener("resize", onWindowResize);
