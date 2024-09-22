@@ -226,18 +226,15 @@ const definitions: Definition[] = [
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const pastGames = JSON.parse(localStorage.getItem("const:games") ?? "[]");
-    const pastGame = JSON.parse(
-      localStorage.getItem("const:session") ?? "{ id: null }",
-    ).id;
+    const pastGame = pastGames.pop();
     if (pastGame) {
-      pastGames.push(pastGame);
       localStorage.setItem("const:games", JSON.stringify(pastGames));
       const content = codeStore.get()[pastGame];
       if (!content) {
         return;
       }
-      await actions.constAction.saveContent({ id: pastGame, content });
-      localStorage.removeItem("const:code");
+      await actions.constAction.updateGame({ id: pastGame, content });
+      localStorage.removeItem(`const:code:${pastGame}`);
     }
     const { data } = await actions.constAction.new({});
     if (data) navigate(`/game/${data}`);

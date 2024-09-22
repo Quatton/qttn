@@ -69,9 +69,9 @@ Astro.cookies.set(
           />
         </div>
       </div>
-      <div class="flex gap-4">
-        <RefreshButton client:only="vue" />
-        <ShareButton client:only="vue" />
+      <div class="grid gap-4 grid-cols-2 w-full max-w-md px-4">
+        <RefreshButton client:only="vue" gameId={game.id} mode={game.mode} />
+        <ShareButton client:only="vue" gameId={game.id} />
       </div>
     </section>
   </main>

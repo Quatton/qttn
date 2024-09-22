@@ -7,12 +7,18 @@ import {
 import { z } from "astro/zod";
 import { db } from "@/db/drizzle";
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { Games, GameWords, now, Words } from "@/db/schema";
+import {
+  gameModes,
+  Games,
+  GameWords,
+  now,
+  Words,
+  type GameMode,
+} from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
 import { TimeSpan } from "oslo";
-import { LibsqlError } from "@libsql/client";
 
-async function generateWords(limit: number) {
+async function generateWords(limit: number, mode: GameMode = "easy") {
   const sq = db.$with("sq").as(
     db
       .select()
@@ -20,10 +26,9 @@ async function generateWords(limit: number) {
       .orderBy(asc(sql`RANDOM()`))
       .where(
         and(
-          gte(Words.success_rate, 0),
           eq(Words.likely_not_a_word_count, 0),
           eq(Words.inappropriate_count, 0),
-          gte(Words.sampled_count, 100),
+          ...(mode === "easy" ? [gte(Words.sampled_count, 100)] : []),
         ),
       )
       .limit(limit * 5),
@@ -34,12 +39,11 @@ async function generateWords(limit: number) {
     .select({
       id: sq.id,
       name: sq.name,
-      success_rate: sq.success_rate,
     })
     .from(sq)
-    .orderBy(desc(sq.success_rate));
+    .orderBy(asc(sq.rejected_rate));
 
-  const eighty = Math.floor(limit / 2);
+  const eighty = Math.floor(mode === "easy" ? limit * 0.8 : limit * 0.2);
   const twenty = limit - eighty;
 
   const _t = [...words.slice(0, eighty), ...words.slice(words.length - twenty)];
@@ -109,25 +113,30 @@ const fivePerFiveSeconds = ratelimiter(new TimeSpan(5, "s"), 5);
 const fiveSecond = ratelimiter(new TimeSpan(5, "s"), 1);
 
 export const game = {
-  saveContent: defineAction({
+  updateGame: defineAction({
     input: z.object({
       id: z.string(),
-      content: z.string(),
+      content: z.string().optional(),
+      mode: z.enum(gameModes).optional(),
     }),
     handler: async (input, ctx) => {
-      fiveSecond(ctx);
-
       const id = input.id;
 
-      await db
+      const [game] = await db
         .update(Games)
         .set({
           content: input.content,
+          mode: input.mode,
           updated_at: now,
         })
-        .where(eq(Games.id, id));
-
-      return id;
+        .where(eq(Games.id, id))
+        .returning({
+          id: Games.id,
+          content: Games.content,
+          mode: Games.mode,
+          updated_at: Games.updated_at,
+        });
+      return game;
     },
   }),
   new: defineAction({
@@ -135,19 +144,23 @@ export const game = {
       .object({
         rules: z.array(z.enum(keys)).default(["useGivenWords"]),
         maxWords: z.number().int().positive().default(10),
+        mode: z.enum(gameModes).default("easy"),
       })
       .default({
         rules: ["useGivenWords"],
         maxWords: 10,
       }),
     handler: async (input, ctx) => {
-      fiveSecond(ctx);
+      const [{ id }] = await db
+        .insert(Games)
+        .values({
+          mode: input.mode,
+        })
+        .returning({
+          id: Games.id,
+        });
 
-      const [{ id }] = await db.insert(Games).values({}).returning({
-        id: Games.id,
-      });
-
-      const words = await generateWords(input.maxWords);
+      const words = await generateWords(input.maxWords, input.mode);
 
       await db
         .insert(GameWords)
@@ -185,14 +198,21 @@ export const game = {
   words: defineAction({
     input: z.object({
       gameId: z.string(),
+      mode: z.enum(gameModes).optional(),
       max: z.number().int().positive().default(10),
     }),
     handler: async (input, ctx) => {
-      fivePerFiveSeconds(ctx);
-
       const id = input.gameId;
 
-      const words = await generateWords(input.max);
+      const mode =
+        input.mode ??
+        (await db
+          .select({ mode: Games.mode })
+          .from(Games)
+          .where(eq(Games.id, id))
+          .then((res) => res[0].mode));
+
+      const words = await generateWords(input.max, mode);
 
       await db
         .delete(GameWords)
@@ -226,24 +246,19 @@ export const game = {
   swapOut: defineAction({
     input: z.object({
       gameId: z.string(),
+      mode: z.enum(gameModes).optional(),
       wordId: z.number().int(),
       reason: z.enum(["difficult", "notAWord", "inappropriate"]),
     }),
     handler: async (input, ctx) => {
-      fivePerFiveSeconds(ctx);
-
-      const gameSession = ctx.cookies
-        .get("const:session")
-        ?.json() as GameSession;
-
-      if (!gameSession) {
-        throw new ActionError({
-          code: "NOT_FOUND",
-          message: "Game not found",
-        });
-      }
-
-      const { id } = gameSession;
+      const id = input.gameId;
+      const mode =
+        input.mode ??
+        (await db
+          .select({ mode: Games.mode })
+          .from(Games)
+          .where(eq(Games.id, id))
+          .then((res) => res[0].mode));
 
       const index = await db
         .transaction(async (db) => {
@@ -294,28 +309,7 @@ export const game = {
           throw e;
         });
 
-      const [newWord] = await db
-        .select({
-          id: Words.id,
-          name: Words.name,
-        })
-        .from(Words)
-        .where(
-          and(
-            gte(Words.success_rate, 0),
-            eq(Words.likely_not_a_word_count, 0),
-            eq(Words.inappropriate_count, 0),
-            gte(Words.sampled_count, 100),
-          ),
-        )
-        .orderBy(asc(Words.rejected_rate), asc(sql`RANDOM()`))
-        .limit(1)
-        .catch((e) => {
-          throw new ActionError({
-            code: "NOT_FOUND",
-            message: "Word not found",
-          });
-        });
+      const [newWord] = await generateWords(1, mode);
 
       await db
         .insert(GameWords)
@@ -339,7 +333,6 @@ export const game = {
       word: z.string(),
     }),
     handler: (input, ctx) => {
-      fivePerFiveSeconds(ctx);
       return defineWord(input.word);
     },
   }),

@@ -5,6 +5,11 @@ import { ref } from "vue";
 import { dataURItoBlob } from "@/lib/utils";
 import { useBrowserLocation, useLocalStorage } from "@vueuse/core";
 import { actions } from "astro:actions";
+
+const { gameId: id } = defineProps<{
+  gameId: string;
+}>();
+
 const loading = ref(false);
 
 const code = useLocalStorage("const:code", "");
@@ -23,21 +28,16 @@ async function getDataUrl() {
 
 async function saveContent() {
   loading.value = true;
-  const id = route.value.pathname?.split("/").pop() ?? "";
-  await actions.constAction.saveContent.orThrow({
+  await actions.constAction.updateGame.orThrow({
     id,
     content: code.value,
   });
   loading.value = false;
-  return id
 }
 
 async function share() {
-  const id = await saveContent();
-  
+  await saveContent();
   const dataUrl = await getDataUrl();
-
-
   const file = new File([dataURItoBlob(dataUrl)], `const-${id}.png`, {
     type: "image/png",
     lastModified: Date.now(),
@@ -55,23 +55,18 @@ async function share() {
 }
 
 async function save() {
-
-  const id = await saveContent();
-
+  await saveContent();
   const dataUrl = await getDataUrl();
-
-  
   const link = document.createElement("a");
   link.href = dataUrl;
   link.download = `const-${id}.png`;
-
   link.click();
 }
 </script>
 
 <template>
   <div
-    class="fixed z-50 inset-0 animate-fade bg-white animate-duration-75"
+    class="fixed z-50 inset-0 animate-fade bg-white animate-duration-100"
     v-if="loading"
   />
 

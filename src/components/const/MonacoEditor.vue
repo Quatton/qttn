@@ -83,13 +83,17 @@ onMounted(async () => {
     );
 
     editorDecorations.value?.clear();
+
     if (matches) {
       editorDecorations.value = editor.value?.createDecorationsCollection(
         matches.map((match) => ({
           range: match.range,
           options: {
             isWholeLine: false,
-            inlineClassName: "bracket-highlighting-1",
+            inlineClassName: `bracket-highlighting-${
+            (match.matches?.[0] ?? "").split("").reduceRight((acc: number, c: string) =>
+              acc * 31 + c.charCodeAt(0),
+            0) % 6 + 1}`
           },
         })),
       );
@@ -98,7 +102,7 @@ onMounted(async () => {
         const match = matches?.find((m) =>
           m.matches?.[0]
             .toLowerCase()
-            .match(new RegExp(`(${
+            .match(new RegExp(`^(${
               $words.value[id].name.replace(/[aeiou]$/,"",)
             })${extension}`, "i")),
         );

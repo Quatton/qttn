@@ -31,6 +31,8 @@ export const Words = sqliteTable("words", {
 export const generateRandomId = () =>
   generateRandomString(5, alphabet("a-z", "0-9", "A-Z"));
 
+export const gameModes = ["easy", "hard"] as const;
+export type GameMode = (typeof gameModes)[number];
 export const Games = sqliteTable("games", {
   id: text("id").primaryKey().$defaultFn(generateRandomId),
   created_at: integer("created_at", { mode: "timestamp" })
@@ -46,6 +48,12 @@ export const Games = sqliteTable("games", {
   })
     .notNull()
     .default("in_progress"),
+  mode: text("mode", {
+    mode: "text",
+    enum: gameModes,
+  })
+    .notNull()
+    .default("easy"),
 });
 
 export const GameWords = sqliteTable(
