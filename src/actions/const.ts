@@ -111,23 +111,28 @@ const fiveSecond = ratelimiter(new TimeSpan(5, "s"), 1);
 export const game = {
   saveContent: defineAction({
     input: z.object({
+      id: z.string().optional(),
       content: z.string(),
     }),
     handler: async (input, ctx) => {
       fiveSecond(ctx);
 
-      const gameSession = ctx.cookies
-        .get("const:session")
-        ?.json() as GameSession;
+      const id =
+        input.id ??
+        (() => {
+          const gameSession = ctx.cookies
+            .get("const:session")
+            ?.json() as GameSession;
 
-      if (!gameSession) {
-        throw new ActionError({
-          code: "NOT_FOUND",
-          message: "Game not found",
-        });
-      }
+          if (!gameSession) {
+            throw new ActionError({
+              code: "NOT_FOUND",
+              message: "Game not found",
+            });
+          }
 
-      const { id } = gameSession;
+          return gameSession.id;
+        })();
 
       await db
         .update(Games)

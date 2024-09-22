@@ -35,6 +35,16 @@ const words: CompressedWordWithMatch[] = game.gameToWords.map((g) => ({
   name: g.word.name,
   match: false,
 }));
+
+Astro.cookies.set(
+  "const:session",
+  {
+    id: game.id,
+  },
+  {
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+  },
+);
 ---
 
 <Layout title="const!">
