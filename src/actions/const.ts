@@ -111,28 +111,13 @@ const fiveSecond = ratelimiter(new TimeSpan(5, "s"), 1);
 export const game = {
   saveContent: defineAction({
     input: z.object({
-      id: z.string().optional(),
+      id: z.string(),
       content: z.string(),
     }),
     handler: async (input, ctx) => {
       fiveSecond(ctx);
 
-      const id =
-        input.id ??
-        (() => {
-          const gameSession = ctx.cookies
-            .get("const:session")
-            ?.json() as GameSession;
-
-          if (!gameSession) {
-            throw new ActionError({
-              code: "NOT_FOUND",
-              message: "Game not found",
-            });
-          }
-
-          return gameSession.id;
-        })();
+      const id = input.id;
 
       await db
         .update(Games)
@@ -198,23 +183,13 @@ export const game = {
   }),
   words: defineAction({
     input: z.object({
+      gameId: z.string(),
       max: z.number().int().positive().default(10),
     }),
     handler: async (input, ctx) => {
       fivePerFiveSeconds(ctx);
 
-      const gameSession = ctx.cookies
-        .get("const:session")
-        ?.json() as GameSession;
-
-      if (!gameSession) {
-        throw new ActionError({
-          code: "NOT_FOUND",
-          message: "Game not found",
-        });
-      }
-
-      const { id } = gameSession;
+      const id = input.gameId;
 
       const words = await generateWords(input.max);
 
@@ -249,6 +224,7 @@ export const game = {
   }),
   swapOut: defineAction({
     input: z.object({
+      gameId: z.string(),
       wordId: z.number().int(),
       reason: z.enum(["difficult", "notAWord", "inappropriate"]),
     }),

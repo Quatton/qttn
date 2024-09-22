@@ -58,7 +58,7 @@ Astro.cookies.set(
         id="photoframe"
         class="w-full space-y-6 bg-base-100 px-4 pb-8 pt-16 @container-normal md:pt-8"
       >
-        <WordBar words={words} client:only="vue" />
+        <WordBar words={words} client:only="vue" game-id={game.id} />
         <div
           class="mx-auto h-64 w-[min(90%,64rem)] overflow-hidden rounded-xl bg-neutral shadow md:h-80"
         >

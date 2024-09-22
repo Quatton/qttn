@@ -21,14 +21,22 @@ async function getDataUrl() {
   });
 } 
 
-async function share() {
+async function saveContent() {
+  loading.value = true;
+  const id = route.value.pathname?.split("/").pop() ?? "";
   await actions.constAction.saveContent.orThrow({
+    id,
     content: code.value,
   });
+  loading.value = false;
+  return id
+}
+
+async function share() {
+  const id = await saveContent();
   
   const dataUrl = await getDataUrl();
 
-  const id = route.value.pathname?.split("/").pop() ?? "";
 
   const file = new File([dataURItoBlob(dataUrl)], `const-${id}.png`, {
     type: "image/png",
@@ -47,13 +55,11 @@ async function share() {
 }
 
 async function save() {
-  await actions.constAction.saveContent.orThrow({
-    content: code.value,
-  });
-  
+
+  const id = await saveContent();
+
   const dataUrl = await getDataUrl();
 
-  const id = route.value.pathname?.split("/").pop() ?? "";
   
   const link = document.createElement("a");
   link.href = dataUrl;
@@ -69,12 +75,12 @@ async function save() {
     v-if="loading"
   />
 
-  <button class="btn btn-primary" @click="share">
+  <button class="btn btn-primary" @click="share" :disabled="loading">
     <Icon icon="heroicons:share" />
     Share
   </button>
 
-  <button class="btn btn-secondary" @click="save">
+  <button class="btn btn-secondary" @click="save" :disabled="loading">
     <Icon icon="heroicons:arrow-down-tray" />
     Save
   </button>

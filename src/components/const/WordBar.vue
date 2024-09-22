@@ -13,6 +13,7 @@ import WordBadge from "./WordBadge.vue";
 
 const $props = defineProps<{
   words: CompressedWordWithMatch[];
+  gameId: string;
 }>();
 
 const wordsRef = useStore(wordStore);
@@ -31,6 +32,7 @@ const swapOutWord = async (
 ) => {
   isLoading.value = idx;
   const { data } = await actions.constAction.swapOut({
+    gameId: $props.gameId,
     wordId: wordsRef.value[idx].id,
     reason,
   });
