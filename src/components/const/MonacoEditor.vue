@@ -70,7 +70,7 @@ onMounted(async () => {
     if (!editor.value) return;
     code.value = editor.value.getValue();
 
-    const extension = `([a-z]+)?[.,;:!?'"-]?`
+    const extension = `[a-z.,;:!?'"-]*`
     const matches = editor.value.getModel()?.findMatches(
       `(${Object.values($words.value)
         .map((word) => word.name.replace(/[aeiou]$/, ""))
