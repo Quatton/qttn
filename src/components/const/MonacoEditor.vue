@@ -2,7 +2,6 @@
 import { useConstCode } from "@/hooks/vue/useConstCode";
 import type { GameSession } from "@/lib/const/rules";
 import { wordStore } from "@/store/word";
-import { useStore } from "@nanostores/vue";
 import { shikiToMonaco } from "@shikijs/monaco";
 import {
   breakpointsTailwind,
@@ -22,7 +21,6 @@ const element = ref<HTMLElement | null>(null);
 const editor = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 const editorDecorations =
   shallowRef<monaco.editor.IEditorDecorationsCollection | null>(null);
-const $words = useStore(wordStore);
 
 const breakpoint = useBreakpoints(breakpointsTailwind);
 
@@ -67,7 +65,7 @@ onMounted(async () => {
 
     const extension = `[a-z.,;:!?'"-]*`
     const matches = editor.value.getModel()?.findMatches(
-      `(${Object.values($words.value)
+      `(${wordStore.value
         .map((word) => word.name.replace(/[aeiou]$/, ""))
         .join("|")})${extension}`,
       true,
@@ -93,18 +91,15 @@ onMounted(async () => {
         })),
       );
 
-      for (const id in $words.value) {
+      for (let i = 0; i < wordStore.value.length; i++) {
         const match = matches?.find((m) =>
           m.matches?.[0]
             .toLowerCase()
             .match(new RegExp(`^(${
-              $words.value[id].name.replace(/[aeiou]$/,"",)
+              wordStore.value[i].name.replace(/[aeiou]$/,"",)
             })${extension}`, "i")),
         );
-        wordStore.setKey(id, {
-          ...$words.value[id],
-          match: !!match,
-        });
+        wordStore.value[i].match = !!match;
       }
     }
 

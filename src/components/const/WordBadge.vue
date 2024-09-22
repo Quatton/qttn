@@ -4,12 +4,12 @@ import type { CompressedWordWithMatch } from "@/lib/const/rules";
 import { Icon } from "@iconify/vue";
 
 const modal = {
-  showModal: (idx: number | string) => {
+  showModal: (idx: number) => {
     (
       document.getElementById(`definition-${idx}`) as HTMLDialogElement
     ).showModal();
   },
-  close: (idx: number | string) => {
+  close: (idx: number) => {
     (document.getElementById(`definition-${idx}`) as HTMLDialogElement).close();
   },
 };
@@ -17,14 +17,14 @@ const modal = {
 const $emit = defineEmits<{
   defineWord: [word: string];
   swapOutWord: [
-    idx: number | string,
+    idx: number,
     reason: "difficult" | "notAWord" | "inappropriate",
   ];
 }>();
 
 withDefaults(
   defineProps<{
-    idx: number | string;
+    idx: number;
     word: CompressedWordWithMatch;
     definitions?: Definition[] | null;
     definitionLoading?: boolean;

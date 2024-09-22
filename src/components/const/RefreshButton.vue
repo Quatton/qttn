@@ -54,12 +54,10 @@ const reset = async () => {
     }, 5000);
     return;
   }
-  words.forEach((word, idx) => {
-    wordStore.setKey(`${idx}`, {
-      ...word,
-      match: false,
-    });
-  });
+  wordStore.value = words.map((word) => ({
+    ...word,
+    match: false,
+  }));
 };
 
 const switchDifficulty = async () => {

@@ -1,12 +1,9 @@
-import { deepMap, map } from "nanostores";
+import type { CompressedWordWithMatch } from "@/lib/const/rules";
+import { ref } from "vue";
 
-export const wordStore = deepMap<
-  Record<
-    string,
-    {
-      id: number;
-      name: string;
-      match: boolean;
-    }
-  >
->({});
+export const wordStore = ref<CompressedWordWithMatch[]>([]);
+
+export function useInitWords(words: CompressedWordWithMatch[]) {
+  wordStore.value = words;
+  return wordStore;
+}

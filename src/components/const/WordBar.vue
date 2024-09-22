@@ -9,33 +9,34 @@ import { onMounted, ref } from "vue";
 import { useAutoAnimate } from "@formkit/auto-animate/vue";
 import { useAsyncState } from "@vueuse/core";
 import { useStore } from "@nanostores/vue";
-import { wordStore } from "@/store/word";
 import WordBadge from "./WordBadge.vue";
 import type { Game } from "@/db/schema";
+import { useInitWords } from "@/store/word";
 
 const $props = defineProps<{
   words: CompressedWordWithMatch[];
   game: GameSession;
 }>();
 
-const wordsRef = useStore(wordStore);
-const updateWord = (idx: number | string, word: CompressedWord) => {
-  wordStore.setKey(`${idx}`, {
+const wordStore = useInitWords($props.words);
+
+const updateWord = (idx: number, word: CompressedWord) => {
+  wordStore.value[idx] = {
+    ...wordStore.value[idx],
     ...word,
-    match: false,
-  });
+  };
 };
 
-const isLoading = ref<string | number | false>(false);
+const isLoading = ref<number | false>(false);
 
 const swapOutWord = async (
-  idx: number | string,
+  idx: number,
   reason: "difficult" | "notAWord" | "inappropriate",
 ) => {
   isLoading.value = idx;
   const { data } = await actions.constAction.swapOut({
     gameId: $props.game.id,
-    wordId: wordsRef.value[idx].id,
+    wordId: wordStore.value[idx].id,
     reason,
   });
   if (data) {
@@ -64,15 +65,6 @@ const defineWord = (word: string) => {
 };
 
 const [parent] = useAutoAnimate();
-
-onMounted(() => {
-  $props.words.forEach((word, idx) => {
-    wordStore.setKey(`${idx}`, {
-      ...word,
-      match: false,
-    });
-  });
-});
 </script>
 
 <template>
@@ -81,7 +73,7 @@ onMounted(() => {
     ref="parent"
   >
     <WordBadge
-      v-for="(word, idx) in wordsRef"
+      v-for="(word, idx) in wordStore"
       :key="word.id"
       :idx="idx"
       :word="word"
