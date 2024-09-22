@@ -5,12 +5,10 @@ import type {
   GameSession,
 } from "@/lib/const/rules";
 import { actions } from "astro:actions";
-import { onMounted, ref } from "vue";
+import { ref } from "vue";
 import { useAutoAnimate } from "@formkit/auto-animate/vue";
 import { useAsyncState } from "@vueuse/core";
-import { useStore } from "@nanostores/vue";
 import WordBadge from "./WordBadge.vue";
-import type { Game } from "@/db/schema";
 import { useInitWords } from "@/store/word";
 
 const $props = defineProps<{

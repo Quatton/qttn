@@ -1,17 +1,13 @@
-import { persistentMap } from "@nanostores/persistent";
-import { computed } from "nanostores";
-import { computed as computedVue } from "vue";
-
-export const codeStore = persistentMap<Record<string, string | undefined>>(
-  "const:code:",
-  {},
-);
+import { useLocalStorage } from "@vueuse/core";
+import { computed } from "vue";
 
 export function useConstCode(id: string, defaultValue = "") {
-  return computedVue({
-    get: () => codeStore.get()[id] ?? defaultValue,
+  const key = `const:code:${id}`;
+  const code = useLocalStorage(key, defaultValue);
+  return computed({
+    get: () => code.value,
     set: (value: string) => {
-      codeStore.setKey(id, value);
+      code.value = value;
     },
   });
 }
