@@ -5,11 +5,12 @@ import type {
   GameSession,
 } from "@/lib/const/rules";
 import { actions } from "astro:actions";
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useAutoAnimate } from "@formkit/auto-animate/vue";
 import { useAsyncState } from "@vueuse/core";
 import WordBadge from "./WordBadge.vue";
 import { useInitWords } from "@/store/word";
+import { usePastGames } from "@/hooks/vue/useConstCode";
 
 const $props = defineProps<{
   words: CompressedWordWithMatch[];
@@ -63,6 +64,12 @@ const defineWord = (word: string) => {
 };
 
 const [parent] = useAutoAnimate();
+
+const { addGame } = usePastGames();
+
+onMounted(() => {
+  addGame($props.game.id);
+});
 </script>
 
 <template>

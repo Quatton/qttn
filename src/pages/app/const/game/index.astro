@@ -1,12 +1,9 @@
 ---
+import ContinueButton from "@/components/const/ContinueButton.vue";
 import WordBadge from "@/components/const/WordBadge.vue";
 import Layout from "@/layouts/Layout.astro";
 import type { Definition } from "@/lib/const/dictionary";
 import type { CompressedWordWithMatch, GameSession } from "@/lib/const/rules";
-
-const cookie: GameSession | undefined = Astro.cookies
-  .get("const:session")
-  ?.json();
 
 const words: CompressedWordWithMatch[] = [
   {
@@ -205,34 +202,27 @@ const definitions: Definition[] = [
           >Start a new game</button
         >
       </form>
-      {
-        cookie && (
-          <a class="btn btn-outline" href={`/game/${cookie.id}`}>
-            Continue from where you left off
-          </a>
-        )
-      }
+      <ContinueButton client:only="vue" />
     </section>
   </main>
 </Layout>
 
 <script>
+  import { usePastGames } from "@/hooks/vue/useConstCode";
   import { actions } from "astro:actions";
   import { navigate } from "astro:transitions/client";
 
   const form = document.querySelector("form");
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const pastGames = JSON.parse(localStorage.getItem("const:games") ?? "[]");
-    const pastGame = pastGames.pop();
-    if (pastGame) {
-      localStorage.setItem("const:games", JSON.stringify(pastGames));
-      const content = localStorage.getItem(`const:code:${pastGame}`);
+    const { games, latestGame } = usePastGames();
+    if (latestGame.value) {
+      const content = localStorage.getItem(`const:code:${latestGame.value}`);
       if (!content) {
         return;
       }
-      await actions.constAction.updateGame({ id: pastGame, content });
-      localStorage.removeItem(`const:code:${pastGame}`);
+      await actions.constAction.updateGame({ id: latestGame.value, content });
+      localStorage.removeItem(`const:code:${latestGame}`);
     }
     const { data } = await actions.constAction.new({});
     if (data) navigate(`/game/${data}`);

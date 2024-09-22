@@ -11,3 +11,16 @@ export function useConstCode(id: string, defaultValue = "") {
     },
   });
 }
+
+export function usePastGames() {
+  const games = useLocalStorage<string[]>("const:games", []);
+  const latestGame = computed(() => games.value.at(-1));
+  return {
+    games,
+    addGame(game: string) {
+      if (games.value.includes(game)) return;
+      games.value.push(game);
+    },
+    latestGame,
+  };
+}
