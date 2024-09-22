@@ -1,15 +1,20 @@
 <script setup lang="ts">
+import { useConstCode } from "@/hooks/vue/useConstCode";
 import type { GameSession } from "@/lib/const/rules";
 import { wordStore } from "@/store/word";
 import { Icon } from "@iconify/vue";
 import { useAsyncState, useLocalStorage } from "@vueuse/core";
 import { actions } from "astro:actions";
+import { computed } from "vue";
 
-const code = useLocalStorage("const:code", "");
+const id = computed(() => window.location.pathname.split("/").pop());
+const code = useConstCode(id.value ?? "");
 
 const { error, isLoading, execute } = useAsyncState(
   async () => {
-    return await actions.constAction.words.orThrow({});
+    return await actions.constAction.words.orThrow({
+      gameId: id.value ?? "",
+    });
   },
   undefined,
   { immediate: false },

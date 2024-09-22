@@ -123,6 +123,7 @@ export const game = {
         .update(Games)
         .set({
           content: input.content,
+          updated_at: now,
         })
         .where(eq(Games.id, id));
 

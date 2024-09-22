@@ -218,6 +218,7 @@ const definitions: Definition[] = [
 </Layout>
 
 <script>
+  import { codeStore } from "@/hooks/vue/useConstCode";
   import { actions } from "astro:actions";
   import { navigate } from "astro:transitions/client";
 
@@ -228,10 +229,13 @@ const definitions: Definition[] = [
     const pastGame = JSON.parse(
       localStorage.getItem("const:session") ?? "{ id: null }",
     ).id;
-    const content = localStorage.getItem("const:code");
-    if (pastGame && content) {
+    if (pastGame) {
       pastGames.push(pastGame);
       localStorage.setItem("const:games", JSON.stringify(pastGames));
+      const content = codeStore.get()[pastGame];
+      if (!content) {
+        return;
+      }
       await actions.constAction.saveContent({ id: pastGame, content });
       localStorage.removeItem("const:code");
     }

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useConstCode } from "@/hooks/vue/useConstCode";
 import { wordStore } from "@/store/word";
 import { useStore } from "@nanostores/vue";
 import { shikiToMonaco } from "@shikijs/monaco";
@@ -14,6 +15,7 @@ import { onMounted, onUnmounted, ref, shallowRef } from "vue";
 const $props = withDefaults(
   defineProps<{
     defaultCode?: string;
+    gameId: string;
   }>(),
   {
     defaultCode: "",
@@ -38,7 +40,7 @@ function onWindowResize(e: UIEvent) {
   });
 }
 
-const code = useLocalStorage("const:code", $props.defaultCode);
+const code = useConstCode($props.gameId, $props.defaultCode);
 
 onMounted(async () => {
   const highlighter = await createHighlighter({
