@@ -1,4 +1,5 @@
 import { persistentMap } from "@nanostores/persistent";
+import { computed } from "nanostores";
 import { computed as computedVue } from "vue";
 
 export const codeStore = persistentMap<Record<string, string>>(
