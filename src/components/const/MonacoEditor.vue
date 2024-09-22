@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useConstCode } from "@/hooks/vue/useConstCode";
+import type { GameSession } from "@/lib/const/rules";
 import { wordStore } from "@/store/word";
 import { useStore } from "@nanostores/vue";
 import { shikiToMonaco } from "@shikijs/monaco";
@@ -12,15 +13,9 @@ import * as monaco from "monaco-editor";
 import { createHighlighter } from "shiki";
 import { onMounted, onUnmounted, ref, shallowRef } from "vue";
 
-const $props = withDefaults(
-  defineProps<{
-    defaultCode?: string;
-    gameId: string;
-  }>(),
-  {
-    defaultCode: "",
-  },
-);
+const $props = defineProps<{
+    game: GameSession
+  }>();
 
 const element = ref<HTMLElement | null>(null);
 
@@ -40,7 +35,7 @@ function onWindowResize(e: UIEvent) {
   });
 }
 
-const code = useConstCode($props.gameId, $props.defaultCode);
+const code = useConstCode($props.game.id, $props.game.content);
 
 onMounted(async () => {
   const highlighter = await createHighlighter({

@@ -49,27 +49,25 @@ Astro.cookies.set(
 
 <Layout title="const!">
   <main
-    class="mx-auto flex min-h-[100dvh] max-w-6xl items-center justify-center"
+    class="pt-16 mx-auto min-h-[100dvh] max-w-6xl flex flex-col items-center"
   >
     <section
-      class="flex w-full max-w-3xl animate-fade flex-col items-center justify-center animate-once"
+      class="flex-1 flex w-full max-w-3xl animate-fade flex-col items-stretch animate-once pb-8 justify-evenly"
     >
       <div
         id="photoframe"
-        class="w-full space-y-6 bg-base-100 px-4 pb-8 pt-16 @container-normal md:pt-8"
+        class="w-full space-y-6 bg-base-100 px-4 pb-4 pt-4 @container-normal sm:pt-8"
       >
-        <WordBar words={words} client:only="vue" gameId={game.id} />
+        <WordBar words={words} client:only="vue" game={game} />
         <div
           class="mx-auto h-64 w-[min(90%,64rem)] overflow-hidden rounded-xl bg-neutral shadow md:h-80"
         >
-          <MonacoEditor
-            client:only="vue"
-            defaultCode={game.content}
-            gameId={game.id}
-          />
+          <MonacoEditor client:only="vue" game={game} />
         </div>
       </div>
-      <div class="grid gap-4 grid-cols-2 w-full max-w-md px-4">
+      <div
+        class="grid gap-2 grid-cols-2 md:grid-cols-4 px-4 md:w-[min(90%,64rem)] md:mx-auto"
+      >
         <RefreshButton client:only="vue" gameId={game.id} mode={game.mode} />
         <ShareButton client:only="vue" gameId={game.id} />
       </div>

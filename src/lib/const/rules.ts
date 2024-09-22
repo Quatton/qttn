@@ -1,4 +1,4 @@
-import type { Word } from "@/db/schema";
+import type { Game, Word } from "@/db/schema";
 import type { Definition } from "./dictionary";
 
 export const keys = ["beginWithLetter", "useGivenWords"] as const;
@@ -20,7 +20,4 @@ export type WordAndDefinition = {
 
 export type CompressedWord = Pick<Word, "id" | "name">;
 export type CompressedWordWithMatch = CompressedWord & { match: boolean };
-
-export type GameSession = {
-  id: string;
-};
+export type GameSession = Pick<Game, "id" | "content" | "mode">;

@@ -2,6 +2,7 @@
 import type {
   CompressedWord,
   CompressedWordWithMatch,
+  GameSession,
 } from "@/lib/const/rules";
 import { actions } from "astro:actions";
 import { onMounted, ref } from "vue";
@@ -10,10 +11,11 @@ import { useAsyncState } from "@vueuse/core";
 import { useStore } from "@nanostores/vue";
 import { wordStore } from "@/store/word";
 import WordBadge from "./WordBadge.vue";
+import type { Game } from "@/db/schema";
 
 const $props = defineProps<{
   words: CompressedWordWithMatch[];
-  gameId: string;
+  game: GameSession;
 }>();
 
 const wordsRef = useStore(wordStore);
@@ -32,7 +34,7 @@ const swapOutWord = async (
 ) => {
   isLoading.value = idx;
   const { data } = await actions.constAction.swapOut({
-    gameId: $props.gameId,
+    gameId: $props.game.id,
     wordId: wordsRef.value[idx].id,
     reason,
   });
@@ -88,5 +90,8 @@ onMounted(() => {
       @defineWord="defineWord"
       @swapOutWord="swapOutWord"
     />
+    <div>
+
+    </div>
   </div>
 </template>

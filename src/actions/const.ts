@@ -1,4 +1,4 @@
-import { keys, type GameSession } from "@/lib/const/rules";
+import { keys } from "@/lib/const/rules";
 import {
   ActionError,
   defineAction,

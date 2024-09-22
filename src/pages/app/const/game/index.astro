@@ -3,7 +3,6 @@ import WordBadge from "@/components/const/WordBadge.vue";
 import Layout from "@/layouts/Layout.astro";
 import type { Definition } from "@/lib/const/dictionary";
 import type { CompressedWordWithMatch, GameSession } from "@/lib/const/rules";
-import { actions } from "astro:actions";
 
 const cookie: GameSession | undefined = Astro.cookies
   .get("const:session")
