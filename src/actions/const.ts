@@ -19,7 +19,7 @@ async function generateWords(limit: number, mode: GameMode = "easy") {
     db
       .select()
       .from(WordShortList)
-      .orderBy(asc(WordShortList.random))
+      .orderBy(asc(sql`random()`))
       .where(
         and(
           eq(Words.likely_not_a_word_count, 0),
