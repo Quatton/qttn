@@ -3,8 +3,10 @@ import { Icon } from "@iconify/vue";
 import { toPng } from "html-to-image";
 import { ref } from "vue";
 import { dataURItoBlob } from "@/lib/utils";
-import { useLocalStorage } from "@vueuse/core";
+import { useClipboardItems, useLocalStorage } from "@vueuse/core";
 import { actions } from "astro:actions";
+import { useConstCode } from "@/hooks/vue/useConstCode";
+import { editor } from "@/store/word";
 
 const { gameId: id } = defineProps<{
   gameId: string;
@@ -12,16 +14,39 @@ const { gameId: id } = defineProps<{
 
 const loading = ref(false);
 
-const code = useLocalStorage("const:code", "");
+const code = useConstCode(id);
 
 async function getDataUrl() {
-  const el = document.getElementById("photoframe");
-  if (!el) {
-    throw new Error("Photo frame not found");
+  if (!editor.value) {
+    throw new Error("Editor not initialized");
   }
-  return await toPng(el, {
+  const el = document.getElementById("photoframe") as HTMLDivElement;
+  const editorHeight = editor.value.getScrollHeight();
+  const editorElement = document.getElementById(
+    "monaco-editor",
+  ) as HTMLDivElement;
+  const { height } = editorElement.getBoundingClientRect();
+  const { height: frameHeight } = el.getBoundingClientRect();
+
+  el.style.height = `${frameHeight + editorHeight - height}px`;
+
+  loading.value = true;
+  editorElement.classList.remove("h-64");
+  editorElement.classList.remove("md:h-80");
+  editorElement.classList.add("h-full");
+  editor.value.layout();
+
+  const data = await toPng(el, {
     quality: 1,
   });
+
+  el.style.height = "";
+  editorElement.classList.add("h-64");
+  editorElement.classList.add("md:h-80");
+  editorElement.classList.remove("h-full");
+
+  loading.value = false;
+  return data;
 }
 
 async function saveContent() {
@@ -50,6 +75,17 @@ async function share() {
     await navigator.share(shareData);
     return;
   }
+}
+
+const clipboard = useClipboardItems();
+
+async function copy() {
+  const dataUrl = await getDataUrl();
+  clipboard.copy([
+    new ClipboardItem({
+      "image/png": dataURItoBlob(dataUrl),
+    }),
+  ]);
 }
 
 async function download() {
@@ -85,6 +121,10 @@ const openTooltip = useLocalStorage("const:tooltip", true);
 
 <template>
   <div
+    v-if="loading"
+    class="fixed inset-0 animate-fade bg-white animate-duration-100 animate-once"
+  ></div>
+  <div
     class="tooltip tooltip-top"
     data-tip="Download is now moved here"
     :class="{ 'tooltip-open': openTooltip }"
@@ -102,20 +142,25 @@ const openTooltip = useLocalStorage("const:tooltip", true);
       <div class="modal-box">
         <h2 class="text-2xl font-bold">Share</h2>
         <p>Capture the content and share it with others.</p>
-        <div class="mt-12 grid gap-2 md:grid-cols-2">
-          <button class="btn" @click="share" :disabled="loading">
+        <div class="mt-12 grid gap-2 md:grid-cols-2 md:grid-rows-1">
+          <button class="btn col-span-2" @click="share" :disabled="loading">
             <Icon icon="heroicons:share" />
             Share to other apps
+          </button>
+          <button class="btn" @click="copy" :disabled="loading">
+            <Icon icon="heroicons:clipboard" />
+            Copy to clipboard
           </button>
           <button class="btn" @click="download" :disabled="loading">
             <Icon icon="heroicons:arrow-down-tray" />
             Download
           </button>
-          <form method="dialog" class="modal-backdrop">
-            <button>close</button>
-          </form>
         </div>
       </div>
+
+      <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+      </form>
     </dialog>
   </div>
 

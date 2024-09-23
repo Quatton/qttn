@@ -56,14 +56,10 @@ Astro.cookies.set(
     >
       <div
         id="photoframe"
-        class="space-y-6 bg-base-100 px-4 pb-4 pt-4 @container-normal sm:pt-8"
+        class="flex flex-col gap-6 bg-base-100 px-4 pb-4 pt-4 @container-normal sm:pt-8"
       >
         <WordBar words={words} client:only="vue" game={game} />
-        <div
-          class="mx-auto h-64 w-[min(90%,64rem)] overflow-hidden rounded-xl bg-neutral shadow md:h-80"
-        >
-          <MonacoEditor client:only="vue" game={game} />
-        </div>
+        <MonacoEditor client:only="vue" game={game} />
       </div>
       <div
         class="grid grid-cols-2 gap-2 px-4 md:mx-auto md:w-[min(90%,64rem)] md:grid-cols-4"

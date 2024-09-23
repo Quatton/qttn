@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useConstCode } from "@/hooks/vue/useConstCode";
 import type { GameSession } from "@/lib/const/rules";
-import { wordStore } from "@/store/word";
+import { editor, wordStore } from "@/store/word";
 import { shikiToMonaco } from "@shikijs/monaco";
 import {
   breakpointsTailwind,
@@ -18,7 +18,6 @@ const $props = defineProps<{
 
 const element = ref<HTMLElement | null>(null);
 
-const editor = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 const editorDecorations =
   shallowRef<monaco.editor.IEditorDecorationsCollection | null>(null);
 
@@ -123,5 +122,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="element" class="h-full"></div>
+  <div
+    ref="element"
+    class="mx-auto h-64 w-[min(90%,64rem)] overflow-hidden rounded-xl bg-neutral shadow md:h-80"
+    id="monaco-editor"
+  ></div>
 </template>
