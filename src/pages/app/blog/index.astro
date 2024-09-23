@@ -1,6 +1,8 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import { getCollection } from "astro:content";
+export const prerender = true;
+
 const allPosts = await getCollection(
   "blog",
   (entry) => import.meta.env.DEV || !!entry.data.publishedAt,
