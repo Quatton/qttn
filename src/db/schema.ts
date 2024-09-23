@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  index,
   integer,
   primaryKey,
   real,
@@ -33,6 +34,29 @@ export const generateRandomId = () =>
 
 export const gameModes = ["easy", "hard"] as const;
 export type GameMode = (typeof gameModes)[number];
+
+export const WordShortList = sqliteTable(
+  "word_short_list",
+  {
+    id: text("id")
+      .references(() => Words.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      })
+      .primaryKey()
+      .notNull(),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(now),
+    random: real("random")
+      .notNull()
+      .default(sql`(RANDOM())`),
+  },
+  (table) => ({
+    randomIndex: index("random_index").on(table.random),
+  }),
+);
+
 export const Games = sqliteTable("games", {
   id: text("id").primaryKey().$defaultFn(generateRandomId),
   created_at: integer("created_at", { mode: "timestamp" })

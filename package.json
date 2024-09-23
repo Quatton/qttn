@@ -13,6 +13,7 @@
     "astro": "astro",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate-prod": "PROD=true drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:dev": "turso dev --db-file local.db"
   },

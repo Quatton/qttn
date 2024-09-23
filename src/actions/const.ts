@@ -9,6 +9,7 @@ import {
   GameWords,
   now,
   Words,
+  WordShortList,
   type GameMode,
 } from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
@@ -17,8 +18,8 @@ async function generateWords(limit: number, mode: GameMode = "easy") {
   const sq = db.$with("sq").as(
     db
       .select()
-      .from(Words)
-      .orderBy(asc(sql`RANDOM()`))
+      .from(WordShortList)
+      .orderBy(asc(WordShortList.random))
       .where(
         and(
           eq(Words.likely_not_a_word_count, 0),
@@ -26,17 +27,19 @@ async function generateWords(limit: number, mode: GameMode = "easy") {
           ...(mode === "easy" ? [gte(Words.sampled_count, 100)] : []),
         ),
       )
+      .innerJoin(Words, eq(WordShortList.id, Words.id))
+
       .limit(limit * 5),
   );
 
   const words = await db
     .with(sq)
     .select({
-      id: sq.id,
-      name: sq.name,
+      id: sq.words.id,
+      name: sq.words.name,
     })
     .from(sq)
-    .orderBy(asc(sq.rejected_rate));
+    .orderBy(asc(sq.words.rejected_rate));
 
   const eighty = Math.floor(mode === "easy" ? limit * 0.8 : limit * 0.2);
   const twenty = limit - eighty;
@@ -48,7 +51,7 @@ async function generateWords(limit: number, mode: GameMode = "easy") {
     name: word.name,
   }));
 
-  await db
+  void db
     .update(Words)
     .set({
       sampled_count: sql`${Words.sampled_count} + 1`,

@@ -1,0 +1,1 @@
+CREATE INDEX `random_index` ON `word_short_list` (`random`);
