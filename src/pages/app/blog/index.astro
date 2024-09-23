@@ -49,7 +49,13 @@ allPosts.sort((a, b) => {
                     {data.title}
                   </a>
                 </td>
-                <td>{data.publishedAt ?? "(Draft)"}</td>
+                <td>
+                  {data.publishedAt
+                    ? Intl.DateTimeFormat("en-US", {
+                        dateStyle: "medium",
+                      }).format(data.publishedAt)
+                    : "(Draft)"}
+                </td>
               </tr>
             ))
           }
