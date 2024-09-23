@@ -18,6 +18,23 @@ import Wrapper1 from "@/components/blog/using-vue/Wrapper1.astro";
 </Layout>
 ```
 
+## Pre-introduction
+
+[Astro](https://astro.build) is intented to be content-driven static site generator.
+With "static" in mind, you might think that it is not possible to have
+interactive or dynamic components, but you actually can!
+
+Astro utilizes the concept of ["islands"](https://docs.astro.build/en/concepts/islands/) 
+where you can have different parts of your site to be rendered differently.
+This means you can have a static part of your site that loads instantly and
+defers the heavy, interactive UI to be loaded later.
+
+However, the challenge comes when you want to share states between these islands, because
+each of them is rendered in different contexts. Usually, for a regular React app,
+you'd wrap the whole app with `Context` or use a state management library like Redux.
+
+Can we do better?
+
 ## Introduction
 
 In the making of [CONST!](https://const.qttn.dev), one of the challenges
