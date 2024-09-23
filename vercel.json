@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/short-list",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
