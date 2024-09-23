@@ -218,13 +218,13 @@ const definitions: Definition[] = [
     const { latestGame } = usePastGames();
     if (latestGame.value) {
       const content = localStorage.getItem(`const:code:${latestGame.value}`);
-      if (!content) {
-        return;
+      if (content) {
+        await actions.constAction.updateGame({ id: latestGame.value, content });
+        localStorage.removeItem(`const:code:${latestGame}`);
       }
-      await actions.constAction.updateGame({ id: latestGame.value, content });
-      localStorage.removeItem(`const:code:${latestGame}`);
     }
-    const { data } = await actions.constAction.new({});
+    const { data, error } = await actions.constAction.new({});
+
     if (data) navigate(`/game/${data}`);
   });
 </script>

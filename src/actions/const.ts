@@ -51,7 +51,7 @@ async function generateWords(limit: number, mode: GameMode = "easy") {
     name: word.name,
   }));
 
-  void db
+  await db
     .update(Words)
     .set({
       sampled_count: sql`${Words.sampled_count} + 1`,
@@ -148,7 +148,7 @@ export const game = {
         rules: ["useGivenWords"],
         maxWords: 10,
       }),
-    handler: async (input, _ctx) => {
+    handler: async (input, ctx) => {
       const [{ id }] = await db
         .insert(Games)
         .values({
@@ -156,6 +156,13 @@ export const game = {
         })
         .returning({
           id: Games.id,
+        })
+        .catch((e) => {
+          console.error(e);
+          throw new ActionError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to insert game",
+          });
         });
 
       const words = await generateWords(input.maxWords, input.mode);
@@ -171,14 +178,13 @@ export const game = {
         )
         .catch((e) => {
           console.error(e);
-          console.error(e);
           throw new ActionError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to insert words",
           });
         });
 
-      _ctx.cookies.set(
+      ctx.cookies.set(
         "const:session",
         JSON.stringify({
           id,
@@ -186,7 +192,7 @@ export const game = {
         {
           expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
           path: "/",
-          domain: `.${_ctx.url.hostname}`,
+          domain: `.${ctx.url.hostname}`,
           secure: import.meta.env.PROD,
         },
       );
