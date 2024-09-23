@@ -1,12 +1,8 @@
 import { keys } from "@/lib/const/rules";
-import {
-  ActionError,
-  defineAction,
-  type ActionAPIContext,
-} from "astro:actions";
+import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro/zod";
 import { db } from "@/db/drizzle";
-import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
 import {
   gameModes,
   Games,
@@ -16,7 +12,6 @@ import {
   type GameMode,
 } from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
-import { TimeSpan } from "oslo";
 
 async function generateWords(limit: number, mode: GameMode = "easy") {
   const sq = db.$with("sq").as(
@@ -86,31 +81,31 @@ async function defineWord(word: string) {
   return data;
 }
 
-const ratelimiter =
-  (duration: TimeSpan, number: number, cookieKey = "const:ratelimited") =>
-  (ctx: ActionAPIContext) => {
-    const cookie = ctx.cookies.get(cookieKey)?.number();
-    const cookieOption = {
-      expires: new Date(Date.now() + duration.milliseconds()),
-      domain: `.${ctx.url.hostname}`,
-      secure: import.meta.env.PROD,
-      path: "/",
-    };
-    if (cookie) {
-      ctx.cookies.set(cookieKey, (cookie + 1).toString(), cookieOption);
-      if (cookie >= number) {
-        throw new ActionError({
-          code: "TOO_MANY_REQUESTS",
-          message: "Rate limited",
-        });
-      }
-    } else {
-      ctx.cookies.set(cookieKey, "1", cookieOption);
-    }
-  };
+// const ratelimiter =
+//   (duration: TimeSpan, number: number, cookieKey = "const:ratelimited") =>
+//   (ctx: ActionAPIContext) => {
+//     const cookie = ctx.cookies.get(cookieKey)?.number();
+//     const cookieOption = {
+//       expires: new Date(Date.now() + duration.milliseconds()),
+//       domain: `.${ctx.url.hostname}`,
+//       secure: import.meta.env.PROD,
+//       path: "/",
+//     };
+//     if (cookie) {
+//       ctx.cookies.set(cookieKey, (cookie + 1).toString(), cookieOption);
+//       if (cookie >= number) {
+//         throw new ActionError({
+//           code: "TOO_MANY_REQUESTS",
+//           message: "Rate limited",
+//         });
+//       }
+//     } else {
+//       ctx.cookies.set(cookieKey, "1", cookieOption);
+//     }
+//   };
 
-const fivePerFiveSeconds = ratelimiter(new TimeSpan(5, "s"), 5);
-const fiveSecond = ratelimiter(new TimeSpan(5, "s"), 1);
+// const fivePerFiveSeconds = ratelimiter(new TimeSpan(5, "s"), 5);
+// const fiveSecond = ratelimiter(new TimeSpan(5, "s"), 1);
 
 export const game = {
   updateGame: defineAction({
@@ -119,7 +114,7 @@ export const game = {
       content: z.string().optional(),
       mode: z.enum(gameModes).optional(),
     }),
-    handler: async (input, ctx) => {
+    handler: async (input, _ctx) => {
       const id = input.id;
 
       const [game] = await db
@@ -150,7 +145,7 @@ export const game = {
         rules: ["useGivenWords"],
         maxWords: 10,
       }),
-    handler: async (input, ctx) => {
+    handler: async (input, _ctx) => {
       const [{ id }] = await db
         .insert(Games)
         .values({
@@ -173,13 +168,14 @@ export const game = {
         )
         .catch((e) => {
           console.error(e);
+          console.error(e);
           throw new ActionError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to insert words",
           });
         });
 
-      ctx.cookies.set(
+      _ctx.cookies.set(
         "const:session",
         JSON.stringify({
           id,
@@ -187,7 +183,7 @@ export const game = {
         {
           expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
           path: "/",
-          domain: `.${ctx.url.hostname}`,
+          domain: `.${_ctx.url.hostname}`,
           secure: import.meta.env.PROD,
         },
       );
@@ -201,7 +197,7 @@ export const game = {
       mode: z.enum(gameModes).optional(),
       max: z.number().int().positive().default(10),
     }),
-    handler: async (input, ctx) => {
+    handler: async (input, _ctx) => {
       const id = input.gameId;
 
       const mode =
@@ -250,7 +246,7 @@ export const game = {
       wordId: z.number().int(),
       reason: z.enum(["difficult", "notAWord", "inappropriate"]),
     }),
-    handler: async (input, ctx) => {
+    handler: async (input, _ctx) => {
       const id = input.gameId;
       const mode =
         input.mode ??
@@ -296,6 +292,7 @@ export const game = {
             })
             .where(eq(Words.id, input.wordId))
             .catch((e) => {
+              console.error(e);
               db.rollback();
               throw new ActionError({
                 code: "NOT_FOUND",
@@ -306,6 +303,7 @@ export const game = {
           return index;
         })
         .catch((e) => {
+          console.error(e);
           throw e;
         });
 
@@ -319,6 +317,7 @@ export const game = {
           index,
         })
         .catch((e) => {
+          console.error(e);
           throw new ActionError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to insert word",
@@ -332,7 +331,7 @@ export const game = {
     input: z.object({
       word: z.string(),
     }),
-    handler: (input, ctx) => {
+    handler: (input, _ctx) => {
       return defineWord(input.word);
     },
   }),

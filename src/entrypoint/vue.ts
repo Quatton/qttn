@@ -8,14 +8,13 @@ declare global {
   }
 }
 
-export default (app: App) => {
-  app.use({
-    install(app) {
-      self.MonacoEnvironment = {
-        getWorker(_, label) {
-          return new editorWorker();
-        },
-      };
+export default (_app: App) => {
+  if (typeof self === "undefined") {
+    return;
+  }
+  self.MonacoEnvironment = {
+    getWorker(_, __) {
+      return new editorWorker();
     },
-  });
+  };
 };

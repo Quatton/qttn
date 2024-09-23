@@ -12,7 +12,6 @@ export default <Partial<Config>>{
     themes: ["bumblebee"],
   },
   plugins: [
-    daisyUI,
     typography,
     containerQueries,
     exposeColors({
@@ -21,6 +20,7 @@ export default <Partial<Config>>{
       mode: "rgb",
     }),
     tailwindCSSAnimated,
+    daisyUI,
   ],
   theme: {
     extend: {

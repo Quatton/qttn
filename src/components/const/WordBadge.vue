@@ -38,18 +38,18 @@ withDefaults(
 
 <template>
   <div
-    class="border rounded-full flex items-center gap-2 p-2 bg-base-100 text-xs sm:text-sm md:text-base"
+    class="flex items-center gap-2 rounded-full border bg-base-100 p-2 text-xs sm:text-sm md:text-base"
     :class="{
       'bg-green-200': !!word.match,
     }"
   >
     <div class="dropdown">
-      <div tabindex="0" class="btn-xs btn btn-outline btn-error btn-circle">
+      <div tabindex="0" class="btn btn-circle btn-outline btn-error btn-xs">
         <Icon icon="heroicons:x-mark" />
       </div>
       <ul
         tabindex="0"
-        class="dropdown-content menu bg-base-100 rounded-box z-50 w-60 p-2 shadow"
+        class="menu dropdown-content z-50 w-60 rounded-box bg-base-100 p-2 shadow"
       >
         <li>
           <button @click="$emit('swapOutWord', idx, 'difficult')">
@@ -70,7 +70,7 @@ withDefaults(
     </div>
     <div class="animate-rotate-y animate-once">{{ word.name }}</div>
     <button
-      class="btn-xs btn btn-outline btn-circle"
+      class="btn btn-circle btn-outline btn-xs"
       @click="
         $emit('defineWord', word.name);
         modal.showModal(idx);
@@ -79,9 +79,9 @@ withDefaults(
       <Icon icon="heroicons:book-open" />
     </button>
     <dialog class="modal" :id="`definition-${idx}`">
-      <div class="modal-box space-y-4 pt-8 max-h-5/6 flex flex-col">
+      <div class="max-h-5/6 modal-box flex flex-col space-y-4 pt-8">
         <button
-          class="btn btn-ghost btn-circle btn-sm text-lg btn-error absolute top-2 left-2"
+          class="btn btn-circle btn-ghost btn-error btn-sm absolute left-2 top-2 text-lg"
           aria-label="Close"
           @click="modal.close(idx)"
         >
@@ -89,15 +89,15 @@ withDefaults(
         </button>
         <h1 class="text-2xl">{{ word.name }}</h1>
         <div
-          class="flex-1 min-h-0 flex flex-col"
+          class="flex min-h-0 flex-1 flex-col"
           v-if="definitions && definitions.length > 0"
           v-for="definition in definitions.slice(0, 1)"
         >
           <p class="text-muted-content">
             {{ definition.phonetic }}
           </p>
-          <div class="flex-1 min-h-0 overflow-y-scroll">
-            <table class="table max-sm:table-xs table-pin-rows">
+          <div class="min-h-0 flex-1 overflow-y-scroll">
+            <table class="table table-pin-rows max-sm:table-xs">
               <template v-for="meaning in definition.meanings">
                 <thead>
                   <tr>
@@ -147,10 +147,10 @@ withDefaults(
           </p>
         </div>
         <div
-          class="skeleton w-full min-h-96"
+          class="skeleton min-h-96 w-full"
           v-else-if="definitionLoading"
         ></div>
-        <div class="text-center h-full pt-28" v-else>(No definition found)</div>
+        <div class="h-full pt-28 text-center" v-else>(No definition found)</div>
       </div>
       <form method="dialog" class="modal-backdrop">
         <button>close</button>

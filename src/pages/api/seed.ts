@@ -1,7 +1,7 @@
 import { db } from "@/db/drizzle";
 import { now, Words } from "@/db/schema";
 import type { EndpointHandler } from "astro";
-import { count, eq, sql } from "drizzle-orm";
+import { count } from "drizzle-orm";
 
 export const GET: EndpointHandler["GET"] = async (ctx) => {
   if (
@@ -21,18 +21,18 @@ export const GET: EndpointHandler["GET"] = async (ctx) => {
   const totalWords = words.length;
   const wordWithSpaceCount = words.filter((word) => word.includes(" ")).length;
 
-  const workChunker = (arr: string[], chunkSize: number) => {
-    const chunks = [];
-    for (let i = 0; i < arr.length; i += chunkSize) {
-      chunks.push(arr.slice(i, i + chunkSize));
-    }
+  // const workChunker = (arr: string[], chunkSize: number) => {
+  //   const chunks = [];
+  //   for (let i = 0; i < arr.length; i += chunkSize) {
+  //     chunks.push(arr.slice(i, i + chunkSize));
+  //   }
 
-    if (arr.length - chunks.length * chunkSize > 0) {
-      chunks.push(arr.slice(chunks.length * chunkSize));
-    }
+  //   if (arr.length - chunks.length * chunkSize > 0) {
+  //     chunks.push(arr.slice(chunks.length * chunkSize));
+  //   }
 
-    return chunks;
-  };
+  //   return chunks;
+  // };
 
   let rowsAffected = 0;
   const wordChunks: string[][] = [];

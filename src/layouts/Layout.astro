@@ -12,9 +12,9 @@ interface Props {
   title?: string;
 }
 
-const { title } = Astro.props;
 const app = Astro.url.pathname.split("/app");
 const baseRoute = app[1]?.split("/")[1];
+const { title = baseRoute } = Astro.props;
 ---
 
 <!doctype html>
@@ -53,7 +53,6 @@ const baseRoute = app[1]?.split("/")[1];
         )
       }
     </header>
-
     <slot />
   </body>
 </html>

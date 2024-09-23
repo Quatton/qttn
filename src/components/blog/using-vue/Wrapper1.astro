@@ -1,0 +1,16 @@
+---
+import CodeEditor from "./CodeEditor.vue";
+import { db } from "./hooks";
+import WordBar from "./WordBar.vue";
+
+const words = db.slice(0, 5).map((word) => ({
+  id: word.id,
+  name: word.name,
+  match: false,
+}));
+---
+
+<div class="not-prose mx-auto flex max-w-md flex-col gap-4">
+  <WordBar client:load words={words} />
+  <CodeEditor client:visible />
+</div>

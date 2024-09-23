@@ -1,0 +1,17 @@
+---
+import Layout from "@/layouts/Layout.astro";
+
+const params = Astro.params;
+const comma = params.id;
+---
+
+<Layout>
+  <main class="container mx-auto h-[100dvh] pt-16">
+    <section class="prose max-w-3xl px-8 py-32">
+      <h1>Hmm, yeah...</h1>
+      <p>
+        I should write about <code>{comma ?? "that"}</code> someday.
+      </p>
+    </section>
+  </main>
+</Layout>

@@ -1,7 +1,7 @@
 import { db } from "@/db/drizzle";
 import { Words } from "@/db/schema";
 import type { EndpointHandler } from "astro";
-import { and, desc, gte, lt, sql } from "drizzle-orm";
+import { and, desc, gte, sql } from "drizzle-orm";
 
 export const GET: EndpointHandler["GET"] = async (ctx) => {
   if (

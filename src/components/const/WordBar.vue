@@ -74,7 +74,7 @@ onMounted(() => {
 
 <template>
   <div
-    class="flex gap-2 @sm:gap-4 flex-wrap justify-center items-end"
+    class="flex flex-wrap items-end justify-center gap-2 @sm:gap-4"
     ref="parent"
   >
     <WordBadge
@@ -87,8 +87,6 @@ onMounted(() => {
       @defineWord="defineWord"
       @swapOutWord="swapOutWord"
     />
-    <div>
-
-    </div>
+    <div></div>
   </div>
 </template>

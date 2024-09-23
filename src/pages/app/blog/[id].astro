@@ -1,0 +1,94 @@
+---
+import type { GetStaticPaths } from "astro";
+export const prerender = true;
+
+import Layout from "@/layouts/Layout.astro";
+import { getCollection, getEntry } from "astro:content";
+export const getStaticPaths = (async () => {
+  const blogEntries = await getCollection("blog");
+  return blogEntries.map((entry) => ({
+    params: { id: entry.slug },
+    props: { entry },
+  }));
+}) satisfies GetStaticPaths;
+
+const id = Astro.params.id;
+const blog = await getEntry("blog", id);
+if (!blog) {
+  return Astro.rewrite(`/app/blog/not-found/${id}`);
+}
+
+const { Content } = await blog.render();
+---
+
+<Layout>
+  <main class="container mx-auto h-[100dvh] pt-16">
+    <section class="prose mx-auto max-w-3xl px-8 py-32">
+      <h1>{blog.data.title}</h1>
+      <p class="text-muted-content">
+        {
+          Intl.DateTimeFormat("en-US", {
+            dateStyle: "medium",
+          }).format(blog.data.publishedAt) ?? "(Draft)"
+        }
+      </p>
+      <Content />
+    </section>
+  </main>
+</Layout>
+
+<style is:global>
+  :root {
+    --line-highlighted-bg: #cdd6f412;
+    --line-highlighted-border: #cdd6f432;
+    --highlighted-bg: #9399b233;
+    --highlighted-border: #9399b253;
+    --diff-removed-bg: #f38ba826;
+    --diff-inserted-bg: #a6e3a126;
+    --diff-inserted-fg: #a6e3a1cc;
+    --diff-removed-fg: #f38ba8cc;
+  }
+  code .highlighted {
+    display: inline-block;
+    width: calc(100% + 2rem);
+    margin-left: -1rem;
+    padding-left: 1rem;
+    background-color: var(--line-highlighted-bg);
+    border-left: 2px solid var(--line-highlighted-border);
+  }
+  code .highlighted-word {
+    background-color: var(--highlighted-bg);
+    border: 1px solid var(--highlighted-border);
+    padding: 1px 2px;
+    margin: -1px -3px;
+    border-radius: 4px;
+  }
+  code .gdiff.remove {
+    display: inline-block;
+    width: calc(100% + 2rem);
+    margin-left: -1rem;
+    padding-left: 1rem;
+    background-color: var(--diff-removed-bg);
+  }
+  code .gdiff.remove::before {
+    content: "-";
+    margin-left: -0.5rem;
+    padding-right: 0.5rem;
+    color: var(--diff-removed-fg);
+  }
+
+  code .gdiff.add {
+    display: inline-block;
+    width: calc(100% + 2rem);
+    margin-left: -1rem;
+    padding-left: 1rem;
+    background-color: var(--diff-inserted-bg);
+  }
+
+  code .gdiff.add::before {
+    content: "+";
+    margin-left: -0.5rem;
+    padding-right: 0.5rem;
+    color: var(--diff-inserted-fg);
+  }
+</style>

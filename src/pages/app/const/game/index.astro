@@ -3,7 +3,7 @@ import ContinueButton from "@/components/const/ContinueButton.vue";
 import WordBadge from "@/components/const/WordBadge.vue";
 import Layout from "@/layouts/Layout.astro";
 import type { Definition } from "@/lib/const/dictionary";
-import type { CompressedWordWithMatch, GameSession } from "@/lib/const/rules";
+import type { CompressedWordWithMatch } from "@/lib/const/rules";
 
 const words: CompressedWordWithMatch[] = [
   {
@@ -215,7 +215,7 @@ const definitions: Definition[] = [
   const form = document.querySelector("form");
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const { games, latestGame } = usePastGames();
+    const { latestGame } = usePastGames();
     if (latestGame.value) {
       const content = localStorage.getItem(`const:code:${latestGame.value}`);
       if (!content) {

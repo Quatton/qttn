@@ -1,0 +1,62 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { getCollection } from "astro:content";
+export const prerender = true;
+
+const allPosts = await getCollection(
+  "blog",
+  (entry) => import.meta.env.DEV || !!entry.data.publishedAt,
+);
+
+allPosts.sort((a, b) => {
+  if (a.data.publishedAt && b.data.publishedAt) {
+    return a.data.publishedAt > b.data.publishedAt ? -1 : 1;
+  }
+  if (a.data.publishedAt && !b.data.publishedAt) {
+    return 1;
+  }
+  if (!a.data.publishedAt && b.data.publishedAt) {
+    return -1;
+  }
+  if (!a.data.publishedAt && !b.data.publishedAt) {
+    return a.data.createdAt > b.data.createdAt ? -1 : 1;
+  }
+  return 0;
+});
+---
+
+<Layout>
+  <main class="container mx-auto h-[100dvh] pt-16">
+    <section class="prose px-4 pt-16">
+      <h1>Hi</h1>
+      <p>
+        Here are my blog posts. Some are interactive so you can also play with
+        them.
+      </p>
+    </section>
+    <section class="max-w-xl">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Published</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            allPosts.map(({ data, slug }) => (
+              <tr class="hover">
+                <td>
+                  <a href={`/app/blog/${slug}`} class="link">
+                    {data.title}
+                  </a>
+                </td>
+                <td>{data.publishedAt ?? "(Draft)"}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </section>
+  </main>
+</Layout>

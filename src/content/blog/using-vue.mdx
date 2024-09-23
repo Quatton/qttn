@@ -1,0 +1,252 @@
+---
+title: Vue is the superior framework for Astro
+createdAt: 2024-09-23
+publishedAt: 2024-09-23
+---
+
+import Wrapper1 from "@/components/blog/using-vue/Wrapper1.astro";
+
+```astro
+---
+// Wrapper.astro
+---
+
+<Layout>
+  <WordBar client:visible />
+  <!-- How do you handle global states between these two components -->
+  <CodeEditor client:visible />
+</Layout>
+```
+
+## Introduction
+
+In the making of [CONST!](https://const.qttn.dev), one of the challenges
+I faced was checking if the paragraph contains the mandated vocabulary, and
+display the progress of the game.
+
+1. `WordBar` needs to display the set of words and these can be swapped out to get a new word.
+2. `CodeEditor` should know the word list and notify `WordBar` if a word is found in the paragraph.
+
+For Vue, we have different ways to achieve this.
+
+- Use a parent component to manage the state and pass it down to the children.
+  (We would lose the benefits of Astro islands and have to manage props and emits)
+- [Pinia](https://pinia.vuejs.org/) but it's a bit overkill for this use case.
+- [nanostores](https://github.com/nanostores/nanostores) which is what recommended by [Astro themselves](https://docs.astro.build/en/recipes/sharing-state-islands/).
+  It is very lightweight but its API is not as convenient for my use case when I want to modify an array.
+
+## Using Vue outside of Vue components
+
+I have been working with Vue 3 since 2020, but I never knew we can already create `ref` and other reactive objects outside of Vue components.
+
+Yes, we can.
+You can export it from one file and import it in another Vue component.
+
+```ts
+export const words = ref([]);
+```
+
+This means you can do this in one file:
+
+```vue
+<script lang="ts" setup>
+import { words } from "@/store/words"; // Import from another file // [!code highlight]
+</script>
+
+<template>
+  <ul>
+    <li
+      v-for="(word, idx) in words"
+      :key="word.id"
+      :class="{ 'badge-primary': word.match }"
+      @click="swapOutWord(idx)"
+    >
+      {{ word.name }}
+    </li>
+  </ul>
+</template>
+```
+
+and do this in another:
+
+```vue
+<script lang="ts" setup>
+import { words } from "@/store/words"; // Import from another file // [!code highlight]
+
+const code = ref("I ate a cake, and a banana ate me.");
+const matchedAll = computed(
+  () =>
+    wordStore.value.length > 0 && wordStore.value.every((word) => word.match),
+);
+watch(
+  () => code.value,
+  () => {
+    wordStore.value = wordStore.value.map((word) => ({
+      ...word,
+      match: code.value.includes(word.name),
+    }));
+  },
+  {
+    immediate: true,
+  },
+);
+</script>
+
+<template>
+  <textarea
+    :class="{
+      'bg-green-200': matchedAll,
+    }"
+    v-model="code"
+  ></textarea>
+</template>
+```
+
+## But hey, how do you initialize the ref with prefetched data?
+
+If you insert as a prop and the initialize it with `onMounted`,
+there is a chance that `CodeEditor` will be rendered before the `words` is
+properly initialized. Moreover, to ensure the race condition of `CodeEditor`'s
+`watch`, `WordBar` needs to be rendered first.
+
+First, I made `WordBar` render first by setting it as `client:load`
+and everything else as `client:visible`.
+
+```astro /client:load data={data}/
+---
+const data = [
+  /* ... */
+];
+---
+
+<Layout>
+  <WordBar client:load data={data} />
+  <CodeEditor client:visible />
+</Layout>
+```
+
+Next, what I did was slightly illegal but essentially,
+I just set the value of the ref directly without any hooks.
+
+```vue
+<script lang="ts" setup>
+import { ref, onMounted } from "vue";
+import { words } from "@/store/words";
+
+const $props = defineProps<{
+  data: string[];
+}>();
+
+words.value = $props.data.map((name) => ({ name, match: false }));
+</script>
+```
+
+And that's it! Now, try changing the code, swapping out the words, and see the magic happen.
+
+<Wrapper1 />
+
+## What about other frameworks?
+
+1. React: `useState` must only be called in a component.
+2. Svelte: While you can create `writable` stores outside of components,
+   but it is not usable anywhere else other than Svelte components.
+3. Angular: I have no idea.
+4. Qwik: `useSignal` must only be called in `$component` but this is understandable
+   because Qwik doesn't "hydrate"
+5. Solid: Yes! You absolutely can!
+
+```tsx
+import { setTest, test } from "./hooks";
+
+export function SolidComponent() {
+  return (
+    <div>
+      <button onClick={increment}>Increment</button>
+      <p>{test()}</p>
+    </div>
+  );
+}
+```
+
+import { SolidComponent } from "@/components/blog/using-vue/Solid.tsx";
+
+<SolidComponent client:visible />
+
+However, I'm not a fan of having to import both get and set functions in the same file.
+It might be convenient to do that in Solid, and it also imposes a rule to not accidentally
+mutate the state directly.
+
+And I can also do that in Vue
+
+```vue
+<script setup lang="ts">
+import { testVue, increment } from "./hooks";
+</script>
+
+<template>
+  <div class="flex items-center justify-center gap-4">
+    <button class="btn" @click="increment" }>Increment</button>
+    <p class="grid h-12 w-12 place-content-center rounded bg-base-200">
+      {{ testVue }}
+    </p>
+  </div>
+</template>
+```
+
+import SolidInVue from "@/components/blog/using-vue/SolidInVue.vue";
+
+<SolidInVue client:visible />
+
+## Wait, both numbers are in sync!
+
+If you noticed that, this is how I glued both Solid and Vue together,
+which I know, looks so sacrilegious.
+
+```ts
+export const [test, setTest] = createSignal(0);
+export const testVue = ref(0);
+export function increment() {
+  testVue.value++;
+}
+watch(
+  () => testVue.value,
+  (val) => {
+    setTest(val);
+  },
+);
+```
+
+`createEffect` is frowned upon in Solid because it will never be disposed.
+But in this case, Vue doesn't warn anything about `watch`. (I'm not sure. It might
+leak memory as I speak but it doesn't warn.)
+
+Just like how you can `store.subscribe` in Svelte stores outside of Svelte components!
+
+## Doing it legally.
+
+If you feel that what we did was illegal, you can use [`createGlobalState`](https://vueuse.org/shared/createGlobalState/#without-persistence-store-in-memory)
+from `@vueuse/core` to create a global state.
+
+```ts
+import { createGlobalState } from "@vueuse/core";
+import { ref } from "vue";
+
+export const useWords = createGlobalState(() => {
+  const words = ref([]);
+  return { words };
+});
+```
+
+Or you can also swap out `ref` with `useLocalStorage` from `@vueuse/core` to persist the state.
+
+## Conclusion
+
+Vue is a very flexible framework that allows you to do a lot of things.
+
+- Creating reactive objects outside of Vue components
+- Watching the reactive objects outside of Vue components → which means you can
+  even do it under `<script>` tags in Astro component!
+- Many helpers in `@vueuse/core` to make your life easier
+
+And this allows you to do a lot of things that you can't do in other frameworks,
+especially when you want to share states between islands in Astro.

@@ -3,15 +3,10 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js"
   },
-  "exclude": [
-    "node_modules",
-    ".astro",
-    "dist"
-  ]
+  "exclude": ["node_modules", ".astro", "dist"]
 }
