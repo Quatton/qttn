@@ -26,6 +26,9 @@ const game = await db.query.Games.findFirst({
       orderBy: (fields, { asc }) => asc(fields.index),
     },
   },
+}).catch((e) => {
+  console.error(e);
+  return null;
 });
 if (!game) {
   return Astro.redirect("/game");
