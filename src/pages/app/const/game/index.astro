@@ -1,5 +1,6 @@
 ---
 import ContinueButton from "@/components/const/ContinueButton.vue";
+import NewGameButton from "@/components/const/NewGameButton.vue";
 import WordBadge from "@/components/const/WordBadge.vue";
 import Layout from "@/layouts/Layout.astro";
 import type { Definition } from "@/lib/const/dictionary";
@@ -197,44 +198,8 @@ const definitions: Definition[] = [
       }
     </section>
     <section class="mt-8 flex gap-4 max-xs:flex-col">
-      <form>
-        <button type="submit" class="btn btn-primary w-full"
-          >Start a new game</button
-        >
-      </form>
+      <NewGameButton client:only="vue" />
       <ContinueButton client:only="vue" />
     </section>
   </main>
 </Layout>
-
-<script>
-  import { actions } from "astro:actions";
-  import { navigate } from "astro:transitions/client";
-
-  const form = document.querySelector("form");
-  form?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const latestGames = localStorage.getItem("const:games");
-    const games = (() => {
-      try {
-        return JSON.parse(latestGames ?? "[]");
-      } catch {
-        return [];
-      }
-    })();
-
-    if (games.length > 0) {
-      const latestGame = games[games.length - 1];
-      const content = localStorage.getItem(`const:code:${latestGame.value}`);
-      if (content) {
-        await actions.constAction
-          .updateGame({ id: latestGame.value, content })
-          .catch(console.error);
-        localStorage.removeItem(`const:code:${latestGame}`);
-      }
-    }
-    const { data, error } = await actions.constAction.new({});
-
-    if (data) navigate(`/game/${data}`);
-  });
-</script>
