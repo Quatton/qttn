@@ -224,6 +224,7 @@ const definitions: Definition[] = [
       }
     }
     const { data, error } = await actions.constAction.new({});
+    if (error) alert(error);
 
     if (data) navigate(`/game/${data}`);
   });
