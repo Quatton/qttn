@@ -208,23 +208,32 @@ const definitions: Definition[] = [
 </Layout>
 
 <script>
-  import { usePastGames } from "@/hooks/vue/useConstCode";
   import { actions } from "astro:actions";
   import { navigate } from "astro:transitions/client";
 
   const form = document.querySelector("form");
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const { latestGame } = usePastGames();
-    if (latestGame.value) {
+    const latestGames = localStorage.getItem("const:games");
+    const games = (() => {
+      try {
+        return JSON.parse(latestGames ?? "[]");
+      } catch {
+        return [];
+      }
+    })();
+
+    if (games.length > 0) {
+      const latestGame = games[games.length - 1];
       const content = localStorage.getItem(`const:code:${latestGame.value}`);
       if (content) {
-        await actions.constAction.updateGame({ id: latestGame.value, content });
+        await actions.constAction
+          .updateGame({ id: latestGame.value, content })
+          .catch(console.error);
         localStorage.removeItem(`const:code:${latestGame}`);
       }
     }
     const { data, error } = await actions.constAction.new({});
-    console.table({ data, error });
 
     if (data) navigate(`/game/${data}`);
   });
