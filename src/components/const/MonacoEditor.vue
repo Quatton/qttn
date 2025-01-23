@@ -124,7 +124,7 @@ onUnmounted(() => {
 <template>
   <div
     ref="element"
-    class="mx-auto h-64 w-[min(90%,64rem)] overflow-hidden rounded-xl bg-neutral shadow md:h-80"
+    class="mx-auto h-64 w-[min(90%,64rem)] overflow-hidden rounded-xl bg-neutral shadow-md md:h-80"
     id="monaco-editor"
   ></div>
 </template>

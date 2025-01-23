@@ -49,7 +49,7 @@ withDefaults(
       </div>
       <ul
         tabindex="0"
-        class="menu dropdown-content z-50 w-60 rounded-box bg-base-100 p-2 shadow"
+        class="menu dropdown-content z-50 w-60 rounded-box bg-base-100 p-2 shadow-md"
       >
         <li>
           <button @click="$emit('swapOutWord', idx, 'difficult')">
