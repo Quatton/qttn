@@ -1,7 +1,5 @@
 ---
-import { getAppHref } from "@/lib/utils";
 import Layout from "../layouts/Layout.astro";
-import Introduction from "../components/index/Introduction.md";
 
 import { getCollection } from "astro:content";
 
@@ -28,35 +26,30 @@ allPosts.sort((a, b) => {
 ---
 
 <Layout>
-  <main class="container mx-auto space-y-8 py-24">
-    <section class="prose max-w-4xl">
-      <Introduction />
-    </section>
+  <main class="container mx-auto space-y-8 px-4 py-24">
     <section class="max-w-4xl">
-      <h2 class="text-xl font-semibold">Recent Projects</h2>
-      <div class="mt-8 grid grid-cols-1 gap-8">
-        <div class="border-box card border">
-          <div class="card-body">
-            <h3 class="card-title">CONST!</h3>
-            <p class="mt-4 text-lg text-secondary-content">
-              Const is a collection of fun constrained writing prompts for you
-              to play and share with your friends.
-            </p>
+      <nav class="flex items-center justify-between">
+        <h1 class="text-xl font-bold">Quatton</h1>
 
-            <div class="card-actions justify-end">
-              <a href={getAppHref("const")} class="btn btn-sm"> Let's Play </a>
-            </div>
-          </div>
-        </div>
-      </div>
+        <ul class="flex space-x-4 text-muted-content">
+          <li>
+            <a href="/" class="link">Blog</a>
+          </li>
+          <li>
+            <a href="/about" class="link">About</a>
+          </li>
+          <li>
+            <a href="/projects" class="link">Projects</a>
+          </li>
+        </ul>
+      </nav>
     </section>
     <section class="max-w-4xl">
-      <h2 class="text-xl font-semibold">Blog</h2>
       <table class="table">
         <thead>
           <tr>
-            <th>Title</th>
             <th>Published</th>
+            <th>Title</th>
           </tr>
         </thead>
         <tbody>
@@ -64,16 +57,17 @@ allPosts.sort((a, b) => {
             allPosts.map(({ data, id }) => (
               <tr class="hover">
                 <td>
-                  <a href={`/app/blog/${id}`} class="link">
-                    {data.title}
-                  </a>
+                  {data.publishedAt
+                    ? new Intl.DateTimeFormat("en-US", {
+                        year: "numeric",
+                        month: "short",
+                      }).format(new Date(data.publishedAt))
+                    : "Unpublished"}
                 </td>
                 <td>
-                  {data.publishedAt
-                    ? Intl.DateTimeFormat("en-US", {
-                        dateStyle: "medium",
-                      }).format(data.publishedAt)
-                    : "(Draft)"}
+                  <a href={`/blog/${id}`} class="link">
+                    {data.title}
+                  </a>
                 </td>
               </tr>
             ))
