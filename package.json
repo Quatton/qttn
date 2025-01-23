@@ -73,6 +73,10 @@
     "wrangler": "^3.105.0"
   },
   "trustedDependencies": [
-    "@biomejs/biome"
+    "@biomejs/biome",
+    "esbuild",
+    "sharp",
+    "vue-demi",
+    "workerd"
   ]
 }
