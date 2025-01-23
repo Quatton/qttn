@@ -1,7 +1,6 @@
 // @ts-check
 import { defineConfig } from "astro/config";
-
-import tailwind from "@astrojs/tailwind";
+import tailwindcss from "@tailwindcss/vite";
 import vercel from "@astrojs/vercel";
 import icon from "astro-icon";
 import vue from "@astrojs/vue";
@@ -39,8 +38,6 @@ export default defineConfig({
     },
   },
   integrations: [
-    tailwind(),
-    // svelte(),
     icon(),
     vue({
       appEntrypoint: "./src/entrypoint/vue.ts",
@@ -57,5 +54,6 @@ export default defineConfig({
     ssr: {
       noExternal: ["monaco-editor"],
     },
+    plugins: [tailwindcss()],
   },
 });
