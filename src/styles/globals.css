@@ -5,7 +5,7 @@
 @plugin "tailwindcss-animated";
 
 @plugin "daisyui" {
-  themes: retro --default;
+  themes: silk --default;
 }
 
 @theme {

@@ -40,7 +40,7 @@ const words: CompressedWordWithMatch[] = game.gameToWords.map((g) => ({
 }));
 
 Astro.cookies.set(
-  "const:session",
+  "const-session",
   {
     id: game.id,
   },

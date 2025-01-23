@@ -46,7 +46,7 @@ onMounted(async () => {
   editor.value = monaco.editor.create(element.value as HTMLElement, {
     value: code.value,
     language: "markdown",
-    fontFamily: "Geist Mono",
+    fontFamily: "Geist Mono Variable",
     fontSize: breakpoint.greaterOrEqual("sm").value ? 16 : 12,
     wordBasedSuggestions: "off",
     minimap: { enabled: false },

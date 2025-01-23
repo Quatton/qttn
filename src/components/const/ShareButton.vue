@@ -125,9 +125,7 @@ const openTooltip = useLocalStorage("const:tooltip", true);
     class="fixed inset-0 animate-fade bg-white animate-duration-100 animate-once"
   ></div>
   <div
-    class="tooltip tooltip-top"
-    data-tip="Download is now moved here"
-    :class="{ 'tooltip-open': openTooltip }"
+    
   >
     <button
       class="btn btn-primary w-full"

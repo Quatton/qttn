@@ -39,7 +39,13 @@ async function generateWords(limit: number, mode: GameMode = "easy") {
       name: sq.words.name,
     })
     .from(sq)
-    .orderBy(asc(sq.words.rejected_rate));
+    .orderBy(asc(sq.words.rejected_rate)).catch((e) => {
+      console.error(e);
+      throw new ActionError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch words",
+      });
+    });
 
   const eighty = Math.floor(mode === "easy" ? limit * 0.8 : limit * 0.2);
   const twenty = limit - eighty;
@@ -63,6 +69,13 @@ async function generateWords(limit: number, mode: GameMode = "easy") {
         Words.id,
         t.map((word) => word.id),
       ),
+    ).catch((e) => {
+      console.error(e);
+      throw new ActionError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to update words",
+      });
+    }
     );
 
   return t;
@@ -184,8 +197,10 @@ export const game = {
           });
         });
 
+
+        try {
       ctx.cookies.set(
-        "const:session",
+        "const-session",
         JSON.stringify({
           id,
         }),
@@ -196,6 +211,13 @@ export const game = {
           secure: import.meta.env.PROD,
         },
       );
+    } catch (e) {
+      console.error(e);
+      throw new ActionError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to set cookie",
+      });
+    }
 
       return id;
     },

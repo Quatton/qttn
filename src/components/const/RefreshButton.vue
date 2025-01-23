@@ -95,9 +95,9 @@ const tryBadge = useLocalStorage("const:try-badge", true);
     Reset {{ error ? "(Error!)" : "" }}
   </button>
   <div className="indicator w-full">
-    <span className="indicator-item badge badge-neutral" v-if="tryBadge"
+    <!-- <span className="indicator-item badge badge-neutral" v-if="tryBadge"
       >try</span
-    >
+    > -->
     <button
       class="btn btn-outline w-full"
       type="submit"
