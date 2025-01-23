@@ -27,7 +27,7 @@ const [parent] = useAutoAnimate();
       role="button"
       v-for="(word, idx) in wordStore"
       :key="word.id"
-      class="badge badge-lg animate-rotate-y animate-once"
+      class="badge badge-lg animate-rotate-y animate-once cursor-pointer"
       :class="{ 'badge-primary': word.match }"
       @click="swapOutWord(idx)"
     >
