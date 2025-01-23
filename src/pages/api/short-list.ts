@@ -1,9 +1,9 @@
-import type { EndpointHandler } from "astro";
+import type { APIRoute } from "astro";
 import { db } from "@/db/drizzle";
 import { WordShortList } from "@/db/schema";
 import { sql } from "drizzle-orm";
 
-export const GET: EndpointHandler["GET"] = async (ctx) => {
+export const GET: APIRoute = async (ctx) => {
   if (
     !import.meta.env.DEV &&
     ctx.request.headers.get("Authorization") !==

@@ -42,10 +42,10 @@ allPosts.sort((a, b) => {
         </thead>
         <tbody>
           {
-            allPosts.map(({ data, slug }) => (
+            allPosts.map(({ data, id }) => (
               <tr class="hover">
                 <td>
-                  <a href={`/app/blog/${slug}`} class="link">
+                  <a href={`/app/blog/${id}`} class="link">
                     {data.title}
                   </a>
                 </td>

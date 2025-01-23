@@ -2,8 +2,7 @@
 import { defineConfig } from "astro/config";
 
 import tailwind from "@astrojs/tailwind";
-import vercel from "@astrojs/vercel/serverless";
-import svelte from "@astrojs/svelte";
+import vercel from "@astrojs/vercel";
 import icon from "astro-icon";
 import vue from "@astrojs/vue";
 import vtbot from "astro-vtbot";
@@ -41,7 +40,7 @@ export default defineConfig({
   },
   integrations: [
     tailwind(),
-    svelte(),
+    // svelte(),
     icon(),
     vue({
       appEntrypoint: "./src/entrypoint/vue.ts",

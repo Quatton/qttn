@@ -1,6 +1,6 @@
 import type { CompressedWordWithMatch } from "@/lib/const/rules";
 import type { editor as module } from "monaco-editor";
-import { ref, shallowRef, type Ref } from "vue";
+import { ref, shallowRef } from "vue";
 
 export const wordStore = ref<CompressedWordWithMatch[]>([]);
 

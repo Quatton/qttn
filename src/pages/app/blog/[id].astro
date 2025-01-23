@@ -2,10 +2,11 @@
 import type { GetStaticPaths } from "astro";
 import Layout from "@/layouts/Layout.astro";
 import { getCollection, getEntry } from "astro:content";
+import { render } from "astro:content";
 export const getStaticPaths = (async () => {
   const blogEntries = await getCollection("blog");
   return blogEntries.map((entry) => ({
-    params: { id: entry.slug },
+    params: { id: entry.id },
     props: { entry },
   }));
 }) satisfies GetStaticPaths;
@@ -16,7 +17,7 @@ if (!blog) {
   return Astro.rewrite(`/app/blog/not-found/${id}`);
 }
 
-const { Content } = await blog.render();
+const { Content } = await render(blog);
 ---
 
 <Layout>
