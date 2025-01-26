@@ -11,6 +11,7 @@ int main() {
   config.setOpenGLVersion(3, 3);
   config.setWindowName("LearnOpenGL");
 
+  // This is where bug happens
   App app = config.build();
 
   glm::vec3 cubePositions[] = {
@@ -134,6 +135,18 @@ app.init();
 
 In the future, I want to keep all the initialization in the `build` function.
 So I will go with the first option.
+
+This is the final version with method chaining:
+
+```cpp
+App *app = (new AppBuilder())
+                 ->setWindowSize(SCR_WIDTH, SCR_HEIGHT)
+                 ->setOpenGLVersion(3, 3)
+                 ->setWindowName("LearnOpenGL")
+                 ->build();
+```
+
+So beautiful... I feel like a proud dad.
 
 ## Day 3
 
