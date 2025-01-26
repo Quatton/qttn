@@ -139,11 +139,34 @@ So I will go with the first option.
 This is the final version with method chaining:
 
 ```cpp
-App *app = (new AppBuilder())
-                 ->setWindowSize(SCR_WIDTH, SCR_HEIGHT)
-                 ->setOpenGLVersion(3, 3)
-                 ->setWindowName("LearnOpenGL")
-                 ->build();
+int main() {
+  auto app = AppBuilder()
+                 .setWindowSize(SCR_WIDTH, SCR_HEIGHT)
+                 .setOpenGLVersion(3, 3)
+                 .setWindowName("LearnOpenGL")
+                 .build();
+
+  for (int i = 0; i < 10; i++) {
+    app->spawn(
+        CubeObject(cubePositions[i],
+                   (glm::quat)glm::rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
+                                          glm::radians(20.0f * i),
+                                          glm::vec3(1.0f, 0.3f, 0.5f))));
+  }
+
+  app->insert_texture(*TextureLoader()
+                           .from_path("textures/container.jpg")
+                           .set_wrap_s(Wrap::REPEAT)
+                           .set_wrap_t(Wrap::REPEAT)
+                           .set_min_filter(MinFilter::LINEAR_MIPMAP_LINEAR)
+                           .set_mag_filter(MagFilter::NEAREST)
+                           .set_flip_vertically(true)
+                           .load());
+
+  app->run();
+
+  return 0;
+}
 ```
 
 So beautiful... I feel like a proud dad.
