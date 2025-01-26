@@ -44,6 +44,7 @@ allPosts.sort((a, b) => {
                 <td>
                   {data.publishedAt
                     ? new Intl.DateTimeFormat("en-US", {
+                        day: "numeric",
                         year: "numeric",
                         month: "short",
                       }).format(new Date(data.publishedAt))

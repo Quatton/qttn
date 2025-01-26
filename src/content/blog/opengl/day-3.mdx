@@ -1,0 +1,86 @@
+---
+title: Day 3 - C++ Builder pattern is... questionable
+createdAt: 2025-01-26
+publishedAt: 2025-01-26
+---
+
+```cpp
+#include "config.hpp"
+#include <iostream>
+
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
+
+int main() {
+  AppBuilder config;
+  config.setWindowSize(SCR_WIDTH, SCR_HEIGHT);
+  config.setOpenGLVersion(3, 3);
+  config.setWindowName("LearnOpenGL");
+
+  App app = config.build();
+
+  app.init();
+
+  app.run();
+
+  return 0;
+}
+```
+
+With an attempt to refactor the code into a builder pattern, 
+I realized it's not as clean as I thought. But it's fine for now.
+
+I am planning to refactor the inside of the `App` class into a more modular design.
+containing `Shader`, `Texture`, `Model` (vertex buffer, vertex array, etc), and 
+the abstract `Component` classes like Camera or Cube.
+
+However, I ran into the biggest barrier of all: 
+I cannot find a way to register a callback function using a member function of a class.
+member function in C++ doesn't capture `this` and return a function pointer.
+
+Hence the error:
+
+```
+Reference to non-static member function must be called
+```
+
+I look up on the internet and found out that I have to use `std::bind` but it seems like
+for GLFW, it's not possible to use `std::bind` because it's a C library (💀!!)
+
+The solution is? 
+
+We define a `WindowUserPointer` and pass the `this` pointer to it.
+
+```cpp
+glfwSetWindowUserPointer(window, this);
+```
+
+Then we get the `this` pointer back in the callback function instead of
+doing the reverse: capturing `this` into the callback function.
+
+```cpp
+glfwSetCursorPosCallback(window, [](GLFWwindow *w, double x, double y) {
+  static_cast<App *>(glfwGetWindowUserPointer(w))->mouse_callback(w, x, y);
+});
+glfwSetScrollCallback(window, [](GLFWwindow *w, double x, double y) {
+  static_cast<App *>(glfwGetWindowUserPointer(w))->scroll_callback(w, x, y);
+});
+```
+
+And that's how you do it!
+
+In my opinion it just feel like an elaborated global variable but it's fine for now.
+Although we only have one instance of `App` and one instance of `Window`, doing this 
+feels a bit overkill. but alr we ball.
+
+## Day 3
+
+Day 3 is about matrix transformation and camera.
+Transformation is basically local -> world -> view -> projection. 
+So a nested matrix multiplication.
+
+Camera was heavy on the lookAt but `glm` has lookAt built in so nothing to worry about.
+
+and yeah
+
+![TinyGL Day 3](./output.gif)
