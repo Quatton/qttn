@@ -124,7 +124,6 @@ App *AppBuilder::build() {
 
 or do not init in the `build` function
 ```cpp
-
 App AppBuilder::build() {
   return app;
 }
@@ -133,11 +132,35 @@ App app = config.build();
 app.init();
 ```
 
-In the future, I want to keep all the initialization in the `build` function.
-So I will go with the first option.
+The answer is surprisingly, not both. 
 
-This is the final version with method chaining:
+## `std::unique_ptr`
 
+Instead, we
+use something called `unique_ptr` which is a smart pointer that 
+will dictate the ownership of the object, in the case, the caller of the `build` function.
+
+```cpp 
+std::unique_ptr<App> AppBuilder::build() {
+  auto app = std::make_unique<App>();
+  app.init();
+
+  return app;
+}
+```
+
+Also to remove those `->`, we can use the `&` operator to the function
+
+```cpp
+AppBuilder &setWindowSize(int width, int height) {
+  window_width = width;
+  window_height = height;
+  return *this;
+}
+```
+
+This is like `fn set_window_size(&mut self, width: i32, height: i32) -> &mut Self` in Rust.
+ 
 ```cpp
 int main() {
   auto app = AppBuilder()
@@ -147,14 +170,14 @@ int main() {
                  .build();
 
   for (int i = 0; i < 10; i++) {
-    app->spawn(
+    app.spawn(
         CubeObject(cubePositions[i],
                    (glm::quat)glm::rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
                                           glm::radians(20.0f * i),
                                           glm::vec3(1.0f, 0.3f, 0.5f))));
   }
 
-  app->insert_texture(*TextureLoader()
+  app.insert_texture(*TextureLoader()
                            .from_path("textures/container.jpg")
                            .set_wrap_s(Wrap::REPEAT)
                            .set_wrap_t(Wrap::REPEAT)
@@ -163,7 +186,7 @@ int main() {
                            .set_flip_vertically(true)
                            .load());
 
-  app->run();
+  app.run();
 
   return 0;
 }
