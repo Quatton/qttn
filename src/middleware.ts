@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "astro";
 import { site } from "./config/site";
 
-const subdomains = ["const", "blog"];
+const subdomains = ["const"];
 const ignorePattern = /\/api|\/[^/]+\.[^/]+|\/_actions/;
 
 export const onRequest: MiddlewareHandler = async (context, next) => {
