@@ -12,5 +12,11 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  "routes": [
+    {
+      "pattern": "https://*.qttn.dev/*",
+      "custom_domain": true,
+    }
+  ]
 }
