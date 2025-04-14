@@ -8,7 +8,7 @@ import {
   text,
 } from "drizzle-orm/sqlite-core";
 import type { InferSelectModel } from "drizzle-orm";
-import { alphabet, generateRandomString } from "oslo/crypto";
+import { generateRandomString, type RandomReader } from "@oslojs/crypto/random";
 
 export const now = sql`(unixepoch())`;
 export const Words = sqliteTable("words", {
@@ -29,8 +29,16 @@ export const Words = sqliteTable("words", {
   is_phrase: integer("is_phrase", { mode: "boolean" }).notNull().default(false),
 });
 
-export const generateRandomId = () =>
-  generateRandomString(5, alphabet("a-z", "0-9", "A-Z"));
+const random: RandomReader = {
+  read(bytes) {
+    crypto.getRandomValues(bytes);
+  },
+};
+
+const ALPHABET =
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+export const generateRandomId = () => generateRandomString(random, ALPHABET, 5);
 
 export const gameModes = ["easy", "hard"] as const;
 export type GameMode = (typeof gameModes)[number];
