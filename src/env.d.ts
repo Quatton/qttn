@@ -1,11 +1,12 @@
-/// <reference path="../.astro/types.d.ts" />
+/// <reference types="vite/client" />
+/// <reference types="astro/client.d.ts" />
 
 interface ImportMetaEnv {
-  PUBLIC_BASE_URL: string;
-  TURSO_DATABASE_URL: string;
-  TURSO_AUTH_TOKEN: string;
+  readonly PUBLIC_BASE_URL: string;
+  readonly TURSO_DATABASE_URL: string;
+  readonly TURSO_AUTH_TOKEN: string;
 }
 
 interface ImportMeta {
-  env: ImportMetaEnv;
+  readonly env: ImportMetaEnv;
 }
