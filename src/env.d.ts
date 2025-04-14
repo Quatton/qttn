@@ -1,5 +1,4 @@
 /// <reference types="vite/client" />
-/// <reference types="astro/client.d.ts" />
 
 interface ImportMetaEnv {
   readonly PUBLIC_BASE_URL: string;

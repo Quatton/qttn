@@ -52,9 +52,7 @@ export const WordShortList = sqliteTable(
       .notNull()
       .default(sql`(RANDOM())`),
   },
-  (table) => ({
-    randomIndex: index("random_index").on(table.random),
-  }),
+  (table) => [index("random_index").on(table.random)],
 );
 
 export const Games = sqliteTable("games", {
@@ -104,9 +102,7 @@ export const GameWords = sqliteTable(
       .default(now),
     matched: integer("matched", { mode: "boolean" }).notNull().default(false),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.word_id, table.game_id] }),
-  }),
+  (table) => [primaryKey({ columns: [table.word_id, table.game_id] })],
 );
 
 export const gameWordRelations = relations(GameWords, ({ one }) => ({
