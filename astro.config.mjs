@@ -1,7 +1,7 @@
 // @ts-check
 import { defineConfig } from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
-import vercel from "@astrojs/vercel";
+import cloudflare from "@astrojs/cloudflare";
 import icon from "astro-icon";
 import vue from "@astrojs/vue";
 import vtbot from "astro-vtbot";
@@ -47,8 +47,8 @@ export default defineConfig({
     solidJs(),
   ],
   output: "server",
-  adapter: vercel({
-    webAnalytics: { enabled: true },
+  adapter: cloudflare({
+    imageService: "cloudflare",
   }),
   vite: {
     ssr: {
