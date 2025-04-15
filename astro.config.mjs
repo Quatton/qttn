@@ -17,6 +17,8 @@ import {
 
 import solidJs from "@astrojs/solid-js";
 
+import react from "@astrojs/react";
+
 // https://astro.build/config
 export default defineConfig({
   site: import.meta.env.DEV
@@ -37,15 +39,9 @@ export default defineConfig({
       ],
     },
   },
-  integrations: [
-    icon(),
-    vue({
-      appEntrypoint: "./src/entrypoint/vue.ts",
-    }),
-    vtbot(),
-    mdx(),
-    solidJs(),
-  ],
+  integrations: [icon(), vue({
+    appEntrypoint: "./src/entrypoint/vue.ts",
+  }), vtbot(), mdx(), solidJs(), react()],
   output: "server",
   adapter: cloudflare({
     imageService: "cloudflare",
