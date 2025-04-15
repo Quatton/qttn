@@ -1,10 +1,11 @@
 import type { MiddlewareHandler } from "astro";
 import { site } from "./config/site";
+import { sequence } from "astro:middleware";
 
 const subdomains = ["const", "gallery"];
 const ignorePattern = /\/api|\/[^/]+\.[^/]+|\/_actions/;
 
-export const onRequest: MiddlewareHandler = async (context, next) => {
+const subdomain: MiddlewareHandler = async (context, next) => {
   if (context.url.pathname.match(ignorePattern)) {
     return next();
   }
@@ -28,3 +29,5 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   }
   return next();
 };
+
+export const onRequest = sequence(subdomain);
