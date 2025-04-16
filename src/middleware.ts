@@ -5,9 +5,6 @@ import { sequence } from "astro:middleware";
 const subdomains = ["const", "gallery"];
 const ignorePattern = /\/api|\/[^/]+\.[^/]+|\/_actions/;
 
-import vercelOGPagesPlugin from "@cloudflare/pages-plugin-vercel-og";
-import { BlogOg } from "./components/og/BlogOg";
-
 const subdomain: MiddlewareHandler = async (context, next) => {
   if (context.url.pathname.match(ignorePattern)) {
     return next();
@@ -32,22 +29,5 @@ const subdomain: MiddlewareHandler = async (context, next) => {
   }
   return next();
 };
-
-const ogImage = vercelOGPagesPlugin<{ ogTitle: string }>({
-  imagePathSuffix: "/og.png",
-  component: BlogOg,
-  extractors: {
-    on: {
-      'meta[property="og:title"]': (props) => ({
-        element(element) {
-          props.ogTitle = element.getAttribute("content");
-        },
-      }),
-    },
-  },
-  autoInject: {
-    openGraph: true,
-  },
-});
 
 export const onRequest = sequence(subdomain);
