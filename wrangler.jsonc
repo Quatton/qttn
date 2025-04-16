@@ -15,8 +15,12 @@
   },
   "routes": [
     {
-      "pattern": "https://*.qttn.dev/*",
+      "pattern": "qttn.dev",
       "custom_domain": true,
-    }
-  ]
+    },
+    {
+      "pattern": "blog.qttn.dev",
+      "custom_domain": true,
+    },
+  ],
 }
