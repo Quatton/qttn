@@ -16,6 +16,7 @@ const galleryCollection = defineCollection({
     base: "./src/content/gallery",
   }),
   schema: z.object({
+    slug: z.string(),
     title: z.string(),
     createdAt: z.date(),
     publishedAt: z.date().optional(),

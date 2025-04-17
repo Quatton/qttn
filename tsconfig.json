@@ -12,7 +12,8 @@
     "strictNullChecks": true,
     "allowJs": true,
     "types": [
-      "@cloudflare/workers-types"
+      "@cloudflare/workers-types",
+      "@webgpu/types",
     ]
   },
   "exclude": [

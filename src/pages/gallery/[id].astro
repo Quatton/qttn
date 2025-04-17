@@ -24,13 +24,6 @@ const { Content } = await render(gallery);
 
 <Layout>
   <main class="mx-auto grid min-h-0 w-full flex-1 lg:grid-cols-2">
-    <section class="relative h-96 w-full lg:h-full">
-      <canvas
-        id="canvas"
-        class="bg-base-200 absolute top-0 left-0 h-full w-full"></canvas>
-    </section>
-    <section class="prose overflow-y-auto px-8 py-16">
-      <Content />
-    </section>
+    <Content />
   </main>
 </Layout>
