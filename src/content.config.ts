@@ -10,6 +10,19 @@ const blogCollection = defineCollection({
   }),
 });
 
+const galleryCollection = defineCollection({
+  loader: glob({
+    pattern: "**/[^_]*.{md,mdx}",
+    base: "./src/content/gallery",
+  }),
+  schema: z.object({
+    title: z.string(),
+    createdAt: z.date(),
+    publishedAt: z.date().optional(),
+  }),
+});
+
 export const collections = {
   blog: blogCollection,
+  gallery: galleryCollection,
 };

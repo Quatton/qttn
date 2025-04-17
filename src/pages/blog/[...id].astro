@@ -17,7 +17,7 @@ export const getStaticPaths = (async () => {
 const id = Astro.params.id;
 const blog = await getEntry("blog", id);
 if (!blog) {
-  return Astro.rewrite(`/app/blog/not-found/${id}`);
+  return Astro.rewrite(`/blog/not-found/${id}`);
 }
 
 const { Content } = await render(blog);

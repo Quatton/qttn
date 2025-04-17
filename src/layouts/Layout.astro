@@ -28,7 +28,7 @@ const { title = baseRoute } = Astro.props;
     <ClientRouter />
     <title>{site.title}{title && ` | ${title}`}</title>
   </head>
-  <body class="bg-base-100 h-dvh overflow-x-hidden scroll-smooth">
+  <body class="bg-base-100 flex h-dvh flex-col overflow-x-hidden scroll-smooth">
     <header
       class="border-b-base-300 sticky top-0 z-50 flex h-16 items-center gap-4 px-6 py-4 shadow-md backdrop-blur-md"
     >
