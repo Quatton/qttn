@@ -7,16 +7,16 @@
         "./src/*"
       ]
     },
-    "jsx": "preserve",
-    "jsxImportSource": "solid-js",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "strictNullChecks": true,
     "allowJs": true,
     "types": [
-      "@cloudflare/workers-types",
+      "@cloudflare/workers-types"
     ]
   },
   "exclude": [
     "node_modules",
     "dist"
-  ],
+  ]
 }

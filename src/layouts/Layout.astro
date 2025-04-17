@@ -23,15 +23,14 @@ const { title = baseRoute } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="description" content="I make web better." />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="
-      icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <ClientRouter />
     <title>{site.title}{title && ` | ${title}`}</title>
   </head>
-  <body class="h-dvh overflow-x-hidden bg-base-100">
+  <body class="bg-base-100 h-dvh overflow-x-hidden scroll-smooth">
     <header
-      class="top-0 z-50 backdrop-blur-md sticky flex h-16 items-center gap-4 border-b-base-300 px-6 py-4 shadow-md"
+      class="border-b-base-300 sticky top-0 z-50 flex h-16 items-center gap-4 px-6 py-4 shadow-md backdrop-blur-md"
     >
       <a
         href={`${site.url.full}`}
@@ -42,7 +41,7 @@ const { title = baseRoute } = Astro.props;
       {
         baseRoute && (
           <>
-            <div class="h-6 border-l-2 border-content" />
+            <div class="border-content h-6 border-l-2" />
             <a
               href={getAppHref(baseRoute)}
               class="text-xl font-semibold transition-all hover:-translate-y-1"
@@ -56,3 +55,20 @@ const { title = baseRoute } = Astro.props;
     <slot />
   </body>
 </html>
+
+<script is:inline>
+  document.addEventListener("DOMContentLoaded", function () {
+    const scrollpos = sessionStorage.getItem("scrollpos");
+    if (scrollpos) {
+      const scrollposNum = parseInt(scrollpos, 10);
+      setTimeout(function () {
+        document.body.scrollTo(0, scrollposNum);
+        // sessionStorage.removeItem("scrollpos");
+      }, 10);
+    }
+  });
+
+  window.addEventListener("beforeunload", function () {
+    sessionStorage.setItem("scrollpos", document.body.scrollTop);
+  });
+</script>

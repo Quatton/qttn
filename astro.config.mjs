@@ -17,6 +17,8 @@ import {
 
 import solidJs from "@astrojs/solid-js";
 
+import react from "@astrojs/react";
+
 // https://astro.build/config
 export default defineConfig({
   site: import.meta.env.DEV
@@ -24,7 +26,7 @@ export default defineConfig({
     : `https://${process.env.BASE_URL}`,
   markdown: {
     shikiConfig: {
-      theme: "catppuccin-mocha",
+      theme: "vesper",
       wrap: true,
       transformers: [
         transformerNotationDiff({
@@ -44,7 +46,12 @@ export default defineConfig({
     }),
     vtbot(),
     mdx(),
-    solidJs(),
+    solidJs({
+      include: ["**/solid/*"],
+    }),
+    react({
+      include: ["**/react/*"],
+    }),
   ],
   output: "server",
   adapter: cloudflare({

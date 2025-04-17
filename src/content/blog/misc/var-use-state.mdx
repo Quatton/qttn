@@ -1,0 +1,47 @@
+---
+title: We have built-in global state in React
+createdAt: 2025-04-16
+# publishedAt: 2025-04-16
+---
+
+## That looks really illegal
+
+Suppose we have two simple React components:
+
+```tsx
+let count = 0;
+let setCount: Dispatch<React.SetStateAction<number>> = () => {};
+
+export function App() {
+  [count, setCount] = useState(0);
+
+  return (
+    <div>
+      <p>You clicked {count} times</p>
+      <button onClick={() => setCount(count + 1)}>
+        Click me
+      </button>
+    </div>
+  );
+}
+
+
+export function App2() {
+  return (
+    <div>
+      <button onClick={() => setCount(count + 1)}>
+        Click me from App 2
+      </button>
+    </div>
+  );
+}
+```
+
+That seems odd...
+
+Does that even work? Well, try it yourself.
+
+import { App, App2 } from "./react/var.tsx"
+
+<App client:only="react" />
+<App2 client:only="react" />
