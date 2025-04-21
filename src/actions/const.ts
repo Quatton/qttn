@@ -14,71 +14,74 @@ import {
 } from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
 
-async function generateWords(limit: number, mode: GameMode = "easy") {
-  const sq = db.$with("sq").as(
-    db
-      .select()
-      .from(WordShortList)
-      .orderBy(asc(sql`random()`))
-      .where(
-        and(
-          eq(Words.likely_not_a_word_count, 0),
-          eq(Words.inappropriate_count, 0),
-          ...(mode === "easy" ? [gte(Words.sampled_count, 100)] : []),
-        ),
-      )
-      .innerJoin(Words, eq(WordShortList.id, Words.id))
+async function generateWords(
+  client: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  limit: number,
+  mode: GameMode = "easy",
+) {
+  return await client
+    .transaction(async (tx) => {
+      const sq = tx.$with("sq").as(
+        tx
+          .select()
+          .from(WordShortList)
+          .orderBy(asc(sql`random()`))
+          .where(
+            and(
+              eq(Words.likely_not_a_word_count, 0),
+              eq(Words.inappropriate_count, 0),
+              ...(mode === "easy" ? [gte(Words.sampled_count, 100)] : []),
+            ),
+          )
+          .innerJoin(Words, eq(WordShortList.id, Words.id))
+          .limit(limit * 5),
+      );
 
-      .limit(limit * 5),
-  );
+      const words = await tx
+        .with(sq)
+        .select({
+          id: sq.words.id,
+          name: sq.words.name,
+        })
+        .from(sq)
+        .orderBy(asc(sq.words.rejected_rate));
 
-  const words = await db
-    .with(sq)
-    .select({
-      id: sq.words.id,
-      name: sq.words.name,
+      const eighty = Math.floor(mode === "easy" ? limit * 0.8 : limit * 0.2);
+      const twenty = limit - eighty;
+
+      const _t = [
+        ...words.slice(0, eighty),
+        ...words.slice(words.length - twenty),
+      ];
+
+      const t = _t.map((word) => ({
+        id: word.id,
+        name: word.name,
+      }));
+
+      await tx
+        .update(Words)
+        .set({
+          sampled_count: sql`${Words.sampled_count} + 1`,
+          rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / (${Words.sampled_count} + 1)`,
+          success_rate: sql`CAST (${Words.success_count} as REAL) / (${Words.sampled_count} + 1)`,
+        })
+        .where(
+          inArray(
+            Words.id,
+            t.map((word) => word.id),
+          ),
+        );
+
+      return t;
     })
-    .from(sq)
-    .orderBy(asc(sq.words.rejected_rate)).catch((e) => {
+    .catch((e) => {
       console.error(e);
       throw new ActionError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch words",
+        code: "NOT_FOUND",
+        message: "Cannot generate words",
       });
     });
-
-  const eighty = Math.floor(mode === "easy" ? limit * 0.8 : limit * 0.2);
-  const twenty = limit - eighty;
-
-  const _t = [...words.slice(0, eighty), ...words.slice(words.length - twenty)];
-
-  const t = _t.map((word) => ({
-    id: word.id,
-    name: word.name,
-  }));
-
-  await db
-    .update(Words)
-    .set({
-      sampled_count: sql`${Words.sampled_count} + 1`,
-      rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / (${Words.sampled_count} + 1)`,
-      success_rate: sql`CAST (${Words.success_count} as REAL) / (${Words.sampled_count} + 1)`,
-    })
-    .where(
-      inArray(
-        Words.id,
-        t.map((word) => word.id),
-      ),
-    ).catch((e) => {
-      console.error(e);
-      throw new ActionError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to update words",
-      });
-    }
-    );
-
-  return t;
 }
 
 async function defineWord(word: string) {
@@ -97,32 +100,6 @@ async function defineWord(word: string) {
   return data;
 }
 
-// const ratelimiter =
-//   (duration: TimeSpan, number: number, cookieKey = "const:ratelimited") =>
-//   (ctx: ActionAPIContext) => {
-//     const cookie = ctx.cookies.get(cookieKey)?.number();
-//     const cookieOption = {
-//       expires: new Date(Date.now() + duration.milliseconds()),
-//       domain: `.${ctx.url.hostname}`,
-//       secure: import.meta.env.PROD,
-//       path: "/",
-//     };
-//     if (cookie) {
-//       ctx.cookies.set(cookieKey, (cookie + 1).toString(), cookieOption);
-//       if (cookie >= number) {
-//         throw new ActionError({
-//           code: "TOO_MANY_REQUESTS",
-//           message: "Rate limited",
-//         });
-//       }
-//     } else {
-//       ctx.cookies.set(cookieKey, "1", cookieOption);
-//     }
-//   };
-
-// const fivePerFiveSeconds = ratelimiter(new TimeSpan(5, "s"), 5);
-// const fiveSecond = ratelimiter(new TimeSpan(5, "s"), 1);
-
 export const game = {
   updateGame: defineAction({
     input: z.object({
@@ -133,21 +110,23 @@ export const game = {
     handler: async (input, _ctx) => {
       const id = input.id;
 
-      const [game] = await db
-        .update(Games)
-        .set({
-          content: input.content,
-          mode: input.mode,
-          updated_at: now,
-        })
-        .where(eq(Games.id, id))
-        .returning({
-          id: Games.id,
-          content: Games.content,
-          mode: Games.mode,
-          updated_at: Games.updated_at,
-        });
-      return game;
+      return await db.transaction(async (tx) => {
+        const [game] = await tx
+          .update(Games)
+          .set({
+            content: input.content,
+            mode: input.mode,
+            updated_at: now,
+          })
+          .where(eq(Games.id, id))
+          .returning({
+            id: Games.id,
+            content: Games.content,
+            mode: Games.mode,
+            updated_at: Games.updated_at,
+          });
+        return game;
+      });
     },
   }),
   new: defineAction({
@@ -162,43 +141,29 @@ export const game = {
         maxWords: 10,
       }),
     handler: async (input, ctx) => {
-      const [{ id }] = await db
-        .insert(Games)
-        .values({
-          mode: input.mode,
-        })
-        .returning({
-          id: Games.id,
-        })
-        .catch((e) => {
-          console.error(e);
-          throw new ActionError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to insert game",
+      const id = await db.transaction(async (tx) => {
+        const [{ id }] = await tx
+          .insert(Games)
+          .values({
+            mode: input.mode,
+          })
+          .returning({
+            id: Games.id,
           });
-        });
 
-      const words = await generateWords(input.maxWords, input.mode);
+        const words = await generateWords(tx, input.maxWords, input.mode);
 
-      await db
-        .insert(GameWords)
-        .values(
+        await tx.insert(GameWords).values(
           words.map((word, index) => ({
             game_id: id,
             word_id: word.id,
             index,
           })),
-        )
-        .catch((e) => {
-          console.error(e);
-          throw new ActionError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to insert words",
-          });
-        });
+        );
 
+        return id;
+      });
 
-        try {
       ctx.cookies.set(
         "const-session",
         JSON.stringify({
@@ -211,13 +176,6 @@ export const game = {
           secure: import.meta.env.PROD,
         },
       );
-    } catch (e) {
-      console.error(e);
-      throw new ActionError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to set cookie",
-      });
-    }
 
       return id;
     },
@@ -231,43 +189,29 @@ export const game = {
     handler: async (input, _ctx) => {
       const id = input.gameId;
 
-      const mode =
-        input.mode ??
-        (await db
-          .select({ mode: Games.mode })
-          .from(Games)
-          .where(eq(Games.id, id))
-          .then((res) => res[0].mode));
+      return await db.transaction(async (tx) => {
+        const mode =
+          input.mode ??
+          (await tx
+            .select({ mode: Games.mode })
+            .from(Games)
+            .where(eq(Games.id, id))
+            .then((res) => res[0].mode));
 
-      const words = await generateWords(input.max, mode);
+        const words = await generateWords(tx, input.max, mode);
 
-      await db
-        .delete(GameWords)
-        .where(eq(GameWords.game_id, id))
-        .catch((_) => {
-          throw new ActionError({
-            code: "NOT_FOUND",
-            message: "Game not found",
-          });
-        });
+        await tx.delete(GameWords).where(eq(GameWords.game_id, id));
 
-      await db
-        .insert(GameWords)
-        .values(
+        await tx.insert(GameWords).values(
           words.map((word, index) => ({
             game_id: id,
             word_id: word.id,
             index,
           })),
-        )
-        .catch((_) => {
-          throw new ActionError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to insert words",
-          });
-        });
+        );
 
-      return words;
+        return words;
+      });
     },
   }),
   swapOut: defineAction({
@@ -279,83 +223,73 @@ export const game = {
     }),
     handler: async (input, _ctx) => {
       const id = input.gameId;
-      const mode =
-        input.mode ??
-        (await db
-          .select({ mode: Games.mode })
-          .from(Games)
-          .where(eq(Games.id, id))
-          .then((res) => res[0].mode));
 
-      const index = await db
-        .transaction(async (db) => {
-          const [{ index }] = await db
-            .delete(GameWords)
-            .where(
-              and(
-                eq(GameWords.game_id, id),
-                eq(GameWords.word_id, input.wordId),
-              ),
-            )
-            .returning({
-              index: GameWords.index,
-            })
-            .catch((_) => {
-              throw new ActionError({
-                code: "NOT_FOUND",
-                message: "Word not found",
-              });
+      return await db.transaction(async (tx) => {
+        const mode =
+          input.mode ??
+          (await tx
+            .select({ mode: Games.mode })
+            .from(Games)
+            .where(eq(Games.id, id))
+            .then((res) => res[0].mode));
+
+        const [{ index }] = await tx
+          .delete(GameWords)
+          .where(
+            and(eq(GameWords.game_id, id), eq(GameWords.word_id, input.wordId)),
+          )
+          .returning({
+            index: GameWords.index,
+          })
+          .catch(() => {
+            throw new ActionError({
+              code: "NOT_FOUND",
+              message: "Word not found",
             });
-
-          await db
-            .update(Words)
-            .set({
-              rejected_count: sql`${Words.rejected_count} + 1`,
-              rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / ${Words.sampled_count}`,
-              likely_not_a_word_count:
-                input.reason === "notAWord"
-                  ? sql`${Words.likely_not_a_word_count} + 1`
-                  : undefined,
-              inappropriate_count:
-                input.reason === "inappropriate"
-                  ? sql`${Words.inappropriate_count} + 1`
-                  : undefined,
-            })
-            .where(eq(Words.id, input.wordId))
-            .catch((e) => {
-              console.error(e);
-              db.rollback();
-              throw new ActionError({
-                code: "NOT_FOUND",
-                message: "Word not found",
-              });
-            });
-
-          return index;
-        })
-        .catch((e) => {
-          console.error(e);
-          throw e;
-        });
-
-      const [newWord] = await generateWords(1, mode);
-
-      await db
-        .insert(GameWords)
-        .values({
-          game_id: id,
-          word_id: newWord.id,
-          index,
-        })
-        .catch((e) => {
-          console.error(e);
-          throw new ActionError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to insert word",
           });
-        });
 
-      return newWord;
+        await tx
+          .update(Words)
+          .set({
+            rejected_count: sql`${Words.rejected_count} + 1`,
+            rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / ${Words.sampled_count}`,
+            likely_not_a_word_count:
+              input.reason === "notAWord"
+                ? sql`${Words.likely_not_a_word_count} + 1`
+                : undefined,
+            inappropriate_count:
+              input.reason === "inappropriate"
+                ? sql`${Words.inappropriate_count} + 1`
+                : undefined,
+          })
+          .where(eq(Words.id, input.wordId))
+          .catch((e) => {
+            console.error(e);
+            throw new ActionError({
+              code: "NOT_FOUND",
+              message: "Word not found",
+            });
+          });
+
+        const [newWord] = await generateWords(tx, 1, mode);
+
+        await tx
+          .insert(GameWords)
+          .values({
+            game_id: id,
+            word_id: newWord.id,
+            index,
+          })
+          .catch((e) => {
+            console.error(e);
+            throw new ActionError({
+              code: "NOT_FOUND",
+              message: "Cannot insert new word",
+            });
+          });
+
+        return newWord;
+      });
     },
   }),
   dictionary: defineAction({
