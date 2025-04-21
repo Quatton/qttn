@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "qttn",
   "main": "./dist/_worker.js/index.js",
-  "compatibility_date": "2025-04-14",
+  "compatibility_date": "2025-04-15",
   "compatibility_flags": [
     "nodejs_compat"
   ],
@@ -19,7 +19,7 @@
       "custom_domain": true,
     },
     {
-      "pattern": "blog.qttn.dev",
+      "pattern": "const.qttn.dev",
       "custom_domain": true,
     },
   ],

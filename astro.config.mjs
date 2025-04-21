@@ -16,7 +16,6 @@ import {
 } from "@shikijs/transformers";
 
 import solidJs from "@astrojs/solid-js";
-
 import react from "@astrojs/react";
 
 // https://astro.build/config
@@ -24,6 +23,9 @@ export default defineConfig({
   site: import.meta.env.DEV
     ? `http://${process.env.BASE_URL}`
     : `https://${process.env.BASE_URL}`,
+  experimental: {
+    session: true,
+  },
   markdown: {
     shikiConfig: {
       theme: "vesper",
@@ -45,13 +47,13 @@ export default defineConfig({
       appEntrypoint: "./src/entrypoint/vue.ts",
     }),
     vtbot(),
-    mdx(),
-    solidJs({
-      include: ["**/solid/*"],
-    }),
     react({
       include: ["**/react/*"],
     }),
+    solidJs({
+      include: ["**/solid/*", "**/node_modules/@suid/material/**"],
+    }),
+    mdx(),
   ],
   output: "server",
   adapter: cloudflare({

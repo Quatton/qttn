@@ -1,14 +1,14 @@
-import { onMount } from "solid-js";
+import { useEffect } from "react";
 
 export function Canvas() {
-  onMount(() => {
+  useEffect(() => {
     main();
   });
 
   return (
     <canvas
       id="viewport"
-      class="bg-base-200 absolute top-0 left-0 h-full w-full"
+      className="bg-base-200 absolute top-0 left-0 h-full w-full"
     />
   );
 }

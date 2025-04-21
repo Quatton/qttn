@@ -1,4 +1,4 @@
-import { increment, test } from "../blog/using-vue/hooks";
+import { increment, test } from "../../../../components/blog/using-vue/hooks";
 
 export function SolidComponent() {
   return (
