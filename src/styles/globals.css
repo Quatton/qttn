@@ -9,9 +9,9 @@
 }
 
 @theme {
-  --font-sans: "DM Sans Variable", "Inter";
-  --font-mono: "Geist Mono Variable";
-  --font-serif: "Merriweather", "Georgia";
+  --font-sans: "Inter Tight Variable";
+  --font-mono: "IBM Plex Mono";
+  --font-serif: "Merriweather";
 }
 
 @layer base {
