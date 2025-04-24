@@ -24,6 +24,10 @@ const { title = baseRoute } = Astro.props;
     <meta name="description" content="I make web better." />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+      rel="stylesheet"
+    />
     <meta name="generator" content={Astro.generator} />
     <ClientRouter />
     <title>{site.title}{title && ` | ${title}`}</title>

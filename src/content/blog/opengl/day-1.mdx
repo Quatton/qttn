@@ -30,7 +30,7 @@ C++ is a different beast. So I became friends with `conan` and `cmake`.
 
 uhh... let's say I became friends with only `conan`.
 
-We only have to 
+We only have to
 
 ```py
 class tinyglRecipe(ConanFile):
@@ -64,14 +64,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
 )
-``` 
+```
 
 and we're good to go!
 
 ```sh
 $ conan install . --build=missing
 $ conan build .
-$ 
+$
 ```
 
 ## The code
@@ -112,7 +112,7 @@ We then can use VAOs to bind and draw the triangles in the main loop.
 
 ## VBO... and VAO... and EBO?
 
-I'm imagining EBO as a list of indices that refer to already defined vertices. 
+I'm imagining EBO as a list of indices that refer to already defined vertices.
 This is useful when we have overlapping vertices and we don't want to repeat the vertices.
 
 especially when we have a rectangle

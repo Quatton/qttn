@@ -6,10 +6,11 @@ publishedAt: 2025-01-25
 
 ![Reddit people hating on Conan](./reddit-vcpkg.png)
 
-Conan was my choice for package manager for C++ projects. 
+Conan was my choice for package manager for C++ projects.
 I thought it was the best because it came up first in the search results.
 
 There were rough edges, at first I didn't know how to
+
 1. Install the libraries
 2. Link the libraries
 3. Integrating with CMake... but that's not Conan's fault (I didn't know how to write a CMakeLists.txt)
@@ -34,7 +35,7 @@ As a proud ✨Javascript Developer✨, not being able to `npm install -g bun` wa
 > Microsoft, I thought you were used to people using Edge to download Chrome.
 
 Jokes aside, I think I should get used to `git clone` and do things manually because C++
-people does that a lot. 
+people does that a lot.
 
 But the installation is easy enough. We just have to run `bootstrap-vcpkg.bat` and done!
 The vcpkg binary will appear in the directory.
@@ -42,7 +43,7 @@ The vcpkg binary will appear in the directory.
 Also, haha funny, Microsoft.
 
 ```
-vcpkg on  master via 🐍 v3.12.2 (quatton) on ☁️  (ap-northeast-1) 
+vcpkg on  master via 🐍 v3.12.2 (quatton) on ☁️  (ap-northeast-1)
 ❯ ./bootstrap-vcpkg.sh
 Downloading vcpkg-macos...
 vcpkg package management program version 2025-01-24-874e302b1fa28cc81caefbb1483f80103c51ab52
@@ -58,7 +59,7 @@ or by setting the VCPKG_DISABLE_METRICS environment variable.
 
 Read more about vcpkg telemetry at docs/about/privacy.md
 
-vcpkg on  master via 🐍 v3.12.2 (quatton) on ☁️  (ap-northeast-1) 
+vcpkg on  master via 🐍 v3.12.2 (quatton) on ☁️  (ap-northeast-1)
 ❯ ./bootstrap-vcpkg.sh --disable-metrics
 Unknown argument --disable-metrics. Use '-help' for help.
 ```
@@ -66,7 +67,7 @@ Unknown argument --disable-metrics. Use '-help' for help.
 Now we just add the path to the environment variables and we can use `vcpkg` from the command line.
 
 ```
-tinygl on  main [!?⇡] via △ v3.31.0 via 🐍 v3.12.2 (quatton) on ☁️  (ap-northeast-1) 
+tinygl on  main [!?⇡] via △ v3.31.0 via 🐍 v3.12.2 (quatton) on ☁️  (ap-northeast-1)
 ❯ vcpkg --version
 vcpkg package management program version 2025-01-24-874e302b1fa28cc81caefbb1483f80103c51ab52
 
@@ -79,14 +80,9 @@ First of all I removed `conanfile.py` and replace it with `vcpkg.json`.
 
 ```json
 {
-    "name": "tinygl",
-    "version": "0.1",
-    "dependencies": [
-        "glfw",
-        "glad",
-        "stb",
-        "glm"
-    ]
+  "name": "tinygl",
+  "version": "0.1",
+  "dependencies": ["glfw", "glad", "stb", "glm"]
 }
 ```
 
@@ -98,15 +94,15 @@ Remember when we had Justfile?
 -  conan install . --build=missing --settings build_type=Debug
 +configure:
 +  cmake --preset=default
- 
+
  build:
 -  conan build . --settings build_type=Debug
 +  cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake .
- 
+
 -run:
 +run: build
    ./build/tinygl
- 
+
  clean:
 ```
 

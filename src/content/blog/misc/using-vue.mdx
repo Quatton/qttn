@@ -24,7 +24,7 @@ import Wrapper1 from "@/components/blog/using-vue/Wrapper1.astro";
 With "static" in mind, you might think that it is not possible to have
 interactive or dynamic components, but you actually can!
 
-Astro utilizes the concept of ["islands"](https://docs.astro.build/en/concepts/islands/) 
+Astro utilizes the concept of ["islands"](https://docs.astro.build/en/concepts/islands/)
 where you can have different parts of your site to be rendered differently.
 This means you can have a static part of your site that loads instantly and
 defers the heavy, interactive UI to be loaded later.
@@ -165,7 +165,7 @@ And that's it! Now, try changing the code, swapping out the words, and see the m
 ## What about other frameworks?
 
 1. React: `useState` must only be called in a component.
-2. Svelte: While you can create `writable` stores outside of components, it is not 
+2. Svelte: While you can create `writable` stores outside of components, it is not
    usable anywhere else other than Svelte components.
 3. Angular: I have no idea.
 4. Qwik: `useSignal` must only be called in `$component` but this is understandable
@@ -203,7 +203,7 @@ import { testVue, increment } from "./hooks";
 <template>
   <div class="flex items-center justify-center gap-4">
     <button class="btn" @click="increment" }>Increment</button>
-    <p class="grid h-12 w-12 place-content-center rounded-sm bg-base-200">
+    <p class="bg-base-200 grid h-12 w-12 place-content-center rounded-sm">
       {{ testVue }}
     </p>
   </div>

@@ -3,21 +3,19 @@
   "name": "qttn",
   "main": "./dist/_worker.js/index.js",
   "compatibility_date": "2025-04-15",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "binding": "ASSETS",
-    "directory": "./dist"
+    "directory": "./dist",
   },
   "kv_namespaces": [
     {
       "binding": "SESSION",
-      "id": "f1b2172055ec4ed495c53a56f0ab2496"
-    }
+      "id": "f1b2172055ec4ed495c53a56f0ab2496",
+    },
   ],
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "routes": [
     {

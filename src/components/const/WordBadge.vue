@@ -38,7 +38,7 @@ withDefaults(
 
 <template>
   <div
-    class="flex items-center gap-2 rounded-full border bg-base-100 p-2 text-xs sm:text-sm md:text-base"
+    class="bg-base-100 flex items-center gap-2 rounded-full border p-2 text-xs sm:text-sm md:text-base"
     :class="{
       'bg-green-200': !!word.match,
     }"
@@ -49,7 +49,7 @@ withDefaults(
       </div>
       <ul
         tabindex="0"
-        class="menu dropdown-content z-50 w-60 rounded-box bg-base-100 p-2 shadow-md"
+        class="menu dropdown-content rounded-box bg-base-100 z-50 w-60 p-2 shadow-md"
       >
         <li>
           <button @click="$emit('swapOutWord', idx, 'difficult')">
@@ -79,9 +79,9 @@ withDefaults(
       <Icon icon="heroicons:book-open" />
     </button>
     <dialog class="modal" :id="`definition-${idx}`">
-      <div class="max-h-5/6 modal-box flex flex-col space-y-4 pt-8">
+      <div class="modal-box flex max-h-5/6 flex-col space-y-4 pt-8">
         <button
-          class="btn btn-circle btn-ghost btn-error btn-sm absolute left-2 top-2 text-lg"
+          class="btn btn-circle btn-ghost btn-error btn-sm absolute top-2 left-2 text-lg"
           aria-label="Close"
           @click="modal.close(idx)"
         >
@@ -97,7 +97,7 @@ withDefaults(
             {{ definition.phonetic }}
           </p>
           <div class="min-h-0 flex-1 overflow-y-scroll">
-            <table class="table table-pin-rows max-sm:table-xs">
+            <table class="table-pin-rows max-sm:table-xs table">
               <template v-for="meaning in definition.meanings">
                 <thead>
                   <tr>
@@ -127,7 +127,7 @@ withDefaults(
             </table>
           </div>
           <div v-if="definition.license" class="mt-8">
-            <p class="text-xs text-muted-content">
+            <p class="text-muted-content text-xs">
               Licensed under
               <a :href="definition.license.url" target="_blank">
                 {{ definition.license.name }}
@@ -138,11 +138,11 @@ withDefaults(
             v-if="definition.sourceUrls"
             v-for="source in definition.sourceUrls"
           >
-            <p class="text-xs text-muted-content">
+            <p class="text-muted-content text-xs">
               <a :href="source" target="_blank">{{ source }}</a>
             </p>
           </div>
-          <p class="text-xs text-muted-content">
+          <p class="text-muted-content text-xs">
             Provided by <a :href="apiByURL" target="_blank">{{ apiBy }}</a>
           </p>
         </div>

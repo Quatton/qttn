@@ -27,23 +27,25 @@ Let's go back to the two responses. This is a classic example of the "Double-Edg
 | I get distracted easily          | I am very curious and like to explore           |
 | I am not good at time management | I am flexible and can adapt to schedule changes |
 
-| Strength                                      | Weakness                                      |
-| --------------------------------------------- | --------------------------------------------- |
-| I am very detail-oriented                     | I tend to over-engineer solutions             |
-| I am a fast learner                           | I tend to rush into things                    |
-| I am  up-to-date with the latest technologies | I tend to get lost in "shiny object syndrome" |
-|                                               |
+| Strength                                     | Weakness                                      |
+| -------------------------------------------- | --------------------------------------------- |
+| I am very detail-oriented                    | I tend to over-engineer solutions             |
+| I am a fast learner                          | I tend to rush into things                    |
+| I am up-to-date with the latest technologies | I tend to get lost in "shiny object syndrome" |
+|                                              |
 
 So on and so forth! Then I wondered, "What is the least amount of stories that I can get away with?"
 
 ## Start from your work environment
 
-What does your work environment look like? 
+What does your work environment look like?
+
 - Does your team have a lot of meetings?
 - Do you work with a lot of people?
 - Does your team allow you to be creative or do you have to follow strict guidelines?
 
 Then, reflect on it.
+
 - What are the pros and cons of your work environment?
 - What does it enable/disable you to do?
 - What are the things you like/dislike about it?

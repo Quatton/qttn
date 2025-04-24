@@ -46,7 +46,7 @@ and a `virtual void update()` method. This is inspired by ECS (Entity-Component-
 In the future we might want to add a way to register systems and components... and entity as well
 because this is nothing like ECS.
 
-I know that reflection (changing behavior i.e. adding systems and components at runtime) 
+I know that reflection (changing behavior i.e. adding systems and components at runtime)
 can be slower and more error-prone. Also meta programming in C++ is magic, unlike what
 we are used to in Rust. But since it's a learning project (and I'm plannnig to ditch C++ soon),
 I think it's fine for now.
@@ -85,12 +85,13 @@ void add_shader(Shader &s) const {
 So it just inserts the shader into the `shaders` map and creates an empty vector for the models.
 
 Now we have hiearchy like this:
+
 ```
 Shader
   Model
     Object
       Hook
-``` 
+```
 
 So we can run a 4-level nested loop (which can be multi-threaded) to render the scene.
 Ideally I would want to flatten this but I would like to render 1 shader, 1 model at a time

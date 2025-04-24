@@ -30,7 +30,7 @@ void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime) {
 
 I changed the process keyboard function to Minecraft-like movement.
 Instead of 4-directional movement, I split the forward-backward movement into two directions: planal-forward and up.
-Planal forward can be easily calculated by rejecting from the `Up` vector. (`glm`'s `unProject` function is 
+Planal forward can be easily calculated by rejecting from the `Up` vector. (`glm`'s `unProject` function is
 surprisingly difficult to use, but my viewport and model matrix are simple enough to just subtract the dot product).
 
 This gives me a more intuitive movement, especially when I need to go up while looking at the target object.
@@ -50,10 +50,9 @@ ctx.shader.setVec3(
 
 The method above is used to get the camera position in the object hook.
 It has to go through the pipeline to get the camera plugin, then get the camera object from the plugin.
-I wonder how Bevy elegantly solves this by having systems automatically receive their required dependencies 
-through dependency injection. The `App` automatically injects the parameters when registering systems. 
+I wonder how Bevy elegantly solves this by having systems automatically receive their required dependencies
+through dependency injection. The `App` automatically injects the parameters when registering systems.
 This is a really useful pattern I'd like to implement.
-
 
 2. Object hook is not flexible due to having access of only one object
 

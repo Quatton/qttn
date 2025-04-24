@@ -3,22 +3,13 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "strictNullChecks": true,
     "allowJs": true,
     "jsx": "preserve",
     "jsxImportSource": "react",
-    "types": [
-      "@cloudflare/workers-types",
-      "@webgpu/types"
-    ]
+    "types": ["@cloudflare/workers-types", "@webgpu/types"]
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/solid/**/*"
-  ]
+  "exclude": ["node_modules", "dist", "**/solid/**/*"]
 }

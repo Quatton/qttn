@@ -170,7 +170,7 @@ const definitions: Definition[] = [
     class="mx-auto flex min-h-[100dvh] max-w-6xl flex-col items-center justify-center gap-4"
   >
     <section
-      class="prose flex w-full animate-fade flex-col items-center justify-center px-4 pt-8 animate-once"
+      class="prose animate-fade animate-once flex w-full flex-col items-center justify-center px-4 pt-8"
     >
       <h2>How to play</h2>
       <ul>
@@ -197,7 +197,7 @@ const definitions: Definition[] = [
         ))
       }
     </section>
-    <section class="mt-8 flex gap-4 max-xs:flex-col">
+    <section class="max-xs:flex-col mt-8 flex gap-4">
       <NewGameButton client:only="vue" />
       <ContinueButton client:only="vue" />
     </section>

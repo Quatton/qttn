@@ -52,14 +52,14 @@ Astro.cookies.set(
 
 <Layout title="const!">
   <main
-    class="mx-auto flex min-h-[100dvh] max-w-6xl flex-col items-center pb-8 pt-16"
+    class="mx-auto flex min-h-[100dvh] max-w-6xl flex-col items-center pt-16 pb-8"
   >
     <section
-      class="flex w-full max-w-3xl flex-1 animate-fade flex-col items-stretch justify-evenly animate-once"
+      class="animate-fade animate-once flex w-full max-w-3xl flex-1 flex-col items-stretch justify-evenly"
     >
       <div
         id="photoframe"
-        class="flex flex-col gap-6 bg-base-100 px-4 pb-4 pt-4 @container-normal sm:pt-8"
+        class="bg-base-100 @container-normal flex flex-col gap-6 px-4 pt-4 pb-4 sm:pt-8"
       >
         <WordBar words={words} client:only="vue" game={game} />
         <MonacoEditor client:only="vue" game={game} />

@@ -122,11 +122,9 @@ const openTooltip = useLocalStorage("const:tooltip", true);
 <template>
   <div
     v-if="loading"
-    class="fixed inset-0 animate-fade bg-white animate-duration-100 animate-once"
+    class="animate-fade animate-duration-100 animate-once fixed inset-0 bg-white"
   ></div>
-  <div
-    
-  >
+  <div>
     <button
       class="btn btn-primary w-full"
       :disabled="loading"

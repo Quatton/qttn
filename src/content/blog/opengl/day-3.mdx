@@ -35,14 +35,14 @@ int main() {
 }
 ```
 
-With an attempt to refactor the code into a builder pattern, 
+With an attempt to refactor the code into a builder pattern,
 I realized it's not as clean as I thought. But it's fine for now.
 
 I am planning to refactor the inside of the `App` class into a more modular design.
-containing `Shader`, `Texture`, `Model` (vertex buffer, vertex array, etc), and 
+containing `Shader`, `Texture`, `Model` (vertex buffer, vertex array, etc), and
 the abstract `Component` classes like Camera or Cube.
 
-However, I ran into the biggest barrier of all: 
+However, I ran into the biggest barrier of all:
 I cannot find a way to register a callback function using a member function of a class.
 member function in C++ doesn't capture `this` and return a function pointer.
 
@@ -55,7 +55,7 @@ Reference to non-static member function must be called
 I look up on the internet and found out that I have to use `std::bind` but it seems like
 for GLFW, it's not possible to use `std::bind` because it's a C library (💀!!)
 
-The solution is? 
+The solution is?
 
 We define a `WindowUserPointer` and pass the `this` pointer to it.
 
@@ -78,7 +78,7 @@ glfwSetScrollCallback(window, [](GLFWwindow *w, double x, double y) {
 And that's how you do it!
 
 In my opinion it just feel like an elaborated global variable but it's fine for now.
-Although we only have one instance of `App` and one instance of `Window`, doing this 
+Although we only have one instance of `App` and one instance of `Window`, doing this
 feels a bit overkill. but alr we ball.
 
 ## Camera doesn't move...
@@ -104,7 +104,7 @@ App app = config.build();
 The `App` object is being copied instead of being referenced!
 So the `.init()` that we called in the `build` function did init the `app` that belongs to the `config`
 
-The returned app is also the `app` that belongs to the `config`. 
+The returned app is also the `app` that belongs to the `config`.
 Only when you write it too `App app` it will be passed by value.
 
 Hence, the callbacks that we registered stayed in the `config` object and not the copied `app` object.
@@ -115,6 +115,7 @@ directly, not through registering a callback.
 I have two choices which are:
 
 Change to return by reference
+
 ```cpp
 App *AppBuilder::build() {
   app.init();
@@ -123,6 +124,7 @@ App *AppBuilder::build() {
 ```
 
 or do not init in the `build` function
+
 ```cpp
 App AppBuilder::build() {
   return app;
@@ -132,15 +134,15 @@ App app = config.build();
 app.init();
 ```
 
-The answer is surprisingly, not both. 
+The answer is surprisingly, not both.
 
 ## `std::unique_ptr`
 
 Instead, we
-use something called `unique_ptr` which is a smart pointer that 
+use something called `unique_ptr` which is a smart pointer that
 will dictate the ownership of the object, in the case, the caller of the `build` function.
 
-```cpp 
+```cpp
 std::unique_ptr<App> AppBuilder::build() {
   auto app = std::make_unique<App>();
   app.init();
@@ -160,7 +162,7 @@ AppBuilder &setWindowSize(int width, int height) {
 ```
 
 This is like `fn set_window_size(&mut self, width: i32, height: i32) -> &mut Self` in Rust.
- 
+
 ```cpp
 int main() {
   auto app = AppBuilder()
@@ -197,7 +199,7 @@ So beautiful... I feel like a proud dad.
 ## Day 3
 
 Day 3 is about matrix transformation and camera.
-Transformation is basically local -> world -> view -> projection. 
+Transformation is basically local -> world -> view -> projection.
 So a nested matrix multiplication.
 
 Camera was heavy on the lookAt but `glm` has lookAt built in so nothing to worry about.
