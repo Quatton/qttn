@@ -18,6 +18,8 @@ import {
 import solidJs from "@astrojs/solid-js";
 import react from "@astrojs/react";
 
+import rehypeMermaid from "rehype-mermaid";
+
 // https://astro.build/config
 export default defineConfig({
   site: import.meta.env.DEV
@@ -27,6 +29,10 @@ export default defineConfig({
     session: true,
   },
   markdown: {
+    syntaxHighlight: {
+      excludeLangs: ["mermaid", "math"],
+    },
+    rehypePlugins: [rehypeMermaid],
     shikiConfig: {
       theme: "vesper",
       wrap: true,
