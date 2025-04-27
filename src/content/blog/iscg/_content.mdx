@@ -1,0 +1,140 @@
+# パラメトリック曲線
+
+## はじめに
+
+本稿は東京大学コンピュータグラフィックス論の課題として日本語で記述するものである。
+Glitchでの実装はコード周りの記述に不便な点があるため、個人のブログに記載することとした。
+外部の方にも役立つ内容であることを期待する。
+
+本稿では、コンピュータグラフィックスにおける基礎的な要素の一つ、パラメトリック曲線について説明する。
+
+## そもそも「パラメトリック」とは
+
+よく見慣れている曲線の表現は $y = f(x)$ という形で表されるものが多い。
+例えば、$y = x^2$ や $y = \sin(x)$ などである。
+
+それに対して、$y$ が $x$ の値に（明示的に）依存せず、$y$ と $x$ が両方ともパラメタ $t$ に依存するような曲線をパラメトリック曲線と呼ぶ。
+例えば、円の方程式は次のように表される。
+
+```math
+\begin{align*}
+x &= r \cos(t) \\
+y &= r \sin(t)
+\end{align*}
+```
+
+## 実装は？
+
+講義で扱われた内容では、WebGL での実装や内部的な処理は扱われなかったため、本記事で説明することとする。
+
+まずは、グリッドを描画するためのコードを見てみよう。
+
+```ts
+const pitch = [50.0, 50.0];
+const vertices = [
+  -1.0,  1.0
+  -1.0, -1.0
+   1.0, -1.0
+   1.0,  1.0
+]
+const indices = [
+  0, 1, 2, // 📐
+  0, 2, 3,
+];
+```
+
+以上のコードは、グリッドの間隔と意味不明な頂点とインデックスを定義している。
+
+WebGL では、線を一つずつ描画することはではなく、三角形を描画し、その三角形の中に「パターン」 を描画する関数を用意する。それはシェーダーと呼ばれるものである。
+
+今回 WebGL で扱われるパイプラインの二つうち、頂点シェーダーとフラグメントシェーダーを紹介する。
+
+```glsl
+attribute vec4 a_position;
+
+void main() {
+  gl_Position = a_position;
+}
+```
+
+以上のコードは、渡した頂点をそのまま描画するという意味を持つ。
+
+次に、フラグメントシェーダーは置かれた頂点の領域に対し、相対的な座標によって中の色を決定する関数を定義する。
+
+```glsl
+precision mediump float;
+
+vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec2 u_pitch;
+
+void main() {
+  if (mod(gl_FragCoord.x, u_pitch.x) < 1. || mod(gl_FragCoord.y, u_pitch.y) < 1.) {
+    gl_FragColor = color;
+  } else {
+    gl_FragColor = vec4(0.);
+  }
+}
+```
+
+GLSL の `mod` 関数は `x - y * floor (x / y)` を計算するため、gl_FragCoord という表示対象の画面の座標を `u_pitch` で割った余りが 1 より小さい場合、色を付けるという意味となる。
+
+実際にパイプラインを通すには、以下の流れで行う。
+
+```ts
+const gl = canvas.getContext("webgl");
+
+// シェーダーのコンパイル
+// 以下のヘルパー関数を省略させていただきます。
+const vs = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+const program = createProgram(gl, vs, fs);
+gl.useProgram(program);
+
+// 頂点バッファの作成
+{
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+  const indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    new Uint16Array(indices),
+    gl.STATIC_DRAW,
+  );
+}
+
+{
+  const positionLocation = gl.getAttribLocation(program, "a_position");
+  gl.enableVertexAttribArray(positionLocation);
+  gl.vertexAttribPointer(
+    positionLocation,
+    2, // 頂点は 2 次元
+    gl.FLOAT, // 32 ビット浮動小数点
+    false, // 正規化しない -> 正規化とは、0 から 1 の範囲に収めること。すで正規化されているので、false (だと著者が認識しています)
+    0, // ストライドは 0
+    0, // バッファの最初から
+  );
+}
+
+{
+  const pitch = [25.0, 25.0];
+  const pitchLocation = gl.getUniformLocation(program, "u_pitch");
+  gl.uniform2fv(pitchLocation, pitch);
+}
+
+// 描画
+gl.clearColor(0.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+gl.drawElements(
+  gl.TRIANGLES,
+  indices.length, // indices.length 回頂点を描画する
+  gl.UNSIGNED_SHORT, // インデックスは 16 ビット整数のため
+  0,
+);
+```
+
+<div id="show-grid" class="sd" />

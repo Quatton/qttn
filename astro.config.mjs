@@ -19,6 +19,8 @@ import solidJs from "@astrojs/solid-js";
 import react from "@astrojs/react";
 
 import rehypeMermaid from "rehype-mermaid";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 
 // https://astro.build/config
 export default defineConfig({
@@ -32,7 +34,9 @@ export default defineConfig({
     syntaxHighlight: {
       excludeLangs: ["mermaid", "math"],
     },
-    rehypePlugins: [rehypeMermaid],
+    // gfm: true,
+    remarkPlugins: [remarkMath],
+    rehypePlugins: [rehypeMermaid, rehypeKatex],
     shikiConfig: {
       theme: "vesper",
       wrap: true,

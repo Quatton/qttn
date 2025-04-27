@@ -1,0 +1,19 @@
+---
+title: パラメトリック曲線
+createdAt: 2025-04-24
+fullscreen: true
+# publishedAt: 2024-09-23
+---
+
+import { SimpleCurve } from "./parametric-curve.tsx";
+import Content from "./_content.mdx";
+import { ScrollDetectorProvider } from "@/components/react/scroll-detector.tsx";
+
+<div className="grid min-h-0 flex-1 max-lg:grid-rows-2 lg:grid-cols-2">
+  <SimpleCurve client:visible />
+  <article id="sp" className="min-h-0 overflow-y-auto px-8" client:visible>
+    <slot name="header" />
+    <slot name="publishedAt" />
+    <Content />
+  </article>
+</div>

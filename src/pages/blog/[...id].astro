@@ -24,16 +24,33 @@ const { Content } = await render(blog);
 ---
 
 <Layout>
-  <main class="container mx-auto h-[100dvh] pt-16">
-    <section class="prose mx-auto max-w-3xl px-8 py-32">
-      <h1>{blog.data.title}</h1>
-      <p class="text-muted-content">
-        {
-          Intl.DateTimeFormat("en-US", {
-            dateStyle: "medium",
-          }).format(blog.data.publishedAt) ?? "(Draft)"
-        }
-      </p>
+  <main
+    class={`px-8 pt-16 ${
+      blog.data.fullscreen
+        ? "flex-1 min-h-0 pb-16"
+        : "container mx-auto h-[100dvh]"
+    }`}
+  >
+    <section
+      class={`prose ${
+        blog.data.fullscreen
+          ? "flex flex-col max-w-full h-full overflow-hidden"
+          : "mx-auto max-w-4xl py-32 px-8"
+      }`}
+    >
+      {
+        blog.data.fullscreen ? null : (
+          <>
+            <h1>{blog.data.title}</h1>
+            <p class="text-muted-content">
+              {Intl.DateTimeFormat("en-US", {
+                dateStyle: "medium",
+              }).format(blog.data.publishedAt) ?? "(Draft)"}
+            </p>
+          </>
+        )
+      }
+
       <Content />
     </section>
   </main>
