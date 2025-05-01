@@ -2,6 +2,53 @@ import { useEffect, useRef } from "react";
 import * as glm from "gl-matrix";
 import { useScrollDetector } from "@/components/react/scroll-detector";
 
+const curveVs = `#version 300 es
+
+in vec2 a_position;
+
+void main() {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}
+`;
+
+const curveFs = `#version 300 es
+
+precision mediump float;
+out vec4 fragColor;
+uniform vec4 u_color;
+
+void main() {
+    fragColor = u_color;
+}
+`;
+
+const gridVs = `#version 300 es
+
+in vec2 a_position;
+
+void main() {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}
+`;
+
+const gridFs = `#version 300 es
+
+precision mediump float;
+uniform vec4 u_color;
+uniform vec2 u_pitch;
+uniform vec2 u_resolution;
+
+out vec4 fragColor;
+
+void main() {
+  vec2 coord = gl_FragCoord.xy - (u_resolution * 0.5);
+  if (mod(coord.x, u_pitch.x) < 1. || mod(coord.y, u_pitch.y) < 1.) {
+    fragColor = u_color;
+  } else {
+    fragColor = vec4(0.);  
+  }
+}`;
+
 export function SimpleCurve() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { scrollPassed } = useScrollDetector();
@@ -22,7 +69,7 @@ export function SimpleCurve() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const gl = canvas.getContext("webgl");
+    const gl = canvas.getContext("webgl2");
     if (!gl) return;
 
     // Delete all shader programs
@@ -44,7 +91,7 @@ export function SimpleCurve() {
   async function main(controller: AbortController) {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const gl = canvas.getContext("webgl");
+    const gl = canvas.getContext("webgl2");
 
     if (gl === null) {
       alert(
@@ -53,102 +100,129 @@ export function SimpleCurve() {
       return;
     }
 
-    const vertexShaderSource = `
-  attribute vec4 a_position;
+    // 1. Set up curve program and shaders
+    const curveVertexShader = compileShader(gl, gl.VERTEX_SHADER, curveVs);
+    const curveFragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, curveFs);
 
-  void main() {
-    gl_Position = a_position;
-  }
- `;
-
-    const fragmentShaderSource = `
-  precision mediump float;
-
-  vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-  uniform vec2 u_pitch;
- 
-  void main() {
-    if (mod(gl_FragCoord.x, u_pitch.x) < 1. || mod(gl_FragCoord.y, u_pitch.y) < 1.) {
-      gl_FragColor = color;
-    } else {
-      gl_FragColor = vec4(0.);  
-    }
-  }
-`;
-
-    // Compile shaders
-    const vertexShader = compileShader(
-      gl,
-      gl.VERTEX_SHADER,
-      vertexShaderSource,
-    );
-    const fragmentShader = compileShader(
-      gl,
-      gl.FRAGMENT_SHADER,
-      fragmentShaderSource,
-    );
-
-    if (!vertexShader || !fragmentShader) {
-      console.error("Failed to create shaders");
+    if (!curveVertexShader || !curveFragmentShader) {
+      console.error("Failed to create curve shaders");
       return;
     }
 
-    const program = createProgram(gl, vertexShader, fragmentShader);
-
-    if (!program) {
-      console.error("Failed to create program");
+    const curveProgram = createProgram(
+      gl,
+      curveVertexShader,
+      curveFragmentShader,
+    );
+    if (!curveProgram) {
+      console.error("Failed to create curve program");
       return;
     }
-    gl.useProgram(program);
 
-    // Create buffers
+    const uColorLoc_curve = gl.getUniformLocation(curveProgram, "u_color");
+
+    const axisLines = [-1.0, 0, 1.0, 0, 0, -1.0, 0, 1.0];
+    const circle = linspace(0, 2 * Math.PI, 100).flatMap((theta) => [
+      0.5 * Math.cos(theta),
+      0.5 * Math.sin(theta),
+    ]);
+
+    const allVertices = [...axisLines, ...circle];
+
+    gl.useProgram(curveProgram);
+    const curveBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array(allVertices),
+      gl.STATIC_DRAW,
+    );
+
+    const curvePosLocation = gl.getAttribLocation(curveProgram, "a_position");
+    gl.enableVertexAttribArray(curvePosLocation);
+    gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+
+    // 4. Set up grid program and shaders
+    const gridVertexShader = compileShader(gl, gl.VERTEX_SHADER, gridVs);
+    const gridFragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, gridFs);
+
+    if (!gridVertexShader || !gridFragmentShader) {
+      console.error("Failed to create grid shaders");
+      return;
+    }
+
+    const gridProgram = createProgram(gl, gridVertexShader, gridFragmentShader);
+    if (!gridProgram) {
+      console.error("Failed to create grid program");
+      return;
+    }
+
+    const uColorLoc_grid = gl.getUniformLocation(gridProgram, "u_color");
+    const uPitchLoc = gl.getUniformLocation(gridProgram, "u_pitch");
+    const uResolutionLoc = gl.getUniformLocation(gridProgram, "u_resolution");
+    const gridPosLocation = gl.getAttribLocation(gridProgram, "a_position");
+
+    // Create separate buffers for grid
+    const gridBuffer = gl.createBuffer();
+    const gridIndexBuffer = gl.createBuffer();
+
+    // Grid vertex positions for a full-screen quad
     const positions = [-1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0];
     const indices = [0, 1, 2, 0, 2, 3];
 
-    {
-      const positionBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-      gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array(positions),
-        gl.STATIC_DRAW,
-      );
+    // Set up grid buffer data
+    gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gridIndexBuffer);
+    gl.bufferData(
+      gl.ELEMENT_ARRAY_BUFFER,
+      new Uint16Array(indices),
+      gl.STATIC_DRAW,
+    );
 
-      const indexBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-      gl.bufferData(
-        gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(indices),
-        gl.STATIC_DRAW,
-      );
-    }
-
-    // Set up attributes
-    {
-      const positionLocation = gl.getAttribLocation(program, "a_position");
-      gl.enableVertexAttribArray(positionLocation);
-      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-    }
+    const pitch = [45, 45]; // Adjusted pitch for better grid density
 
     const render = () => {
-      if (controller.signal.aborted) {
-        return;
-      }
-      // Set up uniforms
-      {
-        const pitch = [25.0, 25.0];
-        const pitchLocation = gl.getUniformLocation(program, "u_pitch");
-        gl.uniform2fv(pitchLocation, pitch);
-      }
+      if (controller.signal.aborted) return;
 
       resizeCanvasToDisplaySize(canvas);
-      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      // Center the viewport
+      const displayWidth = gl.canvas.width;
+      const displayHeight = gl.canvas.height;
+      gl.viewport(0, 0, displayWidth, displayHeight);
 
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
-      if (scrollPassed("show-grid")) {
-        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+      // Draw grid
+      gl.useProgram(gridProgram);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gridIndexBuffer);
+      gl.enableVertexAttribArray(gridPosLocation);
+      gl.vertexAttribPointer(gridPosLocation, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform4f(uColorLoc_grid, 0.2, 0.2, 0.2, 1.0);
+      gl.uniform2fv(uPitchLoc, pitch);
+      gl.uniform2fv(uResolutionLoc, [displayWidth, displayHeight]);
+      gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+      if (scrollPassed("show-axes")) {
+        // Draw axis lines - switch to curve program
+        gl.useProgram(curveProgram);
+        gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+        gl.enableVertexAttribArray(curvePosLocation);
+        gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.uniform4f(uColorLoc_curve, 0.4, 0.0, 0.0, 1.0);
+        gl.drawArrays(gl.LINES, 0, 4);
+      }
+
+      if (scrollPassed("show-circle")) {
+        // Draw circle - already using curve program
+        gl.useProgram(curveProgram);
+        gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+        gl.enableVertexAttribArray(curvePosLocation);
+        gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
+        gl.drawArrays(gl.LINE_LOOP, 4, circle.length / 2);
       }
 
       requestAnimationFrame(render);
@@ -168,6 +242,20 @@ export function SimpleCurve() {
   );
 }
 
+function linspace(start: number, end: number, num: number) {
+  return Array.from(
+    { length: num },
+    (_, i) => start + (end - start) * (i / (num - 1)),
+  );
+}
+
+function arange(start: number, end: number, step: number) {
+  return Array.from(
+    { length: Math.ceil((end - start) / step) },
+    (_, i) => start + i * step,
+  );
+}
+
 function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
   // Let the CSS handle the size constraints first
   const displayWidth = canvas.clientWidth;
@@ -183,6 +271,8 @@ function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
   }
   return needResize;
 }
+
+// Most helper codes (or even some patterns in the main loop) in this file is adapted from https://webglfundamentals.org
 
 function compileShader(
   gl: WebGLRenderingContext,
@@ -203,14 +293,11 @@ function compileShader(
   gl.deleteShader(shader);
 }
 
-function createProgram(
-  gl: WebGLRenderingContext,
-  vertexShader: WebGLShader,
-  fragmentShader: WebGLShader,
-) {
+function createProgram(gl: WebGLRenderingContext, ...shaders: WebGLShader[]) {
   const program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
+  for (const shader of shaders) {
+    gl.attachShader(program, shader);
+  }
   gl.linkProgram(program);
   const success = gl.getProgramParameter(program, gl.LINK_STATUS);
   if (success) {

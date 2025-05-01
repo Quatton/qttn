@@ -27,9 +27,6 @@ export default defineConfig({
   site: import.meta.env.DEV
     ? `http://${process.env.BASE_URL}`
     : `https://${process.env.BASE_URL}`,
-  experimental: {
-    session: true,
-  },
   markdown: {
     syntaxHighlight: {
       excludeLangs: ["mermaid", "math"],

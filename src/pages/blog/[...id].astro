@@ -25,10 +25,8 @@ const { Content } = await render(blog);
 
 <Layout>
   <main
-    class={`px-8 pt-16 ${
-      blog.data.fullscreen
-        ? "flex-1 min-h-0 pb-16"
-        : "container mx-auto h-[100dvh]"
+    class={`lg:px-8 lg:py-16 ${
+      blog.data.fullscreen ? "flex-1 min-h-0" : "container mx-auto h-[100dvh]"
     }`}
   >
     <section

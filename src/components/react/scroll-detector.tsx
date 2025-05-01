@@ -24,22 +24,23 @@ export function useScrollDetector() {
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        scrollIndexMax.current = -1;
+        let scrollMax = -1;
         for (const entry of entries) {
           const id = entry.target.id;
           if (!id) continue;
 
           const index = intersectedElements.current[id];
 
-          if (entry.isIntersecting && index > scrollIndexMax.current) {
-            scrollIndexMax.current = index;
+          if (entry.isIntersecting && index > scrollMax) {
+            scrollMax = index;
           }
         }
+        scrollIndexMax.current = scrollMax;
       },
       {
         root: scrollParent,
-        threshold: 0.1,
-        rootMargin: "100px 0px",
+        threshold: 0.5, // Increased from 0.1 to require more visibility
+        rootMargin: "20px 0px", // Reduced from 100px to make detection area smaller
       },
     );
 

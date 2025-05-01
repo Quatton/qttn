@@ -23,118 +23,124 @@ y &= r \sin(t)
 \end{align*}
 ```
 
-## 実装は？
+## 軸の描画
 
-講義で扱われた内容では、WebGL での実装や内部的な処理は扱われなかったため、本記事で説明することとする。
+`matplotlib` と​ `numpy` を使ったことがあるならば、
+`np.linspace(0, 1, 100)` のような関数を用い、頂点をサンプリングし、線分を描画することが見慣れているだろう。
 
-まずは、グリッドを描画するためのコードを見てみよう。
+WebGL も同様に、頂点のサンプリングを行って線分を繋いで描画することができる。
+
+`arange` と `linspace` の具体的な実装を省略する。
 
 ```ts
-const pitch = [50.0, 50.0];
-const vertices = [
-  -1.0,  1.0
-  -1.0, -1.0
-   1.0, -1.0
-   1.0,  1.0
-]
-const indices = [
-  0, 1, 2, // 📐
-  0, 2, 3,
-];
+const axes = [-1, 0, 1, 0, 0, -1, 0, 1];
 ```
 
-以上のコードは、グリッドの間隔と意味不明な頂点とインデックスを定義している。
+を定義する。
 
-WebGL では、線を一つずつ描画することはではなく、三角形を描画し、その三角形の中に「パターン」 を描画する関数を用意する。それはシェーダーと呼ばれるものである。
+WebGL は基本的に Vertex Shader と Fragment Shader の二つのシェーダーを用いて描画を行う。Vertex Shader では、頂点の座標を受け取り、Fragment Shader では、その頂点の領域に色を付ける。
 
-今回 WebGL で扱われるパイプラインの二つうち、頂点シェーダーとフラグメントシェーダーを紹介する。
+今回で扱うのは、渡した頂点をそのまま描画するだけのシェーダーである。
 
 ```glsl
-attribute vec4 a_position;
+#version 300 es
+in vec2 a_position;
 
 void main() {
-  gl_Position = a_position;
+    gl_Position = vec4(a_position, 0.0, 1.0);
 }
 ```
 
-以上のコードは、渡した頂点をそのまま描画するという意味を持つ。
-
-次に、フラグメントシェーダーは置かれた頂点の領域に対し、相対的な座標によって中の色を決定する関数を定義する。
+色も同様だが、uniform (自分の認識ではレンダーループの中で設定可能なもの) として受け取るようにする。
 
 ```glsl
+#version 300 es
 precision mediump float;
-
-vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-uniform vec2 u_pitch;
+out vec4 fragColor;
+uniform vec4 uColor;
 
 void main() {
-  if (mod(gl_FragCoord.x, u_pitch.x) < 1. || mod(gl_FragCoord.y, u_pitch.y) < 1.) {
-    gl_FragColor = color;
-  } else {
-    gl_FragColor = vec4(0.);
-  }
+    fragColor = uColor;
 }
 ```
 
-GLSL の `mod` 関数は `x - y * floor (x / y)` を計算するため、gl_FragCoord という表示対象の画面の座標を `u_pitch` で割った余りが 1 より小さい場合、色を付けるという意味となる。
-
-実際にパイプラインを通すには、以下の流れで行う。
+すると、シェーダーをコンパイルし、プログラムを作成する。(ヘルパー関数は省略)
 
 ```ts
-const gl = canvas.getContext("webgl");
-
-// シェーダーのコンパイル
-// 以下のヘルパー関数を省略させていただきます。
-const vs = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-const program = createProgram(gl, vs, fs);
-gl.useProgram(program);
-
-// 頂点バッファの作成
-{
-  const positionBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-  const indexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(
-    gl.ELEMENT_ARRAY_BUFFER,
-    new Uint16Array(indices),
-    gl.STATIC_DRAW,
-  );
-}
-
-{
-  const positionLocation = gl.getAttribLocation(program, "a_position");
-  gl.enableVertexAttribArray(positionLocation);
-  gl.vertexAttribPointer(
-    positionLocation,
-    2, // 頂点は 2 次元
-    gl.FLOAT, // 32 ビット浮動小数点
-    false, // 正規化しない -> 正規化とは、0 から 1 の範囲に収めること。すで正規化されているので、false (だと著者が認識しています)
-    0, // ストライドは 0
-    0, // バッファの最初から
-  );
-}
-
-{
-  const pitch = [25.0, 25.0];
-  const pitchLocation = gl.getUniformLocation(program, "u_pitch");
-  gl.uniform2fv(pitchLocation, pitch);
-}
-
-// 描画
-gl.clearColor(0.0, 0.0, 0.0, 1.0);
-gl.clear(gl.COLOR_BUFFER_BIT);
-
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-gl.drawElements(
-  gl.TRIANGLES,
-  indices.length, // indices.length 回頂点を描画する
-  gl.UNSIGNED_SHORT, // インデックスは 16 ビット整数のため
-  0,
+const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+const fragmentShader = compileShader(
+  gl,
+  gl.FRAGMENT_SHADER,
+  fragmentShaderSource,
 );
+const program = createProgram(gl, vertexShader, fragmentShader);
 ```
 
-<div id="show-grid" class="sd" />
+次に、頂点をバッファに格納する。
+
+```ts
+gl.useProgram(program);
+const buffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(axes), gl.STATIC_DRAW);
+```
+
+頂点の位置を指定するために、`gl.getAttribLocation` を用いて、シェーダーの中で `a_position` として定義した変数の位置を取得する。また、`gl.getUniformLocation` を用いて、uniform 変数の位置を取得する。
+
+```ts
+const posLocation = gl.getAttribLocation(program, "a_position");
+const uColorLoc = gl.getUniformLocation(program, "uColor");
+```
+
+次に、レンダーループの中で、
+
+```ts
+gl.useProgram(program);
+gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+
+// 頂点の位置を指定
+gl.enableVertexAttribArray(posLocation);
+gl.vertexAttribPointer(posLocation, 2, gl.FLOAT, false, 0, 0);
+
+// uniform 変数の位置を取得
+gl.uniform4f(uColorLoc, 0.4, 0.0, 0.0, 1.0);
+gl.drawArrays(gl.LINES, 0, 4); // 4つの頂点を描画
+```
+
+<div id="show-axes" class="sd" />
+
+以上より、座標軸を描画することができる。
+
+## 簡単な曲線の描画
+
+次に、円を描画する。円の頂点も同様に線分から形成されるため、`allVertices` にまとめる。
+円の方程式から、$\theta$ を $0$ から $2\pi$ まで変化させることで、$x = r \cos(\theta)$, $y = r \sin(\theta)$ の頂点を得ることができる。ここで $r = 0.5$ とする。
+
+```ts
+const circle = linspace(0, 2 * Math.PI, 100).flatMap((theta) => [
+  0.5 * Math.cos(theta),
+  0.5 * Math.sin(theta),
+]);
+
+const allVertices = [...axes, ...circle];
+
+// 以下は上記と同様
+
+gl.useProgram(program);
+const curveBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(allVertices), gl.STATIC_DRAW);
+```
+
+レンダーループの中で、uniform 変数の位置を取得し、色を指定する。
+
+```ts
+gl.useProgram(curveProgram);
+gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+gl.enableVertexAttribArray(curvePosLocation);
+gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
+gl.drawArrays(gl.LINE_LOOP, 4, circle.length / 2);
+```
+
+<div id="show-circle" class="sd" />
