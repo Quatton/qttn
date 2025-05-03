@@ -163,18 +163,19 @@ void main() {
 最後に、`u_scaleMatrix` を uniform 変数として受け取り、`gl_Position` に掛け算を行う。
 
 ```ts
-const baseWidth = 800;
-const scaledX = displayWidth / baseWidth;
-const scaledY = displayHeight / baseWidth;
+const aspectRatio = displayWidth / displayHeight;
+const worldToGLScale = (PITCH * 2) / displayWidth;
+const aspectScaleMatrix = glm.mat4.create();
+glm.mat4.identity(aspectScaleMatrix);
 glm.mat4.scale(aspectScaleMatrix, aspectScaleMatrix, [
-  1 / scaledX,
-  1 / scaledY,
+  worldToGLScale,
+  worldToGLScale * aspectRatio,
   1,
 ]);
 
-// 軸は viewport の端っこまで描画するため、その性質を保つために、identity を掛ける必要がある。
-const axesMatrix = glm.mat4.create();
-glm.mat4.identity(axesMatrix);
+// 軸を描画するためには、-1 から 1 の範囲に収める必要があるため、identityMatrix を用意する。
+const identityMatrix = glm.mat4.create();
+glm.mat4.identity(identityMatrix);
 ```
 
 以下の `scrollPassed` は scroll の位置に応じて、描画を行うための関数である。この記事に特化した機能であるため、描画の本質には関係ない。
@@ -185,7 +186,7 @@ if (scrollPassed("show-axes")) {
   gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
   gl.enableVertexAttribArray(curvePosLocation);
   gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
-  gl.uniformMatrix4fv(uScaleMatrixLoc, false, axesMatrix);
+  gl.uniformMatrix4fv(uScaleMatrixLoc, false, identity);
   gl.uniform4f(uColorLoc_curve, 0.4, 0.0, 0.0, 1.0);
   gl.drawArrays(gl.LINES, 0, 4);
 }
@@ -203,7 +204,7 @@ if (scrollPassed("show-circle")) {
 
 ## ペンツール
 
-ペンツールを実装するには、さまざまな要素が必要である。
+本課題の工夫として、ペンツールを実装する。
 
 ### まずは、頂点から実装してみよう。
 
@@ -216,3 +217,97 @@ if (scrollPassed("show-circle")) {
 WebGL では、これまで使っていた `gl.bufferData` というバッファの管理を行う関数の他に、`gl.bufferSubData` という関数もある。
 
 <div class="sd" id="show-points" />
+
+まずは、頂点を描画するためのシェーダーを用意する。
+
+```glsl
+#version 300 es
+in vec2 a_position;
+uniform mat4 u_scaleMatrix;
+
+void main() {
+    gl_Position = u_scaleMatrix * vec4(a_position, 0.0, 1.0);
+    gl_PointSize = 8.0;
+}
+```
+
+```glsl
+#version 300 es
+precision mediump float;
+out vec4 fragColor;
+uniform vec4 u_color;
+
+void main() {
+    float dist = length(gl_PointCoord - vec2(0.5, 0.5));
+    if (dist < 0.5) {
+        fragColor = u_color;
+    } else {
+        discard;
+    }
+}
+```
+
+次に、頂点を格納するための配列を用意する。
+
+```ts
+const vertices = useRef<glm.vec2[]>([]);
+```
+
+React を使っているため、`useRef` を用いることにした。
+
+`pointProgram` の作成段階を省略し、`bufferData` の部分を見てみる。
+
+```ts
+const MAX_POINTS = 1000;
+const pointBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+gl.bufferData(
+  gl.ARRAY_BUFFER,
+  new Float32Array(MAX_POINTS * 2),
+  gl.DYNAMIC_DRAW, // <- Use DYNAMIC_DRAW for dynamic data
+);
+```
+
+以上は `MAX_POINTS` を定義し、`DYNAMIC_DRAW` を指定することで、動的に変化するデータを格納することができる。
+
+`render` ループの中で、`gl.bufferSubData` を用いて、頂点を格納する。
+
+```ts
+if (scrollPassed("show-points")) {
+  gl.useProgram(pointProgram);
+  gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+  gl.enableVertexAttribArray(pointPosLocation);
+  gl.vertexAttribPointer(pointPosLocation, 2, gl.FLOAT, false, 0, 0);
+  gl.uniform4f(uColorLoc_point, 0.0, 0.0, 0.4, 1.0);
+
+  if (vertices.current.length > 0) {
+    gl.bufferSubData(
+      gl.ARRAY_BUFFER,
+      0,
+      new Float32Array(vertices.current.flatMap((v) => [v[0], v[1]])),
+    );
+  }
+
+  gl.uniformMatrix4fv(uScaleMatrixLoc_point, false, aspectScaleMatrix);
+  gl.drawArrays(gl.POINTS, 0, vertices.current.length);
+}
+```
+
+次に、`mouse` の `EventListener` を登録する。
+
+```ts
+function mouseDownHandler(e: MouseEvent) {
+  if (!canvasRef.current) return;
+  const [worldX, worldY] = screenToWorld(
+    e.clientX,
+    e.clientY,
+    canvasRef.current,
+    PITCH,
+  );
+  vertices.current.push(glm.vec2.fromValues(worldX, worldY));
+}
+```
+
+### ポイントの選択
+
+次に、頂点の十分に近くをクリックしたときに、頂点を選択できるようにする。

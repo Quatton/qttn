@@ -57,22 +57,23 @@ uniform mat4 u_scaleMatrix;
 
 void main() {
     gl_Position = u_scaleMatrix * vec4(a_position, 0.0, 1.0);
-    gl_PointSize = 10.0;
+    gl_PointSize = 8.0;
 }
 `;
 
 const pointFs = `#version 300 es
-
 precision mediump float;
 out vec4 fragColor;
 uniform vec4 u_color;
 
 void main() {
+    // Calculate the distance from the center of the point
     float dist = length(gl_PointCoord - vec2(0.5, 0.5));
+    // Set the color based on the distance
     if (dist < 0.5) {
         fragColor = u_color;
     } else {
-        discard;
+        discard; // Discard fragments outside the circle
     }
 }
 `;
@@ -102,7 +103,7 @@ export function SimpleCurve() {
 
     const ctrl = new AbortController();
 
-    canvasRef.current.addEventListener("mousemove", mouseMoveHandler, {
+    canvasRef.current.addEventListener("mousedown", mouseDownHandler, {
       signal: ctrl.signal,
     });
 
@@ -114,25 +115,15 @@ export function SimpleCurve() {
     };
   }, []);
 
-  async function mouseMoveHandler(e: MouseEvent) {
-    const tgt = e.target as HTMLCanvasElement;
-    if (!tgt) return;
-
-    const rect = tgt.getBoundingClientRect();
-
-    // Convert to GL coordinates first (-1 to 1)
-    const glX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const glY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-    // Convert GL coordinates to world coordinates
-    const aspectRatio = rect.width / rect.height;
-    const worldToGLScale = (PITCH * 2) / rect.width;
-
-    const worldX = glX / worldToGLScale;
-    const worldY = glY / (worldToGLScale * aspectRatio);
-
-    mouseState.current.x = worldX;
-    mouseState.current.y = worldY;
+  function mouseDownHandler(e: MouseEvent) {
+    if (!canvasRef.current) return;
+    const [worldX, worldY] = screenToWorld(
+      e.clientX,
+      e.clientY,
+      canvasRef.current,
+      PITCH,
+    );
+    vertices.current.push(glm.vec2.fromValues(worldX, worldY));
   }
 
   async function cleanup() {
@@ -272,10 +263,6 @@ export function SimpleCurve() {
       pointProgram,
       "u_scaleMatrix",
     );
-    const uViewMatrixLoc_point = gl.getUniformLocation(
-      pointProgram,
-      "u_viewMatrix",
-    );
 
     const MAX_POINTS = 1000;
     const pointBuffer = gl.createBuffer();
@@ -300,9 +287,8 @@ export function SimpleCurve() {
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
-      // Calculate scale for world to GL coordinates
       const aspectRatio = displayWidth / displayHeight;
-      const worldToGLScale = (PITCH * 2) / displayWidth; // How many GL units per world unit
+      const worldToGLScale = (PITCH * 2) / displayWidth;
 
       const aspectScaleMatrix = glm.mat4.create();
       glm.mat4.identity(aspectScaleMatrix);
@@ -355,17 +341,11 @@ export function SimpleCurve() {
           gl.bufferSubData(
             gl.ARRAY_BUFFER,
             0,
-            Float32Array.from(vertices.current.flat()),
+            new Float32Array(vertices.current.flatMap((v) => [v[0], v[1]])),
           );
         }
 
         gl.uniformMatrix4fv(uScaleMatrixLoc_point, false, aspectScaleMatrix);
-
-        const viewMatrix = glm.mat4.create();
-        glm.mat4.identity(viewMatrix);
-
-        gl.uniformMatrix4fv(uViewMatrixLoc_point, false, viewMatrix);
-
         gl.drawArrays(gl.POINTS, 0, vertices.current.length);
       }
 
@@ -450,4 +430,23 @@ function createProgram(gl: WebGLRenderingContext, ...shaders: WebGLShader[]) {
 
   console.log(gl.getProgramInfoLog(program));
   gl.deleteProgram(program);
+}
+
+function screenToWorld(
+  x: number,
+  y: number,
+  canvas: HTMLCanvasElement,
+  pitch: number,
+) {
+  const rect = canvas.getBoundingClientRect();
+  const glX = ((x - rect.left) / rect.width) * 2 - 1;
+  const glY = -((y - rect.top) / rect.height) * 2 + 1;
+
+  const aspectRatio = rect.width / rect.height;
+  const worldToGLScale = (pitch * 2) / rect.width;
+
+  const worldX = glX / worldToGLScale;
+  const worldY = glY / (worldToGLScale * aspectRatio);
+
+  return [worldX, worldY];
 }
