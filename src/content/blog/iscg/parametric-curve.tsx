@@ -53,9 +53,11 @@ void main() {
 
 const pointVs = `#version 300 es
 in vec2 a_position;
+uniform mat4 u_scaleMatrix;
 
 void main() {
-    gl_Position = vec4(a_position, 0.0, 1.0);
+    gl_Position = u_scaleMatrix * vec4(a_position, 0.0, 1.0);
+    gl_PointSize = 10.0;
 }
 `;
 
@@ -64,17 +66,18 @@ const pointFs = `#version 300 es
 precision mediump float;
 out vec4 fragColor;
 uniform vec4 u_color;
-uniform float u_radius;
-uniform vec2 u_resolution;
 
 void main() {
     float dist = length(gl_PointCoord - vec2(0.5, 0.5));
-    if (dist < u_radius) {
+    if (dist < 0.5) {
         fragColor = u_color;
     } else {
         discard;
     }
-}`;
+}
+`;
+
+const PITCH = 50; // 1 world unit = 50 pixels
 
 type MouseState = {
   x: number;
@@ -85,8 +88,9 @@ type MouseState = {
 export function SimpleCurve() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { scrollPassed } = useScrollDetector();
-  const vertices = useRef<glm.vec2[]>([]);
-  const indices = useRef<[number, number][]>([]);
+  // Initialize vertices in world coordinates
+  const vertices = useRef<glm.vec2[]>([glm.vec2.fromValues(1, 1)]);
+
   const mouseState = useRef<MouseState>({
     x: 0,
     y: 0,
@@ -115,11 +119,20 @@ export function SimpleCurve() {
     if (!tgt) return;
 
     const rect = tgt.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-    mouseState.current.x = x;
-    mouseState.current.y = y;
+    // Convert to GL coordinates first (-1 to 1)
+    const glX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const glY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // Convert GL coordinates to world coordinates
+    const aspectRatio = rect.width / rect.height;
+    const worldToGLScale = (PITCH * 2) / rect.width;
+
+    const worldX = glX / worldToGLScale;
+    const worldY = glY / (worldToGLScale * aspectRatio);
+
+    mouseState.current.x = worldX;
+    mouseState.current.y = worldY;
   }
 
   async function cleanup() {
@@ -157,7 +170,6 @@ export function SimpleCurve() {
       return;
     }
 
-    // 1. Set up curve program and shaders
     const curveVertexShader = compileShader(gl, gl.VERTEX_SHADER, curveVs);
     const curveFragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, curveFs);
 
@@ -177,15 +189,15 @@ export function SimpleCurve() {
     }
 
     const uColorLoc_curve = gl.getUniformLocation(curveProgram, "u_color");
-    const uScaleMatrixLoc = gl.getUniformLocation(
+    const uScaleMatrixLoc_curve = gl.getUniformLocation(
       curveProgram,
       "u_scaleMatrix",
     );
 
     const axisLines = [-1.0, 0, 1.0, 0, 0, -1.0, 0, 1.0];
     const circle = linspace(0, 2 * Math.PI, 100).flatMap((theta) => [
-      0.5 * Math.cos(theta),
-      0.5 * Math.sin(theta),
+      4.0 * Math.cos(theta),
+      4.0 * Math.sin(theta),
     ]);
 
     const allVertices = [...axisLines, ...circle];
@@ -203,7 +215,6 @@ export function SimpleCurve() {
     gl.enableVertexAttribArray(curvePosLocation);
     gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
 
-    // 4. Set up grid program and shaders
     const gridVertexShader = compileShader(gl, gl.VERTEX_SHADER, gridVs);
     const gridFragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, gridFs);
 
@@ -223,7 +234,6 @@ export function SimpleCurve() {
     const uResolutionLoc = gl.getUniformLocation(gridProgram, "u_resolution");
     const gridPosLocation = gl.getAttribLocation(gridProgram, "a_position");
 
-    // Create separate buffers for grid
     const gridBuffer = gl.createBuffer();
     const gridIndexBuffer = gl.createBuffer();
 
@@ -241,11 +251,48 @@ export function SimpleCurve() {
       gl.STATIC_DRAW,
     );
 
+    const pointVertexShader = compileShader(gl, gl.VERTEX_SHADER, pointVs);
+    const pointFragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, pointFs);
+    if (!pointVertexShader || !pointFragmentShader) {
+      console.error("Failed to create point shaders");
+      return;
+    }
+    const pointProgram = createProgram(
+      gl,
+      pointVertexShader,
+      pointFragmentShader,
+    );
+    if (!pointProgram) {
+      console.error("Failed to create point program");
+      return;
+    }
+    const uColorLoc_point = gl.getUniformLocation(pointProgram, "u_color");
+    const pointPosLocation = gl.getAttribLocation(pointProgram, "a_position");
+    const uScaleMatrixLoc_point = gl.getUniformLocation(
+      pointProgram,
+      "u_scaleMatrix",
+    );
+    const uViewMatrixLoc_point = gl.getUniformLocation(
+      pointProgram,
+      "u_viewMatrix",
+    );
+
+    const MAX_POINTS = 1000;
+    const pointBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array(MAX_POINTS * 2),
+      gl.DYNAMIC_DRAW, // <- Use DYNAMIC_DRAW for dynamic data
+    );
+
+    const iden = glm.mat4.create();
+    glm.mat4.identity(iden);
+
     const render = () => {
       if (controller.signal.aborted) return;
 
       resizeCanvasToDisplaySize(canvas);
-      // Center the viewport
       const displayWidth = gl.canvas.width;
       const displayHeight = gl.canvas.height;
       gl.viewport(0, 0, displayWidth, displayHeight);
@@ -253,20 +300,17 @@ export function SimpleCurve() {
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
-      // Calculate aspect ratio and create scaling matrix
+      // Calculate scale for world to GL coordinates
+      const aspectRatio = displayWidth / displayHeight;
+      const worldToGLScale = (PITCH * 2) / displayWidth; // How many GL units per world unit
+
       const aspectScaleMatrix = glm.mat4.create();
       glm.mat4.identity(aspectScaleMatrix);
-
-      const baseWidth = 800;
-      const scaledX = displayWidth / baseWidth;
-      const scaledY = displayHeight / baseWidth;
       glm.mat4.scale(aspectScaleMatrix, aspectScaleMatrix, [
-        1 / scaledX,
-        1 / scaledY,
+        worldToGLScale,
+        worldToGLScale * aspectRatio,
         1,
       ]);
-      const axesMatrix = glm.mat4.create();
-      glm.mat4.identity(axesMatrix);
 
       // Draw grid
       gl.useProgram(gridProgram);
@@ -276,8 +320,7 @@ export function SimpleCurve() {
       gl.vertexAttribPointer(gridPosLocation, 2, gl.FLOAT, false, 0, 0);
       gl.uniform4f(uColorLoc_grid, 0.2, 0.2, 0.2, 1.0);
 
-      const pitch = glm.vec2.fromValues(50, 50);
-      gl.uniform2fv(uPitchLoc, pitch);
+      gl.uniform2fv(uPitchLoc, [PITCH, PITCH]);
       gl.uniform2fv(uResolutionLoc, [displayWidth, displayHeight]);
       gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
@@ -286,19 +329,44 @@ export function SimpleCurve() {
         gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
         gl.enableVertexAttribArray(curvePosLocation);
         gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
-        gl.uniformMatrix4fv(uScaleMatrixLoc, false, axesMatrix);
+        gl.uniformMatrix4fv(uScaleMatrixLoc_curve, false, iden);
         gl.uniform4f(uColorLoc_curve, 0.4, 0.0, 0.0, 1.0);
         gl.drawArrays(gl.LINES, 0, 4);
       }
 
-      if (scrollPassed("show-circle")) {
+      if (scrollPassed("show-circle") && !scrollPassed("show-points")) {
         gl.useProgram(curveProgram);
         gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
         gl.enableVertexAttribArray(curvePosLocation);
         gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
         gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
-        gl.uniformMatrix4fv(uScaleMatrixLoc, false, aspectScaleMatrix);
+        gl.uniformMatrix4fv(uScaleMatrixLoc_curve, false, aspectScaleMatrix);
         gl.drawArrays(gl.LINE_LOOP, 4, circle.length / 2);
+      }
+
+      if (scrollPassed("show-points")) {
+        gl.useProgram(pointProgram);
+        gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+        gl.enableVertexAttribArray(pointPosLocation);
+        gl.vertexAttribPointer(pointPosLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.uniform4f(uColorLoc_point, 0.0, 0.0, 0.4, 1.0);
+
+        if (vertices.current.length > 0) {
+          gl.bufferSubData(
+            gl.ARRAY_BUFFER,
+            0,
+            Float32Array.from(vertices.current.flat()),
+          );
+        }
+
+        gl.uniformMatrix4fv(uScaleMatrixLoc_point, false, aspectScaleMatrix);
+
+        const viewMatrix = glm.mat4.create();
+        glm.mat4.identity(viewMatrix);
+
+        gl.uniformMatrix4fv(uViewMatrixLoc_point, false, viewMatrix);
+
+        gl.drawArrays(gl.POINTS, 0, vertices.current.length);
       }
 
       requestAnimationFrame(render);
