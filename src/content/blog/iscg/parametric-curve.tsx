@@ -154,18 +154,6 @@ export function SimpleCurve() {
     };
   }, []);
 
-  const isDelaying = useRef(false);
-
-  function delayNextAction(delay: number) {
-    if (isDelaying.current) return;
-    isDelaying.current = true;
-    setTimeout(() => {
-      isDelaying.current = false;
-    }, delay);
-  }
-
-  const defaultDelayNextAction = () => delayNextAction(100);
-
   function keydownHandler(e: KeyboardEvent) {
     if (e.key === "Escape") {
       mouseState.current.selected = undefined;
@@ -203,13 +191,12 @@ export function SimpleCurve() {
     if (!canvasRef.current) return;
 
     if (mouseState.current.selected !== undefined) {
-      defaultDelayNextAction();
-      let id = -1;
       const selectedVertex = vertices.current.get(mouseState.current.selected);
       if (selectedVertex?.isControlPoint) {
         mouseState.current.selected = undefined;
         return;
       }
+      let id: number;
       if (mouseState.current.intersect !== undefined) {
         id = mouseState.current.intersect;
       } else {
