@@ -308,6 +308,86 @@ function mouseDownHandler(e: MouseEvent) {
 }
 ```
 
-### ポイントの選択
+### ポイントの移動
 
 次に、頂点の十分に近くをクリックしたときに、頂点を選択できるようにする。
+
+```ts
+const mouseState = useRef<MouseState>({
+  x: 0,
+  y: 0,
+  isDown: false,
+  intersect: undefined,
+  picked: undefined,
+});
+```
+
+`MouseState` は、マウスの状態を管理するための型である。`intersect` は、頂点の 0.2 単位以内にマウスがあるときに、頂点を選択するためのものである。`picked` は、`intersect` の頂点を `picked` に格納するためのものである。それ以外 (picked でも、intersect でもない) には、マウスをクリックすると頂点を追加することになる。つまり、有限状態機械のようなものになる。
+
+### ポイントの選択
+
+もっと複雑にすると、頂点をクリックしたとき洗濯中の状態にする。
+
+```ts
+const mouseState = useRef<MouseState>({
+  x: 0,
+  y: 0,
+  isDown: false,
+  intersect: undefined,
+  picked: undefined,
+  selected: undefined, // NEW
+});
+```
+
+さらに頂点を削除できるように keyboard の `EventListener` を登録する。
+
+```ts
+function keydownHandler(e: KeyboardEvent) {
+  if (e.key === "Escape") {
+    mouseState.current.selected = undefined;
+  }
+  if (e.key === "Delete" || e.key === "Backspace") {
+    if (mouseState.current.selected !== undefined) {
+      vertices.current.splice(mouseState.current.selected, 1);
+      mouseState.current.selected = undefined;
+    }
+  }
+}
+```
+
+### マウスのスナップ
+
+グリッドの近くに `shift` を押しながらマウスを動かすと、スナップするようにする。
+
+```ts
+type MouseState = {
+  x: number;
+  y: number;
+  isDown: boolean;
+  picked: number | undefined;
+  intersect: number | undefined;
+  selected: number | undefined;
+  shouldSnap: boolean; // NEW
+};
+```
+
+すでに world 座標に変換しているので、`Math.round` を用いて、スナップするようにする。
+
+```ts
+if (mouseState.current.shouldSnap) {
+  const x = Math.round(worldX);
+  const y = Math.round(worldY);
+  mouseState.current.x = x;
+  mouseState.current.y = y;
+} else {
+  mouseState.current.x = worldX;
+  mouseState.current.y = worldY;
+}
+```
+
+### ペンの状態機械
+
+普通の直線ならば
+
+1. `selected` の点があるときに、別の点をクリックすると線が描画される
+2. `selected` の点があるときに、何もないところをクリックすると頂点が追加され、線が描画される

@@ -84,18 +84,25 @@ type MouseState = {
   x: number;
   y: number;
   isDown: boolean;
+  picked: number | undefined;
+  intersect: number | undefined;
+  selected: number | undefined;
+  shouldSnap: boolean;
 };
 
 export function SimpleCurve() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { scrollPassed } = useScrollDetector();
-  // Initialize vertices in world coordinates
   const vertices = useRef<glm.vec2[]>([glm.vec2.fromValues(1, 1)]);
 
   const mouseState = useRef<MouseState>({
     x: 0,
     y: 0,
     isDown: false,
+    intersect: undefined,
+    picked: undefined,
+    selected: undefined,
+    shouldSnap: false,
   });
 
   useEffect(() => {
@@ -107,6 +114,22 @@ export function SimpleCurve() {
       signal: ctrl.signal,
     });
 
+    canvasRef.current.addEventListener("mousemove", mouseMoveHandler, {
+      signal: ctrl.signal,
+    });
+
+    canvasRef.current.addEventListener("mouseup", mouseUpHandler, {
+      signal: ctrl.signal,
+    });
+
+    window.addEventListener("keydown", keydownHandler, {
+      signal: ctrl.signal,
+    });
+
+    window.addEventListener("keyup", keyupHandler, {
+      signal: ctrl.signal,
+    });
+
     main(ctrl);
 
     return () => {
@@ -115,7 +138,51 @@ export function SimpleCurve() {
     };
   }, []);
 
+  function keydownHandler(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      mouseState.current.selected = undefined;
+    }
+    if (e.key === "Delete" || e.key === "Backspace") {
+      if (mouseState.current.selected !== undefined) {
+        vertices.current.splice(mouseState.current.selected, 1);
+        mouseState.current.selected = undefined;
+      }
+    }
+    if (e.shiftKey) {
+      mouseState.current.shouldSnap = true;
+    }
+  }
+
+  function keyupHandler(e: KeyboardEvent) {
+    mouseState.current.shouldSnap = false;
+  }
+
   function mouseDownHandler(e: MouseEvent) {
+    if (!canvasRef.current) return;
+    if (mouseState.current.intersect !== undefined) {
+      mouseState.current.picked = mouseState.current.intersect;
+      mouseState.current.selected = mouseState.current.intersect;
+    }
+    if (
+      mouseState.current.picked === undefined &&
+      mouseState.current.intersect === undefined
+    ) {
+      if (mouseState.current.selected !== undefined) {
+        mouseState.current.selected = undefined;
+        return;
+      }
+      vertices.current.push(
+        glm.vec2.fromValues(mouseState.current.x, mouseState.current.y),
+      );
+    }
+  }
+
+  function mouseUpHandler(e: MouseEvent) {
+    mouseState.current.isDown = false;
+    mouseState.current.picked = undefined;
+  }
+
+  function mouseMoveHandler(e: MouseEvent) {
     if (!canvasRef.current) return;
     const [worldX, worldY] = screenToWorld(
       e.clientX,
@@ -123,7 +190,36 @@ export function SimpleCurve() {
       canvasRef.current,
       PITCH,
     );
-    vertices.current.push(glm.vec2.fromValues(worldX, worldY));
+
+    if (mouseState.current.shouldSnap) {
+      const x = Math.round(worldX);
+      const y = Math.round(worldY);
+      mouseState.current.x = x;
+      mouseState.current.y = y;
+    } else {
+      mouseState.current.x = worldX;
+      mouseState.current.y = worldY;
+    }
+
+    mouseState.current.isDown = e.buttons === 1;
+    mouseState.current.intersect = undefined;
+    for (let i = 0; i < vertices.current.length; i++) {
+      const vertex = vertices.current[i];
+      const dist = glm.vec2.distance(
+        vertex,
+        glm.vec2.fromValues(worldX, worldY),
+      );
+      if (dist < 0.2) {
+        mouseState.current.intersect = i;
+        break;
+      }
+    }
+    if (mouseState.current.picked !== undefined && mouseState.current.isDown) {
+      vertices.current[mouseState.current.picked] = glm.vec2.fromValues(
+        mouseState.current.x,
+        mouseState.current.y,
+      );
+    }
   }
 
   async function cleanup() {
@@ -277,6 +373,7 @@ export function SimpleCurve() {
     glm.mat4.identity(iden);
 
     const render = () => {
+      if (!canvasRef.current) return;
       if (controller.signal.aborted) return;
 
       resizeCanvasToDisplaySize(canvas);
@@ -347,6 +444,56 @@ export function SimpleCurve() {
 
         gl.uniformMatrix4fv(uScaleMatrixLoc_point, false, aspectScaleMatrix);
         gl.drawArrays(gl.POINTS, 0, vertices.current.length);
+
+        if (mouseState.current.intersect !== undefined) {
+          const pickedupVertex = vertices.current[mouseState.current.intersect];
+          gl.uniform4f(uColorLoc_point, 1.0, 0.0, 0.0, 1.0);
+          gl.bufferSubData(
+            gl.ARRAY_BUFFER,
+            0,
+            new Float32Array([pickedupVertex[0], pickedupVertex[1]]),
+          );
+          gl.drawArrays(gl.POINTS, 0, 1);
+        }
+
+        if (
+          mouseState.current.isDown &&
+          mouseState.current.intersect !== undefined
+        ) {
+          const selectedVertex = vertices.current[mouseState.current.intersect];
+          gl.uniform4f(uColorLoc_point, 0.0, 0.7, 0.0, 1.0);
+          gl.bufferSubData(
+            gl.ARRAY_BUFFER,
+            0,
+            new Float32Array([selectedVertex[0], selectedVertex[1]]),
+          );
+          gl.drawArrays(gl.POINTS, 0, 1);
+        }
+
+        if (mouseState.current.selected !== undefined) {
+          const selectedVertex = vertices.current[mouseState.current.selected];
+          gl.uniform4f(uColorLoc_point, 0.7, 0.7, 0.0, 1.0);
+          gl.bufferSubData(
+            gl.ARRAY_BUFFER,
+            0,
+            new Float32Array([selectedVertex[0], selectedVertex[1]]),
+          );
+          gl.drawArrays(gl.POINTS, 0, 1);
+        }
+
+        if (
+          mouseState.current.picked === undefined &&
+          mouseState.current.selected === undefined &&
+          mouseState.current.intersect === undefined
+        ) {
+          gl.uniform4f(uColorLoc_point, 0.0, 0.0, 0.4, 0.5);
+          gl.bufferSubData(
+            gl.ARRAY_BUFFER,
+            0,
+            new Float32Array([mouseState.current.x, mouseState.current.y]),
+          );
+          gl.drawArrays(gl.POINTS, 0, 1);
+        }
       }
 
       requestAnimationFrame(render);
