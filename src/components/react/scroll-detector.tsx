@@ -35,6 +35,7 @@ export function useScrollDetector() {
             scrollMax = index;
           }
         }
+        if (scrollMax === -1) return;
         scrollIndexMax.current = scrollMax;
       },
       {
