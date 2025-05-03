@@ -88,13 +88,24 @@ type MouseState = {
   intersect: number | undefined;
   selected: number | undefined;
   shouldSnap: boolean;
+  isDragging: boolean;
+  intersectLine: number | undefined;
+  selectedLine: number | undefined;
+  ticks: number;
+};
+
+type Vertex = {
+  coords: [number, number];
+  isControlPoint: boolean;
 };
 
 export function SimpleCurve() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { scrollPassed } = useScrollDetector();
-  const vertices = useRef<[number, number][]>([[1, 1]]);
-  const lines = useRef<[number, number][]>([]);
+  const serialId = useRef(0);
+  const vertices = useRef<Map<number, Vertex>>(new Map<number, Vertex>());
+  const lines = useRef<Map<number, number[]>>(new Map<number, number[]>());
+  const draggingTimer = useRef<NodeJS.Timeout | null>(null);
 
   const mouseState = useRef<MouseState>({
     x: 0,
@@ -104,6 +115,10 @@ export function SimpleCurve() {
     picked: undefined,
     selected: undefined,
     shouldSnap: false,
+    isDragging: false,
+    intersectLine: undefined,
+    selectedLine: undefined,
+    ticks: 0,
   });
 
   useEffect(() => {
@@ -139,13 +154,39 @@ export function SimpleCurve() {
     };
   }, []);
 
+  const isDelaying = useRef(false);
+
+  function delayNextAction(delay: number) {
+    if (isDelaying.current) return;
+    isDelaying.current = true;
+    setTimeout(() => {
+      isDelaying.current = false;
+    }, delay);
+  }
+
+  const defaultDelayNextAction = () => delayNextAction(100);
+
   function keydownHandler(e: KeyboardEvent) {
     if (e.key === "Escape") {
       mouseState.current.selected = undefined;
     }
     if (e.key === "Delete" || e.key === "Backspace") {
       if (mouseState.current.selected !== undefined) {
-        vertices.current.splice(mouseState.current.selected, 1);
+        vertices.current.delete(mouseState.current.selected);
+
+        for (const [lineIndex, line] of lines.current.entries()) {
+          if (line.slice(0, 2).includes(mouseState.current.selected)) {
+            lines.current.delete(lineIndex);
+          } else {
+            lines.current.set(
+              lineIndex,
+              line.filter(
+                (vertexIndex) => vertexIndex !== mouseState.current.selected,
+              ),
+            );
+          }
+        }
+
         mouseState.current.selected = undefined;
       }
     }
@@ -160,10 +201,48 @@ export function SimpleCurve() {
 
   function mouseDownHandler(e: MouseEvent) {
     if (!canvasRef.current) return;
+
+    if (mouseState.current.selected !== undefined) {
+      defaultDelayNextAction();
+      let id = -1;
+      const selectedVertex = vertices.current.get(mouseState.current.selected);
+      if (selectedVertex?.isControlPoint) {
+        mouseState.current.selected = undefined;
+        return;
+      }
+      if (mouseState.current.intersect !== undefined) {
+        id = mouseState.current.intersect;
+      } else {
+        id = serialId.current++;
+        vertices.current.set(id, {
+          coords: [mouseState.current.x, mouseState.current.y],
+          isControlPoint: false,
+        });
+      }
+      lines.current.set(serialId.current++, [mouseState.current.selected, id]);
+      mouseState.current.selected = id;
+      return;
+    }
+
+    if (mouseState.current.intersectLine !== undefined) {
+      const line = lines.current.get(mouseState.current.intersectLine);
+      if (line) {
+        const id = serialId.current++;
+        vertices.current.set(id, {
+          coords: [mouseState.current.x, mouseState.current.y],
+          isControlPoint: true,
+        });
+        line.push(id);
+        mouseState.current.selected = undefined;
+        return;
+      }
+    }
+
     if (mouseState.current.intersect !== undefined) {
       mouseState.current.picked = mouseState.current.intersect;
-      mouseState.current.selected = mouseState.current.intersect;
+      return;
     }
+
     if (
       mouseState.current.picked === undefined &&
       mouseState.current.intersect === undefined
@@ -172,13 +251,34 @@ export function SimpleCurve() {
         mouseState.current.selected = undefined;
         return;
       }
-      vertices.current.push([mouseState.current.x, mouseState.current.y]);
+      mouseState.current.ticks++;
+      const id = serialId.current++;
+      vertices.current.set(id, {
+        coords: [mouseState.current.x, mouseState.current.y],
+        isControlPoint: false,
+      });
+      mouseState.current.selected = id;
+      return;
     }
   }
 
   function mouseUpHandler(e: MouseEvent) {
     mouseState.current.isDown = false;
+
+    if (
+      mouseState.current.intersect !== undefined &&
+      !mouseState.current.isDragging &&
+      draggingTimer.current
+    ) {
+      // Clear the drag timer since we're handling it as a click
+      clearTimeout(draggingTimer.current);
+      draggingTimer.current = null;
+      mouseState.current.selected = mouseState.current.intersect;
+    }
+
     mouseState.current.picked = undefined;
+    mouseState.current.ticks = 0;
+    mouseState.current.isDragging = false;
   }
 
   function mouseMoveHandler(e: MouseEvent) {
@@ -202,22 +302,46 @@ export function SimpleCurve() {
 
     mouseState.current.isDown = e.buttons === 1;
     mouseState.current.intersect = undefined;
-    for (let i = 0; i < vertices.current.length; i++) {
-      const vertex = vertices.current[i];
+    mouseState.current.intersectLine = undefined;
+
+    for (const [idx, vertex] of vertices.current.entries()) {
       const dist = glm.vec2.distance(
-        vertex,
+        vertex.coords,
         glm.vec2.fromValues(worldX, worldY),
       );
       if (dist < 0.2) {
-        mouseState.current.intersect = i;
+        mouseState.current.intersect = idx;
         break;
       }
     }
+
+    if (mouseState.current.intersect === undefined) {
+      for (const [idx, line] of lines.current.entries()) {
+        const start = vertices.current.get(line[0])?.coords;
+        const end = vertices.current.get(line[1])?.coords;
+        if (start && end && nearLine([worldX, worldY], start, end, 0.2)) {
+          mouseState.current.intersectLine = idx;
+          break;
+        }
+      }
+    }
+
     if (mouseState.current.picked !== undefined && mouseState.current.isDown) {
-      vertices.current[mouseState.current.picked] = [
-        mouseState.current.x,
-        mouseState.current.y,
-      ];
+      if (mouseState.current.isDragging) {
+        const pickedVertex = vertices.current.get(mouseState.current.picked);
+        if (!pickedVertex) return;
+        vertices.current.set(mouseState.current.picked, {
+          ...pickedVertex,
+          coords: [mouseState.current.x, mouseState.current.y],
+        });
+      } else {
+        if (!draggingTimer.current) {
+          draggingTimer.current = setTimeout(() => {
+            mouseState.current.isDragging = true;
+            draggingTimer.current = null;
+          }, 50);
+        }
+      }
     }
   }
 
@@ -228,13 +352,11 @@ export function SimpleCurve() {
     const gl = canvas.getContext("webgl2");
     if (!gl) return;
 
-    // Delete all shader programs
     const programs = gl.getParameter(gl.CURRENT_PROGRAM);
     if (programs) {
       gl.deleteProgram(programs);
     }
 
-    // Delete buffers
     const buffers = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
     if (buffers) {
       gl.deleteBuffer(buffers);
@@ -286,15 +408,15 @@ export function SimpleCurve() {
       4.0 * Math.sin(theta),
     ]);
 
-    const allVertices = [...axisLines, ...circle];
+    const MAX_CURVE_VERTICES = 10000;
 
     gl.useProgram(curveProgram);
     const curveBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
     gl.bufferData(
       gl.ARRAY_BUFFER,
-      new Float32Array(allVertices),
-      gl.STATIC_DRAW,
+      new Float32Array(MAX_CURVE_VERTICES),
+      gl.DYNAMIC_DRAW,
     );
 
     const curvePosLocation = gl.getAttribLocation(curveProgram, "a_position");
@@ -413,6 +535,8 @@ export function SimpleCurve() {
         gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
         gl.uniformMatrix4fv(uScaleMatrixLoc_curve, false, iden);
         gl.uniform4f(uColorLoc_curve, 0.4, 0.0, 0.0, 1.0);
+
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(axisLines));
         gl.drawArrays(gl.LINES, 0, 4);
       }
 
@@ -423,7 +547,8 @@ export function SimpleCurve() {
         gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
         gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
         gl.uniformMatrix4fv(uScaleMatrixLoc_curve, false, aspectScaleMatrix);
-        gl.drawArrays(gl.LINE_LOOP, 4, circle.length / 2);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(circle));
+        gl.drawArrays(gl.LINE_LOOP, 0, circle.length / 2);
       }
 
       if (scrollPassed("show-points")) {
@@ -433,51 +558,62 @@ export function SimpleCurve() {
         gl.vertexAttribPointer(pointPosLocation, 2, gl.FLOAT, false, 0, 0);
         gl.uniform4f(uColorLoc_point, 0.0, 0.0, 0.4, 1.0);
 
-        if (vertices.current.length > 0) {
-          gl.bufferSubData(
-            gl.ARRAY_BUFFER,
-            0,
-            new Float32Array(vertices.current.flat()),
-          );
+        if (vertices.current.size > 0) {
+          const vertexArray = vertices.current
+            .entries()
+            .flatMap(([_, vertex]) => [vertex.coords[0], vertex.coords[1]]);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(vertexArray));
         }
 
         gl.uniformMatrix4fv(uScaleMatrixLoc_point, false, aspectScaleMatrix);
-        gl.drawArrays(gl.POINTS, 0, vertices.current.length);
+        gl.drawArrays(gl.POINTS, 0, vertices.current.size);
 
         if (mouseState.current.intersect !== undefined) {
-          const pickedupVertex = vertices.current[mouseState.current.intersect];
-          gl.uniform4f(uColorLoc_point, 1.0, 0.0, 0.0, 1.0);
-          gl.bufferSubData(
-            gl.ARRAY_BUFFER,
-            0,
-            new Float32Array([pickedupVertex[0], pickedupVertex[1]]),
+          const pickedupVertex = vertices.current.get(
+            mouseState.current.intersect,
           );
-          gl.drawArrays(gl.POINTS, 0, 1);
+          if (pickedupVertex) {
+            gl.uniform4f(uColorLoc_point, 1.0, 0.0, 0.0, 1.0);
+            gl.bufferSubData(
+              gl.ARRAY_BUFFER,
+              0,
+              new Float32Array(pickedupVertex.coords),
+            );
+            gl.drawArrays(gl.POINTS, 0, 1);
+          }
         }
 
         if (
           mouseState.current.isDown &&
           mouseState.current.intersect !== undefined
         ) {
-          const selectedVertex = vertices.current[mouseState.current.intersect];
-          gl.uniform4f(uColorLoc_point, 0.0, 0.7, 0.0, 1.0);
-          gl.bufferSubData(
-            gl.ARRAY_BUFFER,
-            0,
-            new Float32Array([selectedVertex[0], selectedVertex[1]]),
+          const selectedVertex = vertices.current.get(
+            mouseState.current.intersect,
           );
-          gl.drawArrays(gl.POINTS, 0, 1);
+          if (selectedVertex) {
+            gl.uniform4f(uColorLoc_point, 0.0, 0.7, 0.0, 1.0);
+            gl.bufferSubData(
+              gl.ARRAY_BUFFER,
+              0,
+              new Float32Array(selectedVertex.coords),
+            );
+            gl.drawArrays(gl.POINTS, 0, 1);
+          }
         }
 
         if (mouseState.current.selected !== undefined) {
-          const selectedVertex = vertices.current[mouseState.current.selected];
-          gl.uniform4f(uColorLoc_point, 0.7, 0.7, 0.0, 1.0);
-          gl.bufferSubData(
-            gl.ARRAY_BUFFER,
-            0,
-            new Float32Array([selectedVertex[0], selectedVertex[1]]),
+          const selectedVertex = vertices.current.get(
+            mouseState.current.selected,
           );
-          gl.drawArrays(gl.POINTS, 0, 1);
+          if (selectedVertex) {
+            gl.uniform4f(uColorLoc_point, 0.7, 0.7, 0.0, 1.0);
+            gl.bufferSubData(
+              gl.ARRAY_BUFFER,
+              0,
+              new Float32Array(selectedVertex.coords),
+            );
+            gl.drawArrays(gl.POINTS, 0, 1);
+          }
         }
 
         if (
@@ -504,25 +640,61 @@ export function SimpleCurve() {
         gl.uniformMatrix4fv(uScaleMatrixLoc_curve, false, aspectScaleMatrix);
 
         if (mouseState.current.selected !== undefined) {
-          const selectedVertex = vertices.current[mouseState.current.selected];
-
-          const lineVertices = [
-            selectedVertex[0],
-            selectedVertex[1],
-            ...(mouseState.current.intersect !== undefined
-              ? [
-                  vertices.current[mouseState.current.intersect][0],
-                  vertices.current[mouseState.current.intersect][1],
-                ]
-              : [mouseState.current.x, mouseState.current.y]),
-          ];
-
-          gl.bufferData(
-            gl.ARRAY_BUFFER,
-            new Float32Array(lineVertices),
-            gl.STATIC_DRAW,
+          const selectedVertex = vertices.current.get(
+            mouseState.current.selected,
           );
-          gl.drawArrays(gl.LINES, 0, lineVertices.length / 2);
+          if (selectedVertex?.isControlPoint === false) {
+            const lineVertices = [
+              selectedVertex.coords[0],
+              selectedVertex.coords[1],
+              ...(mouseState.current.intersect !== undefined
+                ? (vertices.current.get(mouseState.current.intersect)
+                    ?.coords ?? [mouseState.current.x, mouseState.current.y])
+                : [mouseState.current.x, mouseState.current.y]),
+            ];
+
+            gl.bufferSubData(
+              gl.ARRAY_BUFFER,
+              0,
+              new Float32Array(lineVertices),
+            );
+            gl.drawArrays(gl.LINES, 0, lineVertices.length / 2);
+          }
+        }
+
+        gl.uniform4f(uColorLoc_curve, 0.0, 0.0, 0.7, 1.0);
+
+        if (lines.current.size > 0) {
+          const allLines = Array.from(lines.current.values()).flatMap(
+            (line) => {
+              const start = vertices.current.get(line[0])?.coords;
+              const end = vertices.current.get(line[1])?.coords;
+              if (!start || !end) return [];
+              return [start[0], start[1], end[0], end[1]];
+            },
+          );
+
+          if (allLines.length > 0) {
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(allLines));
+            gl.drawArrays(gl.LINES, 0, allLines.length / 2);
+          }
+        }
+
+        if (mouseState.current.intersectLine !== undefined) {
+          const line = lines.current.get(mouseState.current.intersectLine);
+          if (line) {
+            const start = vertices.current.get(line[0])?.coords;
+            const end = vertices.current.get(line[1])?.coords;
+            if (start && end) {
+              gl.uniform4f(uColorLoc_curve, 1.0, 0.0, 0.0, 1.0);
+              gl.bufferSubData(
+                gl.ARRAY_BUFFER,
+                0,
+                new Float32Array([start[0], start[1], end[0], end[1]]),
+              );
+              gl.drawArrays(gl.LINES, 0, 2);
+            }
+          }
         }
       }
 
@@ -626,4 +798,22 @@ function screenToWorld(
   const worldY = glY / (worldToGLScale * aspectRatio);
 
   return [worldX, worldY];
+}
+
+function nearLine(
+  p: [number, number],
+  a: [number, number],
+  b: [number, number],
+  threshold: number,
+) {
+  const ab = glm.vec2.create();
+  glm.vec2.sub(ab, b, a);
+  const ap = glm.vec2.create();
+  glm.vec2.sub(ap, p, a);
+  const ab_ap = glm.vec2.dot(ab, ap);
+  const ab_ab = glm.vec2.dot(ab, ab);
+  const t = Math.max(0, Math.min(1, ab_ap / ab_ab));
+  const closestPoint = glm.vec2.create();
+  glm.vec2.scaleAndAdd(closestPoint, a, ab, t);
+  return glm.vec2.distance(p, closestPoint) < threshold;
 }
