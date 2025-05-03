@@ -403,7 +403,7 @@ export function SimpleCurve() {
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array(MAX_CURVE_VERTICES),
-      gl.DYNAMIC_DRAW,
+      gl.STATIC_DRAW,
     );
 
     const curvePosLocation = gl.getAttribLocation(curveProgram, "a_position");
