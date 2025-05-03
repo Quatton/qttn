@@ -496,6 +496,37 @@ export function SimpleCurve() {
         }
       }
 
+      if (scrollPassed("show-line")) {
+        gl.useProgram(curveProgram);
+        gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+        gl.enableVertexAttribArray(curvePosLocation);
+        gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
+        gl.uniformMatrix4fv(uScaleMatrixLoc_curve, false, aspectScaleMatrix);
+
+        if (mouseState.current.selected !== undefined) {
+          const selectedVertex = vertices.current[mouseState.current.selected];
+
+          const lineVertices = [
+            selectedVertex[0],
+            selectedVertex[1],
+            ...(mouseState.current.intersect !== undefined
+              ? [
+                  vertices.current[mouseState.current.intersect][0],
+                  vertices.current[mouseState.current.intersect][1],
+                ]
+              : [mouseState.current.x, mouseState.current.y]),
+          ];
+
+          gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array(lineVertices),
+            gl.STATIC_DRAW,
+          );
+          gl.drawArrays(gl.LINES, 0, lineVertices.length / 2);
+        }
+      }
+
       requestAnimationFrame(render);
     };
 
