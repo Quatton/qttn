@@ -5,10 +5,10 @@ import { useScrollDetector } from "@/components/react/scroll-detector";
 const curveVs = `#version 300 es
 
 in vec2 a_position;
-uniform mat4 u_aspectScaleMatrix;
+uniform mat4 u_scaleMatrix;
 
 void main() {
-    gl_Position = u_aspectScaleMatrix * vec4(a_position, 0.0, 1.0);
+    gl_Position = u_scaleMatrix * vec4(a_position, 0.0, 1.0);
 }
 `;
 
@@ -42,7 +42,7 @@ uniform vec2 u_resolution;
 out vec4 fragColor;
 
 void main() {
-  vec2 scaledPitch = u_pitch * u_resolution.x / 2.0;
+  vec2 scaledPitch = u_pitch;
   vec2 coord = gl_FragCoord.xy - (u_resolution * 0.5);
   if (mod(coord.x, scaledPitch.x) < 1. || mod(coord.y, scaledPitch.y) < 1.) {
     fragColor = u_color;
@@ -177,9 +177,9 @@ export function SimpleCurve() {
     }
 
     const uColorLoc_curve = gl.getUniformLocation(curveProgram, "u_color");
-    const uAspectScaleMatrixLoc = gl.getUniformLocation(
+    const uScaleMatrixLoc = gl.getUniformLocation(
       curveProgram,
-      "u_aspectScaleMatrix",
+      "u_scaleMatrix",
     );
 
     const axisLines = [-1.0, 0, 1.0, 0, 0, -1.0, 0, 1.0];
@@ -256,9 +256,15 @@ export function SimpleCurve() {
       // Calculate aspect ratio and create scaling matrix
       const aspectScaleMatrix = glm.mat4.create();
       glm.mat4.identity(aspectScaleMatrix);
-      const aspect = displayWidth / displayHeight;
 
-      glm.mat4.scale(aspectScaleMatrix, aspectScaleMatrix, [1 / aspect, 1, 1]);
+      const baseWidth = 800;
+      const scaledX = displayWidth / baseWidth;
+      const scaledY = displayHeight / baseWidth;
+      glm.mat4.scale(aspectScaleMatrix, aspectScaleMatrix, [
+        1 / scaledX,
+        1 / scaledY,
+        1,
+      ]);
       const axesMatrix = glm.mat4.create();
       glm.mat4.identity(axesMatrix);
 
@@ -270,30 +276,28 @@ export function SimpleCurve() {
       gl.vertexAttribPointer(gridPosLocation, 2, gl.FLOAT, false, 0, 0);
       gl.uniform4f(uColorLoc_grid, 0.2, 0.2, 0.2, 1.0);
 
-      const pitch = glm.vec2.fromValues(0.1, 0.1);
+      const pitch = glm.vec2.fromValues(50, 50);
       gl.uniform2fv(uPitchLoc, pitch);
       gl.uniform2fv(uResolutionLoc, [displayWidth, displayHeight]);
       gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
       if (scrollPassed("show-axes")) {
-        // Draw axis lines - switch to curve program
         gl.useProgram(curveProgram);
         gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
         gl.enableVertexAttribArray(curvePosLocation);
         gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
-        gl.uniformMatrix4fv(uAspectScaleMatrixLoc, false, axesMatrix);
+        gl.uniformMatrix4fv(uScaleMatrixLoc, false, axesMatrix);
         gl.uniform4f(uColorLoc_curve, 0.4, 0.0, 0.0, 1.0);
         gl.drawArrays(gl.LINES, 0, 4);
       }
 
       if (scrollPassed("show-circle")) {
-        // Draw circle - already using curve program
         gl.useProgram(curveProgram);
         gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
         gl.enableVertexAttribArray(curvePosLocation);
         gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
         gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
-        gl.uniformMatrix4fv(uAspectScaleMatrixLoc, false, aspectScaleMatrix);
+        gl.uniformMatrix4fv(uScaleMatrixLoc, false, aspectScaleMatrix);
         gl.drawArrays(gl.LINE_LOOP, 4, circle.length / 2);
       }
 

@@ -147,6 +147,60 @@ gl.drawArrays(gl.LINE_LOOP, 4, circle.length / 2);
 
 ということで、円を描画することができる。
 
+ただし、画面をリサイズしたりすると、描画が崩れてしまうため、`scaleMatrix` を用いて、描画を行う。
+
+```glsl
+#version 300 es
+
+in vec2 a_position;
+uniform mat4 u_scaleMatrix; // NEW
+
+void main() {
+    gl_Position = u_scaleMatrix * vec4(a_position, 0.0, 1.0); // NEW
+}
+```
+
+最後に、`u_scaleMatrix` を uniform 変数として受け取り、`gl_Position` に掛け算を行う。
+
+```ts
+const baseWidth = 800;
+const scaledX = displayWidth / baseWidth;
+const scaledY = displayHeight / baseWidth;
+glm.mat4.scale(aspectScaleMatrix, aspectScaleMatrix, [
+  1 / scaledX,
+  1 / scaledY,
+  1,
+]);
+
+// 軸は viewport の端っこまで描画するため、その性質を保つために、identity を掛ける必要がある。
+const axesMatrix = glm.mat4.create();
+glm.mat4.identity(axesMatrix);
+```
+
+以下の `scrollPassed` は scroll の位置に応じて、描画を行うための関数である。この記事に特化した機能であるため、描画の本質には関係ない。
+
+```ts
+if (scrollPassed("show-axes")) {
+  gl.useProgram(curveProgram);
+  gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+  gl.enableVertexAttribArray(curvePosLocation);
+  gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+  gl.uniformMatrix4fv(uScaleMatrixLoc, false, axesMatrix);
+  gl.uniform4f(uColorLoc_curve, 0.4, 0.0, 0.0, 1.0);
+  gl.drawArrays(gl.LINES, 0, 4);
+}
+
+if (scrollPassed("show-circle")) {
+  gl.useProgram(curveProgram);
+  gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+  gl.enableVertexAttribArray(curvePosLocation);
+  gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+  gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
+  gl.uniformMatrix4fv(uScaleMatrixLoc, false, aspectScaleMatrix);
+  gl.drawArrays(gl.LINE_LOOP, 4, circle.length / 2);
+}
+```
+
 ## ペンツール
 
 ペンツールを実装するには、さまざまな要素が必要である。
@@ -155,4 +209,8 @@ gl.drawArrays(gl.LINE_LOOP, 4, circle.length / 2);
 2. 頂点を格納するための配列を用意する
 3. それらを結ぶ線分を描画する
 
-まずは、直接から実装してみよう。
+まずは、頂点から実装してみよう。
+
+```
+
+```
