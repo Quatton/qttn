@@ -93,7 +93,8 @@ type MouseState = {
 export function SimpleCurve() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { scrollPassed } = useScrollDetector();
-  const vertices = useRef<glm.vec2[]>([glm.vec2.fromValues(1, 1)]);
+  const vertices = useRef<[number, number][]>([[1, 1]]);
+  const lines = useRef<[number, number][]>([]);
 
   const mouseState = useRef<MouseState>({
     x: 0,
@@ -171,9 +172,7 @@ export function SimpleCurve() {
         mouseState.current.selected = undefined;
         return;
       }
-      vertices.current.push(
-        glm.vec2.fromValues(mouseState.current.x, mouseState.current.y),
-      );
+      vertices.current.push([mouseState.current.x, mouseState.current.y]);
     }
   }
 
@@ -215,10 +214,10 @@ export function SimpleCurve() {
       }
     }
     if (mouseState.current.picked !== undefined && mouseState.current.isDown) {
-      vertices.current[mouseState.current.picked] = glm.vec2.fromValues(
+      vertices.current[mouseState.current.picked] = [
         mouseState.current.x,
         mouseState.current.y,
-      );
+      ];
     }
   }
 
@@ -438,7 +437,7 @@ export function SimpleCurve() {
           gl.bufferSubData(
             gl.ARRAY_BUFFER,
             0,
-            new Float32Array(vertices.current.flatMap((v) => [v[0], v[1]])),
+            new Float32Array(vertices.current.flat()),
           );
         }
 
