@@ -566,7 +566,7 @@ export function SimpleCurve() {
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array(MAX_CURVE_VERTICES),
-      gl.DYNAMIC_DRAW, // <- Use DYNAMIC_DRAW for dynamic data
+      gl.STATIC_DRAW,
     );
 
     const curvePosLocation = gl.getAttribLocation(curveProgram, "a_position");
@@ -693,11 +693,15 @@ export function SimpleCurve() {
       if (scrollPassed("show-circle") && !scrollPassed("show-points")) {
         gl.useProgram(curveProgram);
         gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array(circle),
+          gl.STATIC_DRAW,
+        );
         gl.enableVertexAttribArray(curvePosLocation);
         gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
         gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
         gl.uniformMatrix4fv(uScaleMatrixLoc_curve, false, aspectScaleMatrix);
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(circle));
         gl.drawArrays(gl.LINE_LOOP, 0, circle.length / 2);
       }
 
@@ -837,35 +841,30 @@ export function SimpleCurve() {
             }
           }
 
-          // Calculate buffer offsets
-          const FLOAT_SIZE = 4; // Size of Float32 in bytes
-          const mainLinesOffset = 0;
-          const segmentedLinesOffset = mainLines.length * FLOAT_SIZE;
-          const allLinesOffset =
-            (mainLines.length + segmentedLines.length) * FLOAT_SIZE;
-
           if (mainLines.length > 0) {
-            gl.uniform4f(uColorLoc_curve, 0.0, 0.0, 0.7, 1.0);
-            gl.bufferSubData(
+            gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+            gl.bufferData(
               gl.ARRAY_BUFFER,
-              mainLinesOffset,
               new Float32Array(mainLines),
+              gl.STATIC_DRAW,
             );
+            gl.enableVertexAttribArray(curvePosLocation);
+            gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.uniform4f(uColorLoc_curve, 0.0, 0.0, 0.7, 1.0);
             gl.drawArrays(gl.LINES, 0, mainLines.length / 2);
           }
 
           if (segmentedLines.length > 0) {
-            gl.uniform4f(uColorLoc_curve, 0.0, 0.7, 0.7, 1.0);
-            gl.bufferSubData(
+            gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+            gl.bufferData(
               gl.ARRAY_BUFFER,
-              segmentedLinesOffset,
               new Float32Array(segmentedLines),
+              gl.STATIC_DRAW,
             );
-            gl.drawArrays(
-              gl.LINES,
-              mainLines.length / 2,
-              segmentedLines.length / 2,
-            );
+            gl.enableVertexAttribArray(curvePosLocation);
+            gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.uniform4f(uColorLoc_curve, 0.0, 0.7, 0.7, 1.0);
+            gl.drawArrays(gl.LINES, 0, segmentedLines.length / 2);
           }
 
           if (mouseState.current.intersectLine !== undefined) {
@@ -891,17 +890,23 @@ export function SimpleCurve() {
                     (vertex) => [vertex.coords[0], vertex.coords[1]],
                   );
 
-                  gl.uniform4f(uColorLoc_curve, 1.0, 0.0, 0.0, 1.0);
-                  gl.bufferSubData(
+                  gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+                  gl.bufferData(
                     gl.ARRAY_BUFFER,
-                    allLinesOffset,
                     new Float32Array(highlightedSegment),
+                    gl.STATIC_DRAW,
                   );
-                  gl.drawArrays(
-                    gl.LINES,
-                    mainLines.length / 2 + segmentedLines.length / 2,
-                    highlightedSegment.length / 2,
+                  gl.enableVertexAttribArray(curvePosLocation);
+                  gl.vertexAttribPointer(
+                    curvePosLocation,
+                    2,
+                    gl.FLOAT,
+                    false,
+                    0,
+                    0,
                   );
+                  gl.uniform4f(uColorLoc_curve, 1.0, 0.0, 0.0, 1.0);
+                  gl.drawArrays(gl.LINES, 0, highlightedSegment.length / 2);
                 }
               }
             }
