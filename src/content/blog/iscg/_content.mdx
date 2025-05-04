@@ -478,3 +478,121 @@ interface LineMap {
 ```
 
 これらのインターフェースは `item` を追加・削除の際に、次の `id` を管理するためのものである。元々使っていた配列は削除すると全部ずれるため、`Map` を用いることにした。
+
+<div class="sd" id="show-bezier" />
+
+## n-次ベージェ曲線
+
+次に、n-次ベージェ曲線を描画する。
+
+```ts
+class Line {
+  allVerticesRef: RefObject<VertexMap>;
+  vertices: number[];
+  cached: [number, number][] | undefined;
+
+  constructor(vertices: number[], allVerticesRef: RefObject<VertexMap>) {
+    this.vertices = vertices;
+    this.allVerticesRef = allVerticesRef;
+  }
+
+  getOrCompute() {
+    if (this.cached) {
+      return this.cached;
+    }
+    const computed = this.compute();
+    this.cached = computed;
+    return computed;
+  }
+
+  compute(): [number, number][] {
+    const v = this.allVerticesRef.current;
+
+    const vec = this.vertices.map((s) =>
+      // biome-ignore lint/style/noNonNullAssertion: <explanation>
+      glm.vec2.fromValues(...v.get(s)!.coords),
+    );
+
+    if (vec.length === 2) {
+      return vec.map((v) => [v[0], v[1]]) as [number, number][];
+    }
+
+    const T = 100;
+    const N = vec.length - 1;
+    const ts = linspace(0, 1, T);
+
+    const result = ts.map((t) => {
+      const res = glm.vec2.create();
+      for (let i = 0; i <= N; i++) {
+        const coefficient = comb(N, i) * t ** i * (1 - t) ** (N - i);
+        glm.vec2.scaleAndAdd(res, res, vec[i], coefficient);
+      }
+      return [res[0], res[1]];
+    });
+
+    return result as [number, number][];
+  }
+
+  invalidate() {
+    this.cached = undefined;
+  }
+}
+```
+
+べージェ曲線のための計算量が重いため、各線ごとにキャッシュを用意する。
+
+`compute` が本題であるため、より詳細に説明する。
+
+まずは、`vertices` を glm のベクトル化して、長さが 2 であれば、そのまま返せばいい。
+
+次に、一定の間隔で $t$ をサンプリングし、ベージェ曲線の方程式を用いて、各点を計算する。
+
+サンプリングは自作​ `linspace` を用いることにした。
+
+```ts
+function linspace(start: number, end: number, num: number) {
+  return Array.from(
+    { length: num },
+    (_, i) => start + (end - start) * (i / (num - 1)),
+  );
+}
+```
+
+もちろん、`comb` の実装でもキャッシュを用意する。
+
+```ts
+const combCache = new Map<[number, number], number>();
+function comb(n: number, r: number): number {
+  const cached = combCache.get([n, r]);
+  if (cached) return cached;
+  if (r === 0) return 1;
+  if (r === 1) return n;
+  if (r > n / 2) return comb(n, n - r);
+  const res = Math.floor((n * comb(n - 1, r - 1)) / r);
+  combCache.set([n, r], res);
+  return res;
+}
+```
+
+次にサンプリングをした `ts` を `map` して、`const coefficient = comb(N, i) * t ** i * (1 - t) ** (N - i)` で計算された係数で重み付け和を取る。
+
+描画の方は簡単に
+
+```ts
+for (const [idx, line] of lines.current.items) {
+  const segments = line.getOrCompute();
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array(segments.flat()),
+    gl.STATIC_DRAW,
+  );
+  gl.enableVertexAttribArray(curvePosLocation);
+  gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+  gl.uniform4f(uColorLoc_curve, 0.0, 0.0, 0.0, 1.0);
+  gl.drawArrays(gl.LINE_STRIP, 0, segments.flat().length / 2);
+}
+```
+
+以上より、n-次ベージェ曲線のペンツールを実装することができた。

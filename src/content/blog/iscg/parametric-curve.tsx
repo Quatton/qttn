@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import * as glm from "gl-matrix";
 import { useScrollDetector } from "@/components/react/scroll-detector";
 
@@ -112,10 +112,13 @@ class Vertex {
 }
 
 class Line {
+  allVerticesRef: RefObject<VertexMap>;
   vertices: number[];
+  cached: [number, number][] | undefined;
 
-  constructor(vertices: number[]) {
+  constructor(vertices: number[], allVerticesRef: RefObject<VertexMap>) {
     this.vertices = vertices;
+    this.allVerticesRef = allVerticesRef;
   }
 
   start(): number {
@@ -128,10 +131,12 @@ class Line {
 
   addVertex(id: number) {
     this.vertices.splice(1, 0, id);
+    this?.invalidate();
   }
 
   addVertexAtIndex(id: number, index: number) {
     this.vertices.splice(index, 0, id);
+    this?.invalidate();
   }
 
   nearestSegmentIndex(
@@ -167,6 +172,47 @@ class Line {
   ): boolean {
     return this.nearestSegmentIndex(point, threshold, vertexMap) !== -1;
   }
+
+  getOrCompute() {
+    if (this.cached) {
+      return this.cached;
+    }
+    const computed = this.compute();
+    this.cached = computed;
+    return computed;
+  }
+
+  compute(): [number, number][] {
+    const v = this.allVerticesRef.current;
+
+    const vec = this.vertices.map((s) =>
+      // biome-ignore lint/style/noNonNullAssertion: <explanation>
+      glm.vec2.fromValues(...v.get(s)!.coords),
+    );
+
+    if (vec.length === 2) {
+      return vec.map((v) => [v[0], v[1]]) as [number, number][];
+    }
+
+    const T = 100;
+    const N = vec.length - 1;
+    const ts = linspace(0, 1, T);
+
+    const result = ts.map((t) => {
+      const res = glm.vec2.create();
+      for (let i = 0; i <= N; i++) {
+        const coefficient = comb(N, i) * t ** i * (1 - t) ** (N - i);
+        glm.vec2.scaleAndAdd(res, res, vec[i], coefficient);
+      }
+      return [res[0], res[1]];
+    });
+
+    return result as [number, number][];
+  }
+
+  invalidate() {
+    this.cached = undefined;
+  }
 }
 
 class VertexMap {
@@ -195,6 +241,7 @@ class VertexMap {
             const index = line.vertices.indexOf(id);
             if (index > -1) {
               line.vertices.splice(index, 1);
+              line.invalidate();
             }
           }
         } else {
@@ -223,17 +270,19 @@ class VertexMap {
 }
 
 class LineMap {
+  allVerticesRef: RefObject<VertexMap>;
   items: Map<number, Line>;
   nextId: number;
 
-  constructor() {
+  constructor(allVerticesRef: RefObject<VertexMap>) {
     this.items = new Map();
     this.nextId = 0;
+    this.allVerticesRef = allVerticesRef;
   }
 
   add(vertices: number[]): number {
     const id = this.nextId++;
-    this.items.set(id, new Line(vertices));
+    this.items.set(id, new Line(vertices, this.allVerticesRef));
     return id;
   }
 
@@ -262,7 +311,7 @@ export function SimpleCurve() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { scrollPassed } = useScrollDetector();
   const vertices = useRef<VertexMap>(new VertexMap());
-  const lines = useRef<LineMap>(new LineMap());
+  const lines = useRef<LineMap>(new LineMap(vertices));
   const draggingTimer = useRef<NodeJS.Timeout | null>(null);
 
   const mouseState = useRef<MouseState>({
@@ -378,6 +427,8 @@ export function SimpleCurve() {
           [mouseState.current.x, mouseState.current.y],
           true,
         );
+        const vertex = vertices.current.get(id);
+        vertex?.relatedLines.add(mouseState.current.intersectLine);
         line.addVertexAtIndex(id, segment + 1);
         mouseState.current.selected = undefined;
         return;
@@ -487,7 +538,10 @@ export function SimpleCurve() {
         const pickedVertex = vertices.current.get(mouseState.current.picked);
         if (!pickedVertex) return;
         pickedVertex.coords = [mouseState.current.x, mouseState.current.y];
-        vertices.current.set(mouseState.current.picked, pickedVertex);
+        for (const lineIdx of pickedVertex.relatedLines) {
+          const line = lines.current.get(lineIdx);
+          line?.invalidate();
+        }
       }
     } else if (draggingTimer.current) {
       clearTimeout(draggingTimer.current);
@@ -686,7 +740,11 @@ export function SimpleCurve() {
         gl.uniformMatrix4fv(uScaleMatrixLoc_curve, false, iden);
         gl.uniform4f(uColorLoc_curve, 0.4, 0.0, 0.0, 1.0);
 
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(axisLines));
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array(axisLines),
+          gl.STATIC_DRAW,
+        );
         gl.drawArrays(gl.LINES, 0, 4);
       }
 
@@ -914,6 +972,23 @@ export function SimpleCurve() {
         }
       }
 
+      if (scrollPassed("show-bezier")) {
+        for (const [idx, line] of lines.current.items) {
+          const segments = line.getOrCompute();
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
+          gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array(segments.flat()),
+            gl.STATIC_DRAW,
+          );
+          gl.enableVertexAttribArray(curvePosLocation);
+          gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
+          gl.uniform4f(uColorLoc_curve, 0.0, 0.0, 0.0, 1.0);
+          gl.drawArrays(gl.LINE_STRIP, 0, segments.flat().length / 2);
+        }
+      }
+
       requestAnimationFrame(render);
     };
 
@@ -1033,4 +1108,26 @@ function distanceFromLineAB(
   const closestPoint = glm.vec2.create();
   glm.vec2.scaleAndAdd(closestPoint, a, ab, t);
   return glm.vec2.distance(p, closestPoint);
+}
+
+const factCache = new Map<number, number>();
+function fact(x: number): number {
+  const cached = factCache.get(x);
+  if (cached) return cached;
+  if (x <= 1) return 1;
+  const res = x * fact(x - 1);
+  factCache.set(x, res);
+  return res;
+}
+
+const combCache = new Map<[number, number], number>();
+function comb(n: number, r: number): number {
+  const cached = combCache.get([n, r]);
+  if (cached) return cached;
+  if (r === 0) return 1;
+  if (r === 1) return n;
+  if (r > n / 2) return comb(n, n - r);
+  const res = Math.floor((n * comb(n - 1, r - 1)) / r);
+  combCache.set([n, r], res);
+  return res;
 }
