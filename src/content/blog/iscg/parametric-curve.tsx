@@ -94,18 +94,139 @@ type MouseState = {
   ticks: number;
 };
 
-type Vertex = {
+class Vertex {
   coords: [number, number];
   isControlPoint: boolean;
   relatedLines: Set<number>;
-};
+
+  constructor(coords: [number, number], isControlPoint = false) {
+    this.coords = coords;
+    this.isControlPoint = isControlPoint;
+    this.relatedLines = new Set<number>();
+  }
+
+  isNear(point: [number, number], threshold: number): boolean {
+    return glm.vec2.distance(this.coords, point) < threshold;
+  }
+}
+
+class Line {
+  vertices: number[];
+
+  constructor(vertices: number[]) {
+    this.vertices = vertices;
+  }
+
+  isNear(
+    point: [number, number],
+    threshold: number,
+    vertexMap: VertexMap,
+  ): boolean {
+    for (let i = 0; i < this.vertices.length - 1; i++) {
+      const start = vertexMap.get(this.vertices[i])?.coords;
+      const end = vertexMap.get(this.vertices[i + 1])?.coords;
+      if (start && end && nearLine(point, start, end, threshold)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+class VertexMap {
+  items: Map<number, Vertex>;
+  nextId: number;
+
+  constructor() {
+    this.items = new Map();
+    this.nextId = 0;
+  }
+
+  add(coords: [number, number], isControlPoint = false): number {
+    const id = this.nextId++;
+    this.items.set(id, new Vertex(coords, isControlPoint));
+    return id;
+  }
+
+  delete(id: number, lineMap: LineMap) {
+    const vertex = this.items.get(id);
+    if (vertex) {
+      // For each related line
+      for (const lineId of vertex.relatedLines) {
+        if (vertex.isControlPoint) {
+          const line = lineMap.items.get(lineId);
+          if (line) {
+            const index = line.vertices.indexOf(id);
+            if (index > -1) {
+              line.vertices.splice(index, 1);
+            }
+          }
+        } else {
+          lineMap.items.delete(lineId);
+        }
+      }
+      this.items.delete(id);
+    }
+  }
+
+  get(id: number): Vertex | undefined {
+    return this.items.get(id);
+  }
+
+  set(id: number, vertex: Vertex) {
+    this.items.set(id, vertex);
+  }
+
+  entries() {
+    return this.items.entries();
+  }
+
+  get size() {
+    return this.items.size;
+  }
+}
+
+class LineMap {
+  items: Map<number, Line>;
+  nextId: number;
+
+  constructor() {
+    this.items = new Map();
+    this.nextId = 0;
+  }
+
+  add(vertices: number[]): number {
+    const id = this.nextId++;
+    this.items.set(id, new Line(vertices));
+    return id;
+  }
+
+  delete(id: number) {
+    this.items.delete(id);
+  }
+
+  get(id: number): Line | undefined {
+    return this.items.get(id);
+  }
+
+  set(id: number, line: Line) {
+    this.items.set(id, line);
+  }
+
+  entries() {
+    return this.items.entries();
+  }
+
+  get size() {
+    return this.items.size;
+  }
+}
 
 export function SimpleCurve() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { scrollPassed } = useScrollDetector();
-  const serialId = useRef(0);
-  const vertices = useRef<Map<number, Vertex>>(new Map<number, Vertex>());
-  const lines = useRef<Map<number, number[]>>(new Map<number, number[]>());
+  const vertices = useRef<VertexMap>(new VertexMap());
+  const lines = useRef<LineMap>(new LineMap());
   const draggingTimer = useRef<NodeJS.Timeout | null>(null);
 
   const mouseState = useRef<MouseState>({
@@ -161,28 +282,7 @@ export function SimpleCurve() {
     }
     if (e.key === "Delete" || e.key === "Backspace") {
       if (mouseState.current.selected !== undefined) {
-        // Get the vertex to be deleted
-        const vertexToDelete = vertices.current.get(
-          mouseState.current.selected,
-        );
-        if (vertexToDelete) {
-          // For each related line
-          for (const lineId of vertexToDelete.relatedLines) {
-            if (vertexToDelete.isControlPoint) {
-              const line = lines.current.get(lineId);
-              if (line) {
-                const index = line.indexOf(mouseState.current.selected);
-                if (index > -1) {
-                  line.splice(index, 1);
-                }
-              }
-            } else {
-              lines.current.delete(lineId);
-            }
-          }
-        }
-        // Delete the vertex
-        vertices.current.delete(mouseState.current.selected);
+        vertices.current.delete(mouseState.current.selected, lines.current);
         mouseState.current.selected = undefined;
       }
     }
@@ -208,15 +308,9 @@ export function SimpleCurve() {
       if (mouseState.current.intersect !== undefined) {
         id = mouseState.current.intersect;
       } else {
-        id = serialId.current++;
-        vertices.current.set(id, {
-          coords: [mouseState.current.x, mouseState.current.y],
-          isControlPoint: false,
-          relatedLines: new Set<number>(),
-        });
+        id = vertices.current.add([mouseState.current.x, mouseState.current.y]);
       }
-      const lineId = serialId.current++;
-      lines.current.set(lineId, [mouseState.current.selected, id]);
+      const lineId = lines.current.add([mouseState.current.selected, id]);
 
       const startVertex = vertices.current.get(mouseState.current.selected);
       if (startVertex) {
@@ -237,13 +331,11 @@ export function SimpleCurve() {
     if (mouseState.current.intersectLine !== undefined) {
       const line = lines.current.get(mouseState.current.intersectLine);
       if (line) {
-        const id = serialId.current++;
-        vertices.current.set(id, {
-          coords: [mouseState.current.x, mouseState.current.y],
-          isControlPoint: true,
-          relatedLines: new Set([mouseState.current.intersectLine]),
-        });
-        line.push(id);
+        const id = vertices.current.add(
+          [mouseState.current.x, mouseState.current.y],
+          true,
+        );
+        line.vertices.push(id);
         mouseState.current.selected = undefined;
         return;
       }
@@ -263,12 +355,10 @@ export function SimpleCurve() {
         return;
       }
       mouseState.current.ticks++;
-      const id = serialId.current++;
-      vertices.current.set(id, {
-        coords: [mouseState.current.x, mouseState.current.y],
-        isControlPoint: false,
-        relatedLines: new Set<number>(),
-      });
+      const id = vertices.current.add([
+        mouseState.current.x,
+        mouseState.current.y,
+      ]);
 
       mouseState.current.selected = id;
       return;
@@ -319,11 +409,7 @@ export function SimpleCurve() {
     mouseState.current.intersectLine = undefined;
 
     for (const [idx, vertex] of vertices.current.entries()) {
-      const dist = glm.vec2.distance(
-        vertex.coords,
-        glm.vec2.fromValues(worldX, worldY),
-      );
-      if (dist < 0.2) {
+      if (vertex.isNear([worldX, worldY], 0.2)) {
         mouseState.current.intersect = idx;
         break;
       }
@@ -331,9 +417,7 @@ export function SimpleCurve() {
 
     if (mouseState.current.intersect === undefined) {
       for (const [idx, line] of lines.current.entries()) {
-        const start = vertices.current.get(line[0])?.coords;
-        const end = vertices.current.get(line[1])?.coords;
-        if (start && end && nearLine([worldX, worldY], start, end, 0.2)) {
+        if (line.isNear([worldX, worldY], 0.2, vertices.current)) {
           mouseState.current.intersectLine = idx;
           break;
         }
@@ -351,10 +435,8 @@ export function SimpleCurve() {
       if (mouseState.current.isDragging) {
         const pickedVertex = vertices.current.get(mouseState.current.picked);
         if (!pickedVertex) return;
-        vertices.current.set(mouseState.current.picked, {
-          ...pickedVertex,
-          coords: [mouseState.current.x, mouseState.current.y],
-        });
+        pickedVertex.coords = [mouseState.current.x, mouseState.current.y];
+        vertices.current.set(mouseState.current.picked, pickedVertex);
       }
     } else if (draggingTimer.current) {
       clearTimeout(draggingTimer.current);
@@ -576,9 +658,9 @@ export function SimpleCurve() {
         gl.uniform4f(uColorLoc_point, 0.0, 0.0, 0.4, 1.0);
 
         if (vertices.current.size > 0) {
-          const vertexArray = vertices.current
-            .entries()
-            .flatMap(([_, vertex]) => [vertex.coords[0], vertex.coords[1]]);
+          const vertexArray = Array.from(vertices.current.entries()).flatMap(
+            ([_, vertex]) => [vertex.coords[0], vertex.coords[1]],
+          );
           gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(vertexArray));
         }
 
@@ -682,10 +764,10 @@ export function SimpleCurve() {
         gl.uniform4f(uColorLoc_curve, 0.0, 0.0, 0.7, 1.0);
 
         if (lines.current.size > 0) {
-          const allLines = Array.from(lines.current.values()).flatMap(
-            (line) => {
-              const start = vertices.current.get(line[0])?.coords;
-              const end = vertices.current.get(line[1])?.coords;
+          const allLines = Array.from(lines.current.entries()).flatMap(
+            ([_, line]) => {
+              const start = vertices.current.get(line.vertices[0])?.coords;
+              const end = vertices.current.get(line.vertices[1])?.coords;
               if (!start || !end) return [];
               return [start[0], start[1], end[0], end[1]];
             },
@@ -700,14 +782,14 @@ export function SimpleCurve() {
         if (mouseState.current.intersectLine !== undefined) {
           const line = lines.current.get(mouseState.current.intersectLine);
           if (line) {
-            const start = vertices.current.get(line[0])?.coords;
-            const end = vertices.current.get(line[1])?.coords;
+            const start = vertices.current.get(line.vertices[0])?.coords;
+            const end = vertices.current.get(line.vertices[1])?.coords;
             if (start && end) {
               gl.uniform4f(uColorLoc_curve, 1.0, 0.0, 0.0, 1.0);
               gl.bufferSubData(
                 gl.ARRAY_BUFFER,
                 0,
-                new Float32Array([start[0], start[1], end[0], end[1]]),
+                new Float32Array([...start, ...end]),
               );
               gl.drawArrays(gl.LINES, 0, 2);
             }
@@ -718,7 +800,7 @@ export function SimpleCurve() {
       requestAnimationFrame(render);
     };
 
-    render();
+    requestAnimationFrame(render);
   }
 
   return (
@@ -779,8 +861,10 @@ function compileShader(
   if (success) {
     return shader;
   }
+
   console.log(gl.getShaderInfoLog(shader));
   gl.deleteShader(shader);
+  return null;
 }
 
 function createProgram(gl: WebGLRenderingContext, ...shaders: WebGLShader[]) {
