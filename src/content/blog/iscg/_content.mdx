@@ -322,7 +322,7 @@ const mouseState = useRef<MouseState>({
 });
 ```
 
-`MouseState` は、マウスの状態を管理するための型である。`intersect` は、頂点の 0.2 単位以内にマウスがあるときに、頂点を選択するためのものである。`picked` は、`intersect` の頂点を `picked` に格納するためのものである。それ以外 (picked でも、intersect でもない) には、マウスをクリックすると頂点を追加することになる。つまり、有限状態機械のようなものになる。
+`MouseState` は、マウスの状態を管理するための型である。`intersect` は、頂点の 0.2 単位以内にマウスがあるときに、頂点を選択するためのものである。`picked` は、`intersect` の頂点を `picked` に格納するためのものである。それ以外 (picked でも、intersect でもない) には、マウスをクリックすると頂点が追加することになる。つまり、有限状態機械のようなものになる。
 
 ### ポイントの選択
 
@@ -422,3 +422,59 @@ if (lines.current.length > 0) {
 1. 線からの距離が threshold 以下のときに、線を選択するようにする。
 2. 点を追加すると、`vertices` に格納し、対応する `lines` に格納する。
 3. 削除の際に、`lines` からも削除する。
+
+## 大きなリファクタリング
+
+### class での実装
+
+```ts
+interface Vertex {
+  coords: [number, number];
+  isControlPoint: boolean;
+  relatedLines: Set<number>;
+  isNear(point: [number, number], threshold: number): boolean;
+}
+
+interface Line {
+  start: number;
+  end: number;
+  addVertexAt: (vertex: Vertex, index: number) => void;
+  isNear(point: [number, number], threshold: number): boolean;
+  nearestSegmentIndex: (
+    point: [number, number],
+    threshold: number,
+    vertexMap: VertexMap,
+  ) => number;
+}
+```
+
+を作成し、`Vertex` と `Line` の intersection 確認を抽象化する。
+
+### Map の Wrapper
+
+```ts
+interface VertexMap {
+  items: Map<number, Vertex>;
+  nextId: number;
+
+  add(coords: [number, number], isControlPoint?: boolean): number;
+  delete(id: number, lineMap: LineMap): void;
+  get(id: number): Vertex | undefined;
+  set(id: number, vertex: Vertex): void;
+  entries(): IterableIterator<[number, Vertex]>;
+  size: number;
+}
+
+interface LineMap {
+  items: Map<number, Line>;
+  nextId: number;
+
+  add(start: number, end: number): number;
+  delete(id: number): void;
+  get(id: number): Line | undefined;
+  entries(): IterableIterator<[number, Line]>;
+  size: number;
+}
+```
+
+これらのインターフェースは `item` を追加・削除の際に、次の `id` を管理するためのものである。元々使っていた配列は削除すると全部ずれるため、`Map` を用いることにした。
