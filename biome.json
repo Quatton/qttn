@@ -7,7 +7,9 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["**/*.astro"]
+    "ignore": [
+      "**/*.astro"
+    ]
   },
   "formatter": {
     "enabled": true
@@ -19,6 +21,12 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "correctness": {
+        "noUnusedImports": "warn",
+        "noUnusedVariables": "warn",
+        "noUnusedFunctionParameters": "warn",
+        "noUnusedLabels": "warn"
+      },
       "performance": {
         "noAccumulatingSpread": "off"
       },

@@ -377,11 +377,11 @@ export function SimpleCurve() {
     }
   }
 
-  function keyupHandler(e: KeyboardEvent) {
+  function keyupHandler(_e: KeyboardEvent) {
     mouseState.current.shouldSnap = false;
   }
 
-  function mouseDownHandler(e: MouseEvent) {
+  function mouseDownHandler(_e: MouseEvent) {
     if (!canvasRef.current) return;
 
     if (mouseState.current.selected !== undefined) {
@@ -459,7 +459,7 @@ export function SimpleCurve() {
     }
   }
 
-  function mouseUpHandler(e: MouseEvent) {
+  function mouseUpHandler(_e: MouseEvent) {
     mouseState.current.isDown = false;
 
     if (
@@ -973,7 +973,7 @@ export function SimpleCurve() {
       }
 
       if (scrollPassed("show-bezier")) {
-        for (const [idx, line] of lines.current.items) {
+        for (const [_idx, line] of lines.current.items) {
           const segments = line.getOrCompute();
 
           gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
@@ -1013,6 +1013,7 @@ function linspace(start: number, end: number, num: number) {
   );
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: <explanation>
 function arange(start: number, end: number, step: number) {
   return Array.from(
     { length: Math.ceil((end - start) / step) },
@@ -1111,6 +1112,7 @@ function distanceFromLineAB(
 }
 
 const factCache = new Map<number, number>();
+// biome-ignore lint/correctness/noUnusedVariables: <explanation>
 function fact(x: number): number {
   const cached = factCache.get(x);
   if (cached) return cached;

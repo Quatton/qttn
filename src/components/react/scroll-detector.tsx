@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 type ScrollElementCache = {
   [id: string]: number; // back to storing indices
