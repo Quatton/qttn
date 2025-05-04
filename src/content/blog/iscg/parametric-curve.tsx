@@ -117,19 +117,47 @@ class Line {
     this.vertices = vertices;
   }
 
+  start(): number {
+    return this.vertices[0];
+  }
+
+  end(): number {
+    return this.vertices[this.vertices.length - 1];
+  }
+
+  addVertex(id: number) {
+    this.vertices.push(id);
+  }
+
+  nearestSegmentIndex(
+    point: [number, number],
+    threshold: number,
+    vertexMap: VertexMap,
+  ): number {
+    let minDistance = threshold;
+    let nearestIndex = -1;
+
+    for (let i = 0; i < this.vertices.length - 1; i++) {
+      const start = vertexMap.get(this.vertices[i])?.coords;
+      const end = vertexMap.get(this.vertices[i + 1])?.coords;
+      if (start && end) {
+        const distance = distanceFromLineAB(point, start, end);
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestIndex = i;
+        }
+      }
+    }
+
+    return nearestIndex;
+  }
+
   isNear(
     point: [number, number],
     threshold: number,
     vertexMap: VertexMap,
   ): boolean {
-    for (let i = 0; i < this.vertices.length - 1; i++) {
-      const start = vertexMap.get(this.vertices[i])?.coords;
-      const end = vertexMap.get(this.vertices[i + 1])?.coords;
-      if (start && end && nearLine(point, start, end, threshold)) {
-        return true;
-      }
-    }
-    return false;
+    return this.nearestSegmentIndex(point, threshold, vertexMap) !== -1;
   }
 }
 
@@ -901,12 +929,11 @@ function screenToWorld(
   return [worldX, worldY];
 }
 
-function nearLine(
+function distanceFromLineAB(
   p: [number, number],
   a: [number, number],
   b: [number, number],
-  threshold: number,
-) {
+): number {
   const ab = glm.vec2.create();
   glm.vec2.sub(ab, b, a);
   const ap = glm.vec2.create();
@@ -916,5 +943,5 @@ function nearLine(
   const t = Math.max(0, Math.min(1, ab_ap / ab_ab));
   const closestPoint = glm.vec2.create();
   glm.vec2.scaleAndAdd(closestPoint, a, ab, t);
-  return glm.vec2.distance(p, closestPoint) < threshold;
+  return glm.vec2.distance(p, closestPoint);
 }
