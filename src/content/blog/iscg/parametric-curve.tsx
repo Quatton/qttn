@@ -97,6 +97,7 @@ type MouseState = {
 type Vertex = {
   coords: [number, number];
   isControlPoint: boolean;
+  relatedLines: Set<number>;
 };
 
 export function SimpleCurve() {
@@ -160,21 +161,28 @@ export function SimpleCurve() {
     }
     if (e.key === "Delete" || e.key === "Backspace") {
       if (mouseState.current.selected !== undefined) {
-        vertices.current.delete(mouseState.current.selected);
-
-        for (const [lineIndex, line] of lines.current.entries()) {
-          if (line.slice(0, 2).includes(mouseState.current.selected)) {
-            lines.current.delete(lineIndex);
-          } else {
-            lines.current.set(
-              lineIndex,
-              line.filter(
-                (vertexIndex) => vertexIndex !== mouseState.current.selected,
-              ),
-            );
+        // Get the vertex to be deleted
+        const vertexToDelete = vertices.current.get(
+          mouseState.current.selected,
+        );
+        if (vertexToDelete) {
+          // For each related line
+          for (const lineId of vertexToDelete.relatedLines) {
+            if (vertexToDelete.isControlPoint) {
+              const line = lines.current.get(lineId);
+              if (line) {
+                const index = line.indexOf(mouseState.current.selected);
+                if (index > -1) {
+                  line.splice(index, 1);
+                }
+              }
+            } else {
+              lines.current.delete(lineId);
+            }
           }
         }
-
+        // Delete the vertex
+        vertices.current.delete(mouseState.current.selected);
         mouseState.current.selected = undefined;
       }
     }
@@ -204,9 +212,24 @@ export function SimpleCurve() {
         vertices.current.set(id, {
           coords: [mouseState.current.x, mouseState.current.y],
           isControlPoint: false,
+          relatedLines: new Set<number>(),
         });
       }
-      lines.current.set(serialId.current++, [mouseState.current.selected, id]);
+      const lineId = serialId.current++;
+      lines.current.set(lineId, [mouseState.current.selected, id]);
+
+      const startVertex = vertices.current.get(mouseState.current.selected);
+      if (startVertex) {
+        startVertex.relatedLines.add(lineId);
+        vertices.current.set(mouseState.current.selected, startVertex);
+      }
+
+      const endVertex = vertices.current.get(id);
+      if (endVertex) {
+        endVertex.relatedLines.add(lineId);
+        vertices.current.set(id, endVertex);
+      }
+
       mouseState.current.selected = id;
       return;
     }
@@ -218,6 +241,7 @@ export function SimpleCurve() {
         vertices.current.set(id, {
           coords: [mouseState.current.x, mouseState.current.y],
           isControlPoint: true,
+          relatedLines: new Set([mouseState.current.intersectLine]),
         });
         line.push(id);
         mouseState.current.selected = undefined;
@@ -243,7 +267,9 @@ export function SimpleCurve() {
       vertices.current.set(id, {
         coords: [mouseState.current.x, mouseState.current.y],
         isControlPoint: false,
+        relatedLines: new Set<number>(),
       });
+
       mouseState.current.selected = id;
       return;
     }
@@ -254,13 +280,14 @@ export function SimpleCurve() {
 
     if (
       mouseState.current.intersect !== undefined &&
-      !mouseState.current.isDragging &&
-      draggingTimer.current
+      !mouseState.current.isDragging
     ) {
-      // Clear the drag timer since we're handling it as a click
+      mouseState.current.selected = mouseState.current.intersect;
+    }
+
+    if (draggingTimer.current) {
       clearTimeout(draggingTimer.current);
       draggingTimer.current = null;
-      mouseState.current.selected = mouseState.current.intersect;
     }
 
     mouseState.current.picked = undefined;
@@ -314,6 +341,13 @@ export function SimpleCurve() {
     }
 
     if (mouseState.current.picked !== undefined && mouseState.current.isDown) {
+      if (!mouseState.current.isDragging && !draggingTimer.current) {
+        draggingTimer.current = setTimeout(() => {
+          mouseState.current.isDragging = true;
+          draggingTimer.current = null;
+        }, 100);
+      }
+
       if (mouseState.current.isDragging) {
         const pickedVertex = vertices.current.get(mouseState.current.picked);
         if (!pickedVertex) return;
@@ -321,14 +355,10 @@ export function SimpleCurve() {
           ...pickedVertex,
           coords: [mouseState.current.x, mouseState.current.y],
         });
-      } else {
-        if (!draggingTimer.current) {
-          draggingTimer.current = setTimeout(() => {
-            mouseState.current.isDragging = true;
-            draggingTimer.current = null;
-          }, 50);
-        }
       }
+    } else if (draggingTimer.current) {
+      clearTimeout(draggingTimer.current);
+      draggingTimer.current = null;
     }
   }
 
