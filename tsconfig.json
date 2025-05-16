@@ -9,7 +9,7 @@
     "allowJs": true,
     "jsx": "preserve",
     "jsxImportSource": "react",
-    "types": ["@cloudflare/workers-types", "@webgpu/types"]
+    "types": ["@cloudflare/workers-types", "@webgpu/types", "@types/node"]
   },
   "exclude": ["node_modules", "dist", "**/solid/**/*"]
 }

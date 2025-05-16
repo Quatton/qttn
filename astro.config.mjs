@@ -22,11 +22,20 @@ import rehypeMermaid from "rehype-mermaid";
 import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 
+import { loadEnv } from "vite";
+
+const { PUBLIC_BASE_URL } = loadEnv(
+  // @ts-ignore
+  process.env.NODE_ENV,
+  process.cwd(),
+  "PUBLIC_BASE_URL"
+);
+
 // https://astro.build/config
 export default defineConfig({
   site: import.meta.env.DEV
-    ? `http://${process.env.BASE_URL}`
-    : `https://${process.env.BASE_URL}`,
+    ? `http://${PUBLIC_BASE_URL}`
+    : `https://${PUBLIC_BASE_URL}`,
   markdown: {
     syntaxHighlight: {
       excludeLangs: ["mermaid", "math"],
