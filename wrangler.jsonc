@@ -23,6 +23,10 @@
       "custom_domain": true,
     },
     {
+      "pattern": "www.qttn.dev",
+      "custom_domain": true,
+    },
+    {
       "pattern": "const.qttn.dev",
       "custom_domain": true,
     },
