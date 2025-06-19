@@ -13,50 +13,85 @@ struct Camera {
   viewport: vec2<u32>, // width, height
 }`;
 
+const WORKGROUP_SIZE_X = 8;
+const WORKGROUP_SIZE_Y = 8;
+
+const computeShader = /* wgsl */ `
+${cameraLibrary}
+
+@group(0) @binding(0) var<storage, read_write> imageBuffer: array<vec4<f32>>;
+@group(0) @binding(1) var<uniform> camera: Camera;
+
+@compute @workgroup_size(${WORKGROUP_SIZE_X}, ${WORKGROUP_SIZE_Y}, 1)
+fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
+  let viewport = camera.viewport;
+
+  if (gId.x >= viewport.x || gId.y >= viewport.y) {
+    return;
+  }
+
+  let pixel = gId.x + gId.y * viewport.x;
+
+  let center = vec2<f32>(viewport) / vec2<f32>(2.0);
+  let radius = 100.0;
+  let uv = vec2<f32>(f32(gId.x), f32(gId.y));
+
+  let d = distance(uv, center);
+
+  var color: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+
+  if (d < radius) {
+    color = vec4<f32>(0.0, 1.0, 0.0, 1.0); // Green
+  } 
+
+  imageBuffer[pixel] = color;
+}
+`;
+
 const presentShader = /* wgsl */ `
-  ${vertexLibrary}
-  ${cameraLibrary}
+${vertexLibrary}
+${cameraLibrary}
 
-  // image buffer rgba
-  @group(0) @binding(0) var<storage, read> imageBuffer: array<vec4<f32>>;
-  @group(0) @binding(1) var<uniform> camera: Camera;
+// image buffer rgba
+@group(0) @binding(0) var<storage, read> imageBuffer: array<vec4<f32>>;
+@group(0) @binding(1) var<uniform> camera: Camera;
 
-  // 0,0
-  // 0________________1,3
-  // |               /|
-  // |             /  |
-  // |           /    |
-  // |         /      |
-  // |       /        |
-  // |     /          |
-  // |   /            |
-  // | /              |
-  // 2,4______________|5 1,1
+// 0,0
+// 0________________1,3
+// |               /|
+// |             /  |
+// |           /    |
+// |         /      |
+// |       /        |
+// |     /          |
+// |   /            |
+// | /              |
+// 2,4______________|5 1,1
 
-  const XYUV = array<vec4<f32>, 6>(
-    vec4(-1.0, 1.0, 0.0, 0.0),   // 0
-    vec4(1.0, 1.0, 1.0, 0.0),    // 1
-    vec4(-1.0, -1.0, 0.0, 1.0),  // 2
-    vec4(1.0, 1.0, 1.0, 0.0),    // 3
-     vec4(-1.0, -1.0, 0.0, 1.0), // 4
-    vec4(1.0, -1.0, 1.0, 1.0)    // 5
-  );
+const XYUV = array<vec4<f32>, 6>(
+  vec4(-1.0, 1.0, 0.0, 0.0),   // 0
+  vec4(1.0, 1.0, 1.0, 0.0),    // 1
+  vec4(-1.0, -1.0, 0.0, 1.0),  // 2
+  vec4(1.0, 1.0, 1.0, 0.0),    // 3
+    vec4(-1.0, -1.0, 0.0, 1.0), // 4
+  vec4(1.0, -1.0, 1.0, 1.0)    // 5
+);
 
-  @vertex
-  fn vertexMain(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
-    var output: VertexOutput;
-    output.position = vec4(XYUV[vertexIndex].xy, 0.0, 1.0);
-    output.uv = XYUV[vertexIndex].zw;
-    return output;
-  }
+@vertex
+fn vertexMain(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+  var output: VertexOutput;
+  output.position = vec4(XYUV[vertexIndex].xy, 0.0, 1.0);
+  output.uv = XYUV[vertexIndex].zw;
+  return output;
+}
 
-  @fragment
-  fn fragmentMain(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
-    let x = u32(f32(uv.x) * f32(camera.viewport.x));
-    let y = u32(f32(uv.y) * f32(camera.viewport.y));
-    let index = clamp(x + y * camera.viewport.x, 0u, camera.viewport.x * camera.viewport.y - 1u);
-    return imageBuffer[index];
-  }
+@fragment
+fn fragmentMain(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
+  let x = u32(f32(uv.x) * f32(camera.viewport.x));
+  let y = u32(f32(uv.y) * f32(camera.viewport.y));
+  let index = clamp(x + y * camera.viewport.x, 0u, camera.viewport.x * camera.viewport.y - 1u);
+  return imageBuffer[index];
+}
 `;
 
 export function RayTracing() {
@@ -256,11 +291,15 @@ class RayTracingRenderer {
   canvas: HTMLCanvasElement;
 
   private device!: GPUDevice;
-  private context!: GPUCanvasContext;
-  private format!: GPUTextureFormat;
+  private context: GPUCanvasContext;
+  private format: GPUTextureFormat;
 
   private renderPipeline!: GPURenderPipeline;
-  private bindGroup: GPUBindGroup | undefined;
+  private computePipeline!: GPUComputePipeline;
+
+  private renderBindGroup?: GPUBindGroup;
+  private computeBindGroup?: GPUBindGroup;
+
   scrollPassed: (id: string) => boolean;
 
   state!: RayTracingState;
@@ -324,8 +363,14 @@ class RayTracingRenderer {
     };
   }
 
+  get computePassDescriptor() {
+    return {
+      label: "computePass",
+    };
+  }
+
   handleResize() {
-    if (!this.device) {
+    if (!this.isInitialized()) {
       // Non-error return (maybe it's just not initialized yet. pls chill)
       return;
     }
@@ -350,8 +395,9 @@ class RayTracingRenderer {
     canvas.height = height;
 
     this.state.setFromCanvas(canvas);
-    this.bindGroup = this.device.createBindGroup({
-      label: "bindGroup",
+
+    this.renderBindGroup = this.device.createBindGroup({
+      label: "renderBindGroup",
       layout: this.renderPipeline.getBindGroupLayout(0),
       entries: [
         {
@@ -369,16 +415,44 @@ class RayTracingRenderer {
       ],
     });
 
-    this.paint();
+    // Create the render bind group
+    if (this.scrollPassed("gpu-ball")) {
+      this.computeBindGroup = this.device.createBindGroup({
+        label: "computeBindGroup",
+        layout: this.computePipeline.getBindGroupLayout(0),
+        entries: [
+          {
+            binding: 0,
+            resource: {
+              buffer: this.state.imageBuffer.buffer,
+            },
+          },
+          {
+            binding: 1,
+            resource: {
+              buffer: this.state.camera.buffer,
+            },
+          },
+        ],
+      });
+    }
+
+    const shouldPaint =
+      this.scrollPassed("cpu-ball") && !this.scrollPassed("gpu-ball");
+
+    this.state.camera.writeBuffer();
+
+    if (shouldPaint) {
+      this.paint();
+    }
+
+    this.state.imageBuffer.writeBuffer();
   }
 
   paint() {
     const centerX = this.canvas.width / 2;
     const centerY = this.canvas.height / 2;
     const radius = 100;
-
-    const shouldPaint =
-      this.scrollPassed("rt-ball") && !this.scrollPassed("hide-rt-ball");
 
     for (let i = 0; i < this.state.imageBuffer.data.length; i += 4) {
       const x = (i / 4) % this.canvas.width;
@@ -387,7 +461,7 @@ class RayTracingRenderer {
       const dy = y - centerY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance < radius && shouldPaint) {
+      if (distance < radius) {
         this.state.imageBuffer.data[i] = 1; // R
         this.state.imageBuffer.data[i + 1] = 0; // G
         this.state.imageBuffer.data[i + 2] = 0; // B
@@ -399,8 +473,6 @@ class RayTracingRenderer {
         this.state.imageBuffer.data[i + 3] = 1; // A
       }
     }
-    this.state.imageBuffer.writeBuffer();
-    this.state.camera.writeBuffer();
   }
 
   isInitialized() {
@@ -409,6 +481,7 @@ class RayTracingRenderer {
       !!this.context &&
       !!this.format &&
       !!this.renderPipeline &&
+      !!this.computePipeline &&
       !!this.state;
 
     return ready;
@@ -428,30 +501,13 @@ class RayTracingRenderer {
     this.context.configure({
       device: this.device,
       format: this.format,
+      alphaMode: "premultiplied",
     });
 
-    const shaderModule = this.device.createShaderModule({
-      label: "presentShader",
-      code: presentShader,
-    });
-
-    this.renderPipeline = this.device.createRenderPipeline({
-      label: "presentPipeline",
-      layout: "auto",
-      vertex: {
-        module: shaderModule,
-        entryPoint: "vertexMain",
-      },
-      fragment: {
-        module: shaderModule,
-        entryPoint: "fragmentMain",
-        targets: [
-          {
-            format: this.format,
-          },
-        ],
-      },
-    });
+    await Promise.all([
+      this.createRenderPipeline(),
+      this.createComputePipeline(),
+    ]);
 
     if (!this.isInitialized()) {
       throw Error("Renderer is not initialized.");
@@ -461,8 +517,51 @@ class RayTracingRenderer {
     this.observer.observe(this.canvas);
   }
 
+  private async createRenderPipeline() {
+    const shaderModule = this.device.createShaderModule({
+      label: "presentShader",
+      code: presentShader,
+    });
+
+    this.renderPipeline = await this.device.createRenderPipelineAsync({
+      label: "presentPipeline",
+      layout: "auto",
+      vertex: {
+        module: shaderModule,
+      },
+      fragment: {
+        module: shaderModule,
+        targets: [
+          {
+            format: this.format,
+          },
+        ],
+      },
+    });
+  }
+
+  private async createComputePipeline() {
+    const shaderModule = this.device.createShaderModule({
+      label: "computeShader",
+      code: computeShader,
+    });
+
+    this.computePipeline = await this.device.createComputePipelineAsync({
+      label: "computePipeline",
+      layout: "auto",
+      compute: {
+        module: shaderModule,
+        entryPoint: "computeMain",
+      },
+    });
+  }
+
   render() {
-    if (!this.isInitialized()) {
+    if (
+      !this.isInitialized() ||
+      !this.renderPipeline ||
+      (this.scrollPassed("gpu-ball") && !this.computePipeline)
+    ) {
       throw Error(
         "Renderer is not initialized. Please check if it's initialized before calling this method.",
       );
@@ -472,12 +571,26 @@ class RayTracingRenderer {
       label: "renderEncoder",
     });
 
+    if (this.scrollPassed("gpu-ball")) {
+      const computePass = commandEncoder.beginComputePass(
+        this.computePassDescriptor,
+      );
+
+      computePass.setPipeline(this.computePipeline);
+      computePass.setBindGroup(0, this.computeBindGroup);
+      computePass.dispatchWorkgroups(
+        Math.ceil(this.canvas.width / WORKGROUP_SIZE_X),
+        Math.ceil(this.canvas.height / WORKGROUP_SIZE_Y),
+      );
+      computePass.end();
+    }
+
     const renderPass = commandEncoder.beginRenderPass(
       this.renderPassDescriptor,
     );
 
     renderPass.setPipeline(this.renderPipeline);
-    renderPass.setBindGroup(0, this.bindGroup);
+    renderPass.setBindGroup(0, this.renderBindGroup);
     renderPass.draw(6, 1, 0, 0);
     renderPass.end();
 
