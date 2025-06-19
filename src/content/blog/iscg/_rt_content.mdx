@@ -1,3 +1,214 @@
 # レイトレーシング
 
 タエチャスク ナッチャノン 05241011
+
+## WebGPU
+
+基本課題 1 は WebGL を用いてベジェ曲線を描画するものであった。基本課題 2 は Three.js をそのまま使って、逆運動学を実装するものであった。
+
+今回の課題では、WebGPU を使ってレイトレーシングを実装してみる。
+
+WebGPU は、WebGL の後継となる次世代のグラフィックス API であり、より低レベルな制御が可能である。基本的には WebGL と似たような Vertex/Fragment シェーダーの仕組みを持っているが、レイトレーシングはそのような仕組みと違って、各ピクセルごとに光線を追跡していく手法である。
+
+それを WebGPU 上で実装するためには、まずは Compute Shader を使って、Image Buffer を生成し、もう一つのパイプラインに渡して Vertex/Fragment Shader で描画する必要がある。
+
+## 簡単な描画
+
+まずは Compute Shader はさておき、CPU から Image Buffer を生成して、直接 Vertex/Fragment Shader に渡す方法を試してみる。
+
+`class RayTracingRenderer` は `HTMLCanvasElement` を受け取り、`context` から `format` を取得する。ただし、`device` 関連の初期化からは非同期で行うため、`init()` メソッドを呼び出す必要がある。
+
+パイプラインは​​ WebGL と似ており、シェーダーをコンパイルして、GPU 上のバッファを作成し、CPU からデータを移動させる。
+
+今回は `Camera` と `ImageBuffer` クラスを定義し、以下の Interface を実装する。
+
+```typescript
+interface StateBuffer<T extends TypedArray> {
+  data: T;
+  device: GPUDevice;
+  buffer: GPUBuffer;
+  writeBuffer: () => void;
+  createBuffer: () => void;
+  destroy: () => void;
+}
+```
+
+`Camera` は現状 `viewport` の情報のみ保持しており、`ImageBuffer` は画面のピクセルごとの RGBA 値を保持している。
+
+```ts
+class Camera implements StateBuffer<Uint32Array> {
+  data: Uint32Array = new Uint32Array(2);
+
+  device: GPUDevice;
+  buffer!: GPUBuffer;
+
+  private readonly viewportOffset = 0;
+
+  private readonly bufferConfig = () => ({
+    label: "Camera Buffer",
+    size: this.data.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
+  constructor(device: GPUDevice, viewport: [number, number]) {
+    this.device = device;
+    this.viewport = viewport;
+    this.createBuffer();
+  }
+
+  get viewport(): [number, number] {
+    return [this.data[0], this.data[1]];
+  }
+
+  set viewport(viewport: [number, number]) {
+    this.data.set(viewport, this.viewportOffset);
+  }
+
+  createBuffer() {
+    this.buffer?.destroy();
+    this.buffer = this.device.createBuffer(this.bufferConfig());
+  }
+
+  writeBuffer() {
+    this.device.queue.writeBuffer(this.buffer, 0, this.data);
+  }
+
+  destroy() {
+    this.buffer?.destroy();
+  }
+}
+```
+
+(現状は複雑な形になっているが、プログラムを少しずつ抽象化するともっと簡単になる可能性がある。)
+
+`createBuffer` は元のバッファが存在すれば廃棄し、バイト数によってデバイスのバッファを作成する。
+
+`writeBuffer` は CPU の `TypedArray` から GPU の `buffer` にコピーする。
+
+`destroy` はアプリケーションが unmount するときに呼ば出される。
+
+## CPU ボール
+
+`ResizeObserver` の設定は省略するが、そのコールバック関数は `handleResize` である。
+
+`handleResize` はキャンバスから状態を初期化し、`bindGroup` を作成する。
+`bindGroup` とは何かというと、`WebGL` の VertexAttribute と似ており、頂点の性質を GPU のどこに割り当てるか指定するバインディンググループである。
+
+```ts
+class RayTracingRenderer {
+  // ...
+  handleResize() {
+    if (!this.device) {
+      // Non-error return (maybe it's just not initialized yet. pls chill)
+      return;
+    }
+
+    const canvas = this.canvas;
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.max(
+      1,
+      Math.min(
+        Math.floor(canvas.clientWidth * dpr),
+        this.device.limits.maxTextureDimension2D,
+      ),
+    );
+    const height = Math.max(
+      1,
+      Math.min(
+        Math.floor(canvas.clientHeight * dpr),
+        this.device.limits.maxTextureDimension2D,
+      ),
+    );
+    canvas.width = width;
+    canvas.height = height;
+
+    this.state.setFromCanvas(canvas);
+    this.bindGroup = this.device.createBindGroup({
+      label: "bindGroup",
+      layout: this.renderPipeline.getBindGroupLayout(0),
+      entries: [
+        {
+          binding: 0,
+          resource: {
+            buffer: this.state.imageBuffer.buffer,
+          },
+        },
+        {
+          binding: 1,
+          resource: {
+            buffer: this.state.camera.buffer,
+          },
+        },
+      ],
+    });
+
+    this.paint();
+  }
+}
+```
+
+以下は `paint` 関数である。この節では、CPU から直接 `imageBuffer` に書き込むため、このような `for` ループが使われている。
+
+<div class="sd" id="rt-ball" />
+
+```ts
+class RayTracingRenderer {
+  // ...
+  paint() {
+    const centerX = this.canvas.width / 2;
+    const centerY = this.canvas.height / 2;
+    const radius = 100;
+
+    for (let i = 0; i < this.state.imageBuffer.data.length; i += 4) {
+      const x = (i / 4) % this.canvas.width;
+      const y = Math.floor(i / 4 / this.canvas.width);
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < radius) {
+        this.state.imageBuffer.data[i] = 1; // R
+        this.state.imageBuffer.data[i + 1] = 0; // G
+        this.state.imageBuffer.data[i + 2] = 0; // B
+        this.state.imageBuffer.data[i + 3] = 1; // A
+      } else {
+        this.state.imageBuffer.data[i] = 0; // R
+        this.state.imageBuffer.data[i + 1] = 0; // G
+        this.state.imageBuffer.data[i + 2] = 0; // B
+        this.state.imageBuffer.data[i + 3] = 1; // A
+      }
+    }
+    this.state.imageBuffer.writeBuffer();
+    this.state.camera.writeBuffer();
+  }
+
+  // ...
+}
+```
+
+こうすると、距離が半径より小さいと赤を描画し、さもないと黒を描画するようなプログラムが作れた。
+
+<div class="sd" id="hide-rt-ball" />
+hide
+
+a
+a
+
+a
+
+a
+
+a
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a

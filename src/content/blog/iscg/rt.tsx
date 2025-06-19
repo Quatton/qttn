@@ -64,12 +64,20 @@ export function RayTracing() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<RayTracingRenderer | null>(null);
   const frameId = useRef<number | null>(null);
-  const { scrollPassed } = useScrollDetector();
+
+  const { scrollPassed } = useScrollDetector(
+    (scrollPassed: (id: string) => boolean) => {
+      if (!rendererRef.current) {
+        return;
+      }
+      rendererRef.current.handleResize();
+    },
+  );
 
   const initRayTracing = useCallback(
     async (canvas: HTMLCanvasElement) => {
-      const renderer =
-        rendererRef.current || new RayTracingRenderer(canvas, scrollPassed);
+      rendererRef.current ??= new RayTracingRenderer(canvas, scrollPassed);
+      const renderer = rendererRef.current;
       if (!renderer.isInitialized()) {
         try {
           await renderer.init();
@@ -128,7 +136,7 @@ interface StateBuffer<T extends TypedArray> {
   device: GPUDevice;
   buffer: GPUBuffer;
   writeBuffer: () => void;
-  recreateBuffer: () => void;
+  createBuffer: () => GPUBuffer;
   destroy: () => void;
 }
 
@@ -136,7 +144,7 @@ class Camera implements StateBuffer<Uint32Array> {
   data: Uint32Array = new Uint32Array(2);
 
   device: GPUDevice;
-  buffer!: GPUBuffer;
+  buffer: GPUBuffer;
 
   private readonly viewportOffset = 0;
 
@@ -149,7 +157,7 @@ class Camera implements StateBuffer<Uint32Array> {
   constructor(device: GPUDevice, viewport: [number, number]) {
     this.device = device;
     this.viewport = viewport;
-    this.createBuffer();
+    this.buffer = this.createBuffer();
   }
 
   get viewport(): [number, number] {
@@ -161,12 +169,9 @@ class Camera implements StateBuffer<Uint32Array> {
   }
 
   createBuffer() {
+    this.buffer?.destroy();
     this.buffer = this.device.createBuffer(this.bufferConfig());
-  }
-
-  recreateBuffer() {
-    this.buffer.destroy();
-    this.createBuffer();
+    return this.buffer;
   }
 
   writeBuffer() {
@@ -174,7 +179,7 @@ class Camera implements StateBuffer<Uint32Array> {
   }
 
   destroy() {
-    this.buffer.destroy();
+    this.buffer?.destroy();
   }
 }
 
@@ -185,7 +190,7 @@ class ImageBuffer implements StateBuffer<Float32Array> {
   size: number;
 
   device: GPUDevice;
-  buffer!: GPUBuffer;
+  buffer: GPUBuffer;
 
   private readonly bufferConfig = () => ({
     label: "Image Buffer",
@@ -203,7 +208,7 @@ class ImageBuffer implements StateBuffer<Float32Array> {
     this.height = height;
     this.size = this.width * this.height * 4;
     this.data = new Float32Array(this.size);
-    this.createBuffer();
+    this.buffer = this.createBuffer();
   }
 
   set(width: number, height: number) {
@@ -212,21 +217,18 @@ class ImageBuffer implements StateBuffer<Float32Array> {
       this.height = height;
       this.size = this.width * this.height * 4;
       this.data = new Float32Array(this.size);
-      this.recreateBuffer();
+      this.createBuffer();
     }
   }
 
-  private createBuffer() {
+  createBuffer() {
+    this.buffer?.destroy();
     this.buffer = this.device.createBuffer(this.bufferConfig());
+    return this.buffer;
   }
 
   destroy() {
     this.buffer.destroy();
-  }
-
-  recreateBuffer() {
-    this.buffer.destroy();
-    this.createBuffer();
   }
 }
 
@@ -366,6 +368,39 @@ class RayTracingRenderer {
         },
       ],
     });
+
+    this.paint();
+  }
+
+  paint() {
+    const centerX = this.canvas.width / 2;
+    const centerY = this.canvas.height / 2;
+    const radius = 100;
+
+    const shouldPaint =
+      this.scrollPassed("rt-ball") && !this.scrollPassed("hide-rt-ball");
+
+    for (let i = 0; i < this.state.imageBuffer.data.length; i += 4) {
+      const x = (i / 4) % this.canvas.width;
+      const y = Math.floor(i / 4 / this.canvas.width);
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < radius && shouldPaint) {
+        this.state.imageBuffer.data[i] = 1; // R
+        this.state.imageBuffer.data[i + 1] = 0; // G
+        this.state.imageBuffer.data[i + 2] = 0; // B
+        this.state.imageBuffer.data[i + 3] = 1; // A
+      } else {
+        this.state.imageBuffer.data[i] = 0; // R
+        this.state.imageBuffer.data[i + 1] = 0; // G
+        this.state.imageBuffer.data[i + 2] = 0; // B
+        this.state.imageBuffer.data[i + 3] = 1; // A
+      }
+    }
+    this.state.imageBuffer.writeBuffer();
+    this.state.camera.writeBuffer();
   }
 
   isInitialized() {
@@ -432,32 +467,6 @@ class RayTracingRenderer {
         "Renderer is not initialized. Please check if it's initialized before calling this method.",
       );
     }
-
-    const centerX = this.canvas.width / 2;
-    const centerY = this.canvas.height / 2;
-    const radius = 100;
-
-    for (let i = 0; i < this.state.imageBuffer.data.length; i += 4) {
-      const x = (i / 4) % this.canvas.width;
-      const y = Math.floor(i / 4 / this.canvas.width);
-      const dx = x - centerX;
-      const dy = y - centerY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < radius) {
-        this.state.imageBuffer.data[i] = 1; // R
-        this.state.imageBuffer.data[i + 1] = 0; // G
-        this.state.imageBuffer.data[i + 2] = 0; // B
-        this.state.imageBuffer.data[i + 3] = 1; // A
-      } else {
-        this.state.imageBuffer.data[i] = 0; // R
-        this.state.imageBuffer.data[i + 1] = 0; // G
-        this.state.imageBuffer.data[i + 2] = 0; // B
-        this.state.imageBuffer.data[i + 3] = 1; // A
-      }
-    }
-
-    this.state.camera.writeBuffer();
-    this.state.imageBuffer.writeBuffer();
 
     const commandEncoder = this.device.createCommandEncoder({
       label: "renderEncoder",
