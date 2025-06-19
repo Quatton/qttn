@@ -1,3 +1,4 @@
+import { useScrollDetector } from "@/components/react/scroll-detector";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const vertexLibrary = /* wgsl */ `
@@ -63,10 +64,12 @@ export function RayTracing() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<RayTracingRenderer | null>(null);
   const frameId = useRef<number | null>(null);
+  const { scrollPassed } = useScrollDetector();
 
   const initRayTracing = useCallback(
     async (canvas: HTMLCanvasElement) => {
-      const renderer = rendererRef.current || new RayTracingRenderer(canvas);
+      const renderer =
+        rendererRef.current || new RayTracingRenderer(canvas, scrollPassed);
       if (!renderer.isInitialized()) {
         try {
           await renderer.init();
@@ -256,6 +259,7 @@ class RayTracingRenderer {
 
   private renderPipeline!: GPURenderPipeline;
   private bindGroup: GPUBindGroup | undefined;
+  scrollPassed: (id: string) => boolean;
 
   state!: RayTracingState;
 
@@ -273,8 +277,12 @@ class RayTracingRenderer {
   }
 
   // in WebGPU world, we get adapter and then we throw it away so I don't really need to store it
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    scrollPassed: (id: string) => boolean,
+  ) {
     this.canvas = canvas;
+    this.scrollPassed = scrollPassed;
 
     const context = this.canvas.getContext("webgpu");
 
