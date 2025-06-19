@@ -1,0 +1,15 @@
+---
+title: レイトレーシング
+createdAt: 2025-06-19
+fullscreen: true
+---
+
+import ContentInner from "./_rt_content.mdx";
+import { RayTracing } from "./rt.tsx";
+
+<div className="grid min-h-0 flex-1 max-lg:grid-rows-2 lg:grid-cols-2">
+  <RayTracing client:visible />
+  <article id="sp" className="min-h-0 overflow-y-auto px-8 py-8">
+    <ContentInner />
+  </article>
+</div>
