@@ -5,16 +5,17 @@ type ScrollElementCache = {
 };
 
 export function useScrollDetector(
-  hook?: (scrollPassed: (id: string) => boolean) => void,
+  hook: (scrollPassed: (id: string) => boolean) => void,
 ) {
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const intersectedElements = useRef<ScrollElementCache>({});
   const scrollIndexMax = useRef(-1);
 
   useEffect(() => {
-    const scrollParent = document.getElementById("sp") as HTMLDivElement | null;
+    const scrollParent = document.getElementById("sp");
     if (!scrollParent) return;
 
-    // Cache indices and Y positions first
+    // Cache indices first
     const elements = Array.from(scrollParent.getElementsByClassName("sd"));
     elements.forEach((element, index) => {
       const id = element.id;
@@ -23,36 +24,37 @@ export function useScrollDetector(
       }
     });
 
-    const ctrl = new AbortController();
-
-    scrollParent.addEventListener(
-      "scroll",
-      () => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
         let scrollMax = -1;
-        for (const element of elements) {
-          const id = element.id;
+        for (const entry of entries) {
+          const id = entry.target.id;
           if (!id) continue;
+
           const index = intersectedElements.current[id];
-          const rect = element.getBoundingClientRect();
-          const isIntersecting =
-            rect.top < scrollParent.clientHeight && rect.bottom > 0;
-          if (isIntersecting && index > scrollMax) {
+
+          if (entry.isIntersecting && index > scrollMax) {
             scrollMax = index;
           }
         }
-        if (scrollMax === -1) return;
-        const prev = scrollIndexMax.current;
         scrollIndexMax.current = scrollMax;
 
-        if (prev !== scrollMax && hook) {
-          hook?.(scrollPassed);
-        }
+        hook?.(scrollPassed);
       },
-      { signal: ctrl.signal },
+      {
+        root: scrollParent,
+        threshold: 0.5, // Increased from 0.1 to require more visibility
+        rootMargin: "20px 0px", // Reduced from 100px to make detection area smaller
+      },
     );
 
+    // Observe all scroll detector elements
+    for (const element of elements) {
+      observerRef.current?.observe(element);
+    }
+
     return () => {
-      ctrl.abort();
+      observerRef.current?.disconnect();
     };
   }, []);
 
@@ -66,6 +68,7 @@ export function useScrollDetector(
 }
 
 export function useScrollDetectorState() {
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const intersectedElements = useRef<ScrollElementCache>({});
   const [scrollIndexMax, setScrollIndexMax] = useState(-1);
 
@@ -84,34 +87,36 @@ export function useScrollDetectorState() {
     });
     intersectedElements.current = newCache;
 
-    const ctrl = new AbortController();
-
-    scrollParent.addEventListener(
-      "scroll",
-      () => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
         let scrollMax = -1;
-        for (const element of elements) {
-          const id = element.id;
+        for (const entry of entries) {
+          const id = entry.target.id;
           if (!id) continue;
+
           const index = intersectedElements.current[id];
-          const rect = element.getBoundingClientRect();
-          const isIntersecting =
-            rect.top < scrollParent.clientHeight && rect.bottom > 0;
-          if (isIntersecting && index > scrollMax) {
+
+          if (entry.isIntersecting && index > scrollMax) {
             scrollMax = index;
           }
         }
-        if (scrollMax === -1) return;
-
-        setScrollIndexMax((prev) => {
-          if (prev !== scrollMax) {
-            return scrollMax;
-          }
-          return prev;
-        });
+        setScrollIndexMax(scrollMax);
       },
-      { signal: ctrl.signal },
+      {
+        root: scrollParent,
+        threshold: 0.5,
+        rootMargin: "20px 0px",
+      },
     );
+
+    // Observe all scroll detector elements
+    for (const element of elements) {
+      observerRef.current?.observe(element);
+    }
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
   }, []);
 
   // Use reduce to derive scrollPassed
