@@ -575,9 +575,9 @@ class RayTracingState {
     this.camera = new Camera(device, [canvas.width, canvas.height]);
     this.renderMode = new RenderMode(device);
     this.objects = new SceneObjectState(device, [
-      new Sphere(new Vector3(0, 0, 0), 10),
-      new Sphere(new Vector3(20, 20, 0), 15),
-      new Sphere(new Vector3(-20, -20, 0), 12),
+      new Sphere(new Vector3(0, 0, 0), 10, new Vector4(0.8, 0.8, 0.3, 1.0)),
+      new Sphere(new Vector3(15, 0, 5), 15, new Vector4(0.8, 0.3, 0.8, 1.0)),
+      new Sphere(new Vector3(-20, -0, 0), 12, new Vector4(0.3, 0.3, 0.8, 1.0)),
     ]);
   }
 

@@ -133,7 +133,7 @@ class Camera implements StateBuffer<Uint32Array> {
 
 (現状は複雑な形になっているが、プログラムを少しずつ抽象化するともっと簡単になる可能性がある。)
 
-`createBuffer` は元のバッファが存在すれば廃棄し、バイト数によってデバイスのバッファを作成する。
+`createBuffer` は元のバッファが存在すれば破棄し、バイト数によってデバイスのバッファを作成する。
 
 `writeBuffer` は CPU の `TypedArray` から GPU の `buffer` にコピーする。
 
@@ -449,6 +449,30 @@ ASCII アートが綺麗すぎてそのまま使うようにしている。
 次に、複数のオブジェクトを描画するために、`SceneObject` クラスを定義する。
 
 ```ts
+class Sphere {
+  position: Vector3;
+  radius: number;
+  color: Vector4;
+
+  data: Float32Array;
+  static readonly size = 8;
+
+  constructor(
+    position: Vector3 = new Vector3(0, 0, 0),
+    radius: number = 20,
+    color: Vector4 = new Vector4(0, 0, 1.0, 1.0),
+  ) {
+    this.position = position;
+    this.radius = radius;
+    this.color = color;
+    this.data = new Float32Array([
+      ...this.position.toArray(),
+      this.radius,
+      ...this.color.toArray(),
+    ]);
+  }
+}
+
 class SceneObjectState implements StateBuffer<Float32Array> {
   data: Float32Array;
   device: GPUDevice;
@@ -464,7 +488,7 @@ class SceneObjectState implements StateBuffer<Float32Array> {
   constructor(device: GPUDevice, objects: Sphere[] = []) {
     this.device = device;
     this.objects = objects;
-    this.data = new Float32Array(objects.length * 4); // 4 for position (x, y, z) and radius
+    this.data = new Float32Array(objects.length * Sphere.size);
     this.buffer = this.createBuffer();
     this.writeBuffer();
   }
@@ -476,18 +500,101 @@ class SceneObjectState implements StateBuffer<Float32Array> {
   }
 
   resizeBuffer() {
-    const newSize = this.objects.length * Sphere.prototype.size;
+    const newSize = this.objects.length * Sphere.size;
     if (this.data.length < newSize) {
       const newData = new Float32Array(newSize);
       newData.set(this.data);
       this.data = newData;
     }
   }
+
+  writeBuffer() {
+    for (let i = 0; i < this.objects.length; i++) {
+      const object = this.objects[i];
+      const offset = i * Sphere.size;
+      this.data.set(object.data, offset);
+    }
+    this.device.queue.writeBuffer(this.buffer, 0, this.data);
+  }
+
+  createBuffer() {
+    this.buffer?.destroy();
+    this.buffer = this.device.createBuffer(this.bufferConfig());
+    return this.buffer;
+  }
+
+  destroy() {
+    this.buffer?.destroy();
+  }
 }
 ```
 
 今回は `Sphere` を中心にしているが、今度の展望として複数のオブジェクト型を持つことができるようにしたいと思う。
 
-WGSL は動的な配列をサポートしていないため、`SceneObjectState` は `Float32Array` を使って、必要に応じてサイズを変更する。
+WGSL は動的な配列をサポートしていないため、`SceneObjectState` は `Float32Array` を使って、必要に応じてサイズを変更する。次に、`RayTracingState` に `SceneObjectState` を追加する。
+
+```ts
+class RayTracingState {
+  imageBuffer: ImageBuffer;
+  camera: Camera;
+  renderMode: RenderMode;
+  objects: SceneObjectState; // NEW
+
+  constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
+    this.imageBuffer = new ImageBuffer(device, canvas.width, canvas.height);
+    this.camera = new Camera(device, [canvas.width, canvas.height]);
+    this.renderMode = new RenderMode(device);
+
+    // NEW
+    this.objects = new SceneObjectState(device, [
+      new Sphere(new Vector3(0, 0, 0), 10, new Vector4(0.8, 0.8, 0.3, 1.0)),
+      new Sphere(new Vector3(15, 0, 5), 15, new Vector4(0.8, 0.3, 0.8, 1.0)),
+      new Sphere(new Vector3(-20, -0, 0), 12, new Vector4(0.3, 0.3, 0.8, 1.0)),
+    ]);
+  }
+  // ...
+}
+```
+
+バッファの書き込みや破棄、バインドグループの作成は省略する。
+
+```wgsl
+  // ...
+    var color = vec4<f32>(0.3, 0.6, 0.8, 1.0);
+    var t = 1000.0;
+
+    for (var i = 0u; i < arrayLength(&objects); i++) {
+      let sphere = objects[i];
+      let oc = sphere.center - origin; // it's confusing when it's negative. i had to change
+      let a = dot(oc, rayDirection);
+      let b = dot(oc, oc) - a * a;
+
+      if (b > sphere.radius * sphere.radius) {
+        continue;
+      }
+
+      let d = sqrt(sphere.radius * sphere.radius - b);
+      var t0 = a - d; // near intersection
+      let t1 = a + d; // far intersection
+
+      if (t0 < 0.0 && t1 < 0.0) {
+        continue; // we are behind the sphere
+      }
+
+      if (t0 < 0.0) {
+        t0 = t1; // we are behind the near intersection, take the far one
+      }
+
+      if (t0 < t) {
+        t = t0; // we found a closer intersection
+        color = sphere.color; // use the sphere color
+      }
+    }
+
+    imageBuffer[pixel] = color;
+  //...
+```
+
+前のバージョンは a を負の値にしていたが、時間単位として使いたいので、混乱を避けるために a を正の値にした。また、空の色を `vec4<f32>(0.3, 0.6, 0.8, 1.0)` として、背景色を設定している。
 
 <div class="sd" id="multiple-balls" />
