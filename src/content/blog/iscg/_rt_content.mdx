@@ -335,4 +335,111 @@ WebGPU の魅力は Workgroup を使って、GPU 上で並列処理ができる�
 
 レイトレーシングの要素の一つとして、カメラの位置、向き、視野角などを設定する必要がある。
 
-`Camera` クラスは、`viewport` の情報を保持しているが、
+`Camera` クラスは、`viewport` の情報を保持しているが、以下のようなプロパティを追加する。
+
+```ts
+class Camera implements StateBuffer<Float32Array> {
+  readonly viewport: Vector2;
+  readonly fovy: number;
+  readonly aspect: number;
+  readonly position: Vector3;
+  readonly direction: Vector3;
+  readonly up: Vector3;
+
+  get properties() {
+    return [
+      { name: "viewport", size: 2 },
+      { name: "fovy", size: 1 },
+      { name: "aspect", size: 1 },
+      { name: "position", size: 4 },
+      { name: "direction", size: 4 },
+      { name: "up", size: 4 },
+    ];
+  }
+}
+```
+
+次に、交点テストを行うためのシェーダーを追加する。
+
+```wgsl
+@compute @workgroup_size(${WORKGROUP_SIZE_X}, ${WORKGROUP_SIZE_Y}, 1)
+fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
+  let viewport = vec2<u32>(camera.viewport);
+
+  if (gId.x >= viewport.x || gId.y >= viewport.y) {
+    return;
+  }
+
+  let pixel = gId.x + gId.y * viewport.x;
+
+  let center = camera.viewport / vec2<f32>(2.0);
+  let uv = vec2<f32>(f32(gId.x), f32(gId.y));
+
+  if (renderMode == 0) {
+    // 以上の緑ボールの処理
+  }
+
+  if (renderMode == 1) {
+    let origin = camera.position;
+    let direction = normalize(camera.direction);
+    let up = normalize(camera.up);
+    let right = normalize(cross(direction, up));
+    let fovScale = tan(camera.fovy / 2.0);
+    let aspect = camera.aspect;
+
+    // tan(fov / 2) unit * aspect
+    // _______________________
+    // |                     |
+    // |  x_______.          |
+    // |__|_______0          | tan(fov / 2) unit
+    // |          |          |
+    // |          |          |
+    // |__________|__________|
+    //            | 1 unit
+    //            |
+                                                          // shift the center
+             // but the fovScale is in the range of [-1, 1] so * 2
+                                      // normalize to 1 unit
+                     // center the ray inside the pixel
+    let Px = (2.0 * (f32(gId.x) + 0.5) / camera.viewport.x - 1.0);
+    let Py = (1.0 - 2.0 * (f32(gId.y) + 0.5) / camera.viewport.y);
+    // Py is the same but inverted because uv.y 0 starts from the top left corner
+
+    let x = Px * fovScale * aspect;
+    let y = Py * fovScale;
+
+    let rayDirection = normalize(
+      direction + x * right + y * up
+    );
+
+    //                ____
+    //          a ____   \b__----___
+    //       ____         /\\        \
+    //   <___            (  \\r       )
+    // x <-------oc-----(------        )
+    //                   (            )
+    //                    \\---___---//
+    //
+    //
+
+    let oc = origin - circleCenter;
+    let a = dot(oc, rayDirection);
+    let b = dot(oc, oc) - a * a - circleRadius * circleRadius;
+
+    let hit = b < 0.0 && a < 0.0;
+
+    var color: vec4<f32>;
+    if (hit) {
+      color = circleColor;
+    } else {
+      color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+    }
+
+    imageBuffer[pixel] = color;
+  }
+}
+```
+
+ASCII アートが綺麗すぎてそのまま使うようにしている。
+
+<div class="sd" id="ray-tracing-basic" />

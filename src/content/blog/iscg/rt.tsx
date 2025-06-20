@@ -1,16 +1,21 @@
 import { useScrollDetector } from "@/components/react/scroll-detector";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Vector2, Vector3 } from "three";
 
 const vertexLibrary = /* wgsl */ `
 struct VertexOutput {
   @builtin(position) position: vec4<f32>,
   @location(0) uv: vec2<f32>,
-}
-`;
+}`;
 
 const cameraLibrary = /* wgsl */ `
 struct Camera {
-  viewport: vec2<u32>, // width, height
+  viewport: vec2<f32>, // width, height
+  fovy: f32, // field of view in radians
+  aspect: f32, // aspect ratio (width / height)
+  position: vec3<f32>, // x, y, z
+  direction: vec3<f32>, // x, y, z
+  up: vec3<f32>, // x, y, z
 }`;
 
 const WORKGROUP_SIZE_X = 8;
@@ -21,30 +26,96 @@ ${cameraLibrary}
 
 @group(0) @binding(0) var<storage, read_write> imageBuffer: array<vec4<f32>>;
 @group(0) @binding(1) var<uniform> camera: Camera;
+@group(0) @binding(2) var<uniform> renderMode: u32;
+
+
+const circleCenter = vec3<f32>(0.0, 0.0, 0.0);
+const circleRadius = 10.0;
+const circleColor = vec4<f32>(0.0, 0.0, 1.0, 1.0); 
+
 
 @compute @workgroup_size(${WORKGROUP_SIZE_X}, ${WORKGROUP_SIZE_Y}, 1)
 fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
-  let viewport = camera.viewport;
+  let viewport = vec2<u32>(camera.viewport);
 
   if (gId.x >= viewport.x || gId.y >= viewport.y) {
     return;
   }
 
   let pixel = gId.x + gId.y * viewport.x;
-
-  let center = vec2<f32>(viewport) / vec2<f32>(2.0);
-  let radius = 100.0;
+  
+  let center = camera.viewport / vec2<f32>(2.0);
   let uv = vec2<f32>(f32(gId.x), f32(gId.y));
 
-  let d = distance(uv, center);
+  if (renderMode == 0) {
+    let radius = 100.0;
+    let d = distance(uv, center);
+    var color: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
-  var color: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+    if (d < radius) {
+      color = vec4<f32>(0.0, 1.0, 0.0, 1.0); // Green
+    } 
+    imageBuffer[pixel] = color;
+  }
 
-  if (d < radius) {
-    color = vec4<f32>(0.0, 1.0, 0.0, 1.0); // Green
-  } 
+  if (renderMode == 1) {
+    let origin = camera.position;
+    let direction = normalize(camera.direction);
+    let up = normalize(camera.up);
+    let right = normalize(cross(direction, up));
+    let fovScale = tan(camera.fovy / 2.0);
+    let aspect = camera.aspect;
 
-  imageBuffer[pixel] = color;
+    // tan(fov / 2) unit * aspect
+    // _______________________
+    // |                     |
+    // |  x_______.          |
+    // |__|_______0          | tan(fov / 2) unit
+    // |          |          |
+    // |          |          |
+    // |__________|__________|
+    //            | 1 unit
+    //            |
+                                                          // shift the center 
+             // but the fovScale is in the range of [-1, 1] so * 2
+                                      // normalize to 1 unit
+                     // center the ray inside the pixel 
+    let Px = (2.0 * (f32(gId.x) + 0.5) / camera.viewport.x - 1.0);
+    let Py = (1.0 - 2.0 * (f32(gId.y) + 0.5) / camera.viewport.y); 
+    // Py is the same but inverted because uv.y 0 starts from the top left corner
+
+    let x = Px * fovScale * aspect;
+    let y = Py * fovScale;
+
+    let rayDirection = normalize(
+      direction + x * right + y * up
+    );
+
+    //                ____ 
+    //          a ____   \b__----___
+    //       ____         /\\        \
+    //   <___            (  \\r       )
+    // x <-------oc-----(------        )
+    //                   (            )
+    //                    \\---___---//
+    //
+    //
+
+    let oc = origin - circleCenter;
+    let a = dot(oc, rayDirection);
+    let b = dot(oc, oc) - a * a - circleRadius * circleRadius;
+
+    let hit = b < 0.0 && a < 0.0;
+
+    var color: vec4<f32>;
+    if (hit) {
+      color = circleColor;
+    } else {
+      color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+    }
+  
+    imageBuffer[pixel] = color;
+  }
 }
 `;
 
@@ -87,9 +158,10 @@ fn vertexMain(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
 
 @fragment
 fn fragmentMain(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
-  let x = u32(f32(uv.x) * f32(camera.viewport.x));
-  let y = u32(f32(uv.y) * f32(camera.viewport.y));
-  let index = clamp(x + y * camera.viewport.x, 0u, camera.viewport.x * camera.viewport.y - 1u);
+  let viewport = vec2<u32>(camera.viewport);
+  let x = u32(f32(uv.x) * camera.viewport.x);
+  let y = u32(f32(uv.y) * camera.viewport.y);
+  let index = clamp(x + y * viewport.x, 0u, viewport.x * viewport.y - 1u);
   return imageBuffer[index];
 }
 `;
@@ -175,13 +247,80 @@ interface StateBuffer<T extends TypedArray> {
   destroy: () => void;
 }
 
-class Camera implements StateBuffer<Uint32Array> {
-  data: Uint32Array = new Uint32Array(2);
+const RENDER_MODES = {
+  GPU_BALL: 0,
+  RAY_TRACING_BASIC: 1,
+};
 
+type RenderModeType = keyof typeof RENDER_MODES;
+
+class RenderMode implements StateBuffer<Uint32Array> {
+  data: Uint32Array = new Uint32Array(1); // Single mode value
   device: GPUDevice;
   buffer: GPUBuffer;
 
-  private readonly viewportOffset = 0;
+  private readonly bufferConfig = () => ({
+    label: "Render Mode Buffer",
+    size: this.data.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
+  constructor(device: GPUDevice, initialMode: number = 0) {
+    this.device = device;
+    this.data[0] = initialMode;
+    this.buffer = this.createBuffer();
+  }
+
+  writeBuffer() {
+    this.device.queue.writeBuffer(this.buffer, 0, this.data);
+  }
+
+  createBuffer() {
+    this.buffer?.destroy();
+    this.buffer = this.device.createBuffer(this.bufferConfig());
+    return this.buffer;
+  }
+
+  destroy() {
+    this.buffer?.destroy();
+  }
+
+  set mode(mode: RenderModeType | number) {
+    this.data[0] = typeof mode === "string" ? RENDER_MODES[mode] : mode;
+    this.writeBuffer();
+  }
+}
+
+class Camera implements StateBuffer<Float32Array> {
+  readonly viewport: Vector2;
+  readonly fovy: number;
+  // readonly aspect: number;
+
+  get aspect() {
+    return this.viewport.x / this.viewport.y;
+  }
+
+  readonly position: Vector3;
+  readonly direction: Vector3;
+  readonly up: Vector3;
+
+  get properties() {
+    return [
+      { name: "viewport", size: 2 },
+      { name: "fovy", size: 1 },
+      { name: "aspect", size: 1 },
+      { name: "position", size: 4 },
+      { name: "direction", size: 4 },
+      { name: "up", size: 4 },
+    ];
+  }
+
+  readonly data: Float32Array = new Float32Array(
+    this.properties.reduce((sum, prop) => sum + prop.size, 0),
+  );
+
+  device: GPUDevice;
+  buffer: GPUBuffer;
 
   private readonly bufferConfig = () => ({
     label: "Camera Buffer",
@@ -189,18 +328,21 @@ class Camera implements StateBuffer<Uint32Array> {
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
-  constructor(device: GPUDevice, viewport: [number, number]) {
+  constructor(
+    device: GPUDevice,
+    viewport: [number, number],
+    position: Vector3 = new Vector3(0, 0, 50),
+    direction: Vector3 = new Vector3(0, 0, -1), // -Z
+    up: Vector3 = new Vector3(0, 1, 0), // Y
+    fovy: number = Math.PI / 2,
+  ) {
     this.device = device;
-    this.viewport = viewport;
+    this.position = position;
+    this.viewport = new Vector2(viewport[0], viewport[1]);
+    this.direction = direction;
+    this.up = up;
+    this.fovy = fovy;
     this.buffer = this.createBuffer();
-  }
-
-  get viewport(): [number, number] {
-    return [this.data[0], this.data[1]];
-  }
-
-  set viewport(viewport: [number, number]) {
-    this.data.set(viewport, this.viewportOffset);
   }
 
   createBuffer() {
@@ -210,6 +352,21 @@ class Camera implements StateBuffer<Uint32Array> {
   }
 
   writeBuffer() {
+    for (let i = 0, offset = 0; i < this.properties.length; i++) {
+      const prop = this.properties[i];
+      const value = this[prop.name as keyof Camera];
+      const size = prop.size;
+
+      if (value instanceof Vector2 || value instanceof Vector3) {
+        this.data.set(value.toArray(), offset);
+      } else if (typeof value === "number") {
+        this.data[offset] = value;
+      } else {
+        throw new Error(`Unsupported type for property ${prop.name}`);
+      }
+
+      offset += size;
+    }
     this.device.queue.writeBuffer(this.buffer, 0, this.data);
   }
 
@@ -270,19 +427,27 @@ class ImageBuffer implements StateBuffer<Float32Array> {
 class RayTracingState {
   imageBuffer: ImageBuffer;
   camera: Camera;
+  renderMode: RenderMode;
+
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     this.imageBuffer = new ImageBuffer(device, canvas.width, canvas.height);
     this.camera = new Camera(device, [canvas.width, canvas.height]);
+    this.renderMode = new RenderMode(device);
   }
 
   setFromCanvas(canvas: HTMLCanvasElement) {
     this.imageBuffer.set(canvas.width, canvas.height);
-    this.camera.viewport = [canvas.width, canvas.height];
+    this.camera.viewport.set(canvas.width, canvas.height);
+  }
+
+  setRenderMode(mode: RenderModeType | number) {
+    this.renderMode.mode = mode;
   }
 
   destroy() {
     this.imageBuffer.destroy();
     this.camera.destroy();
+    this.renderMode.destroy();
   }
 }
 
@@ -433,8 +598,25 @@ class RayTracingRenderer {
               buffer: this.state.camera.buffer,
             },
           },
+          {
+            binding: 2,
+            resource: {
+              buffer: this.state.renderMode.buffer,
+            },
+          },
         ],
       });
+    }
+
+    if (
+      this.scrollPassed("gpu-ball") &&
+      !this.scrollPassed("ray-tracing-basic")
+    ) {
+      this.state.setRenderMode("GPU_BALL");
+    }
+
+    if (this.scrollPassed("ray-tracing-basic")) {
+      this.state.setRenderMode("RAY_TRACING_BASIC");
     }
 
     const shouldPaint =
@@ -444,9 +626,10 @@ class RayTracingRenderer {
 
     if (shouldPaint) {
       this.paint();
+      this.state.imageBuffer.writeBuffer();
     }
 
-    this.state.imageBuffer.writeBuffer();
+    this.state.renderMode.writeBuffer();
   }
 
   paint() {
