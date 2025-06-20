@@ -1,6 +1,13 @@
 import { useScrollDetector } from "@/components/react/scroll-detector";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Vector2, Vector3 } from "three";
+import { Vector2, Vector3, Vector4 } from "three";
+
+const objectLibrary = /* wgsl */ `
+struct Sphere {
+  center: vec3<f32>, // x, y, z
+  radius: f32, // radius
+  color: vec4<f32>, // r, g, b, a
+}`;
 
 const vertexLibrary = /* wgsl */ `
 struct VertexOutput {
@@ -23,10 +30,12 @@ const WORKGROUP_SIZE_Y = 8;
 
 const computeShader = /* wgsl */ `
 ${cameraLibrary}
+${objectLibrary}
 
 @group(0) @binding(0) var<storage, read_write> imageBuffer: array<vec4<f32>>;
 @group(0) @binding(1) var<uniform> camera: Camera;
 @group(0) @binding(2) var<uniform> renderMode: u32;
+@group(0) @binding(3) var<storage, read> objects: array<Sphere>;
 
 
 const circleCenter = vec3<f32>(0.0, 0.0, 0.0);
@@ -114,6 +123,57 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
       color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
     }
   
+    imageBuffer[pixel] = color;
+  }
+
+  if (renderMode == 2) {
+    let origin = camera.position;
+    let direction = normalize(camera.direction);
+    let up = normalize(camera.up);
+    let right = normalize(cross(direction, up));
+    let fovScale = tan(camera.fovy / 2.0);
+    let aspect = camera.aspect;
+
+    let Px = (2.0 * (f32(gId.x) + 0.5) / camera.viewport.x - 1.0);
+    let Py = (1.0 - 2.0 * (f32(gId.y) + 0.5) / camera.viewport.y); 
+    let x = Px * fovScale * aspect;
+    let y = Py * fovScale;
+
+    let rayDirection = normalize(
+      direction + x * right + y * up
+    );
+
+    var color = vec4<f32>(0.3, 0.6, 0.8, 1.0);
+    var t = 1000.0;
+  
+    for (var i = 0u; i < arrayLength(&objects); i++) {
+      let sphere = objects[i];
+      let oc = sphere.center - origin; // it's confusing when it's negative. i had to change
+      let a = dot(oc, rayDirection);
+      let b = dot(oc, oc) - a * a;
+
+      if (b > sphere.radius * sphere.radius) {
+        continue;
+      }
+
+      let d = sqrt(sphere.radius * sphere.radius - b);
+      var t0 = a - d; // near intersection
+      let t1 = a + d; // far intersection
+
+      if (t0 < 0.0 && t1 < 0.0) {
+        continue; // we are behind the sphere
+      }
+
+      if (t0 < 0.0) {
+        t0 = t1; // we are behind the near intersection, take the far one
+      }
+
+      if (t0 < t) {
+        t = t0; // we found a closer intersection
+        color = sphere.color; // use the sphere color
+      }
+    }
+
     imageBuffer[pixel] = color;
   }
 }
@@ -250,6 +310,7 @@ interface StateBuffer<T extends TypedArray> {
 const RENDER_MODES = {
   GPU_BALL: 0,
   RAY_TRACING_BASIC: 1,
+  MULTIPLE_BALLS: 2,
 };
 
 type RenderModeType = keyof typeof RENDER_MODES;
@@ -424,15 +485,100 @@ class ImageBuffer implements StateBuffer<Float32Array> {
   }
 }
 
+class Sphere {
+  position: Vector3;
+  radius: number;
+  color: Vector4;
+
+  data: Float32Array;
+  static readonly size = 8;
+
+  constructor(
+    position: Vector3 = new Vector3(0, 0, 0),
+    radius: number = 20,
+    color: Vector4 = new Vector4(0, 0, 1.0, 1.0),
+  ) {
+    this.position = position;
+    this.radius = radius;
+    this.color = color;
+    this.data = new Float32Array([
+      ...this.position.toArray(),
+      this.radius,
+      ...this.color.toArray(),
+    ]);
+  }
+}
+
+class SceneObjectState implements StateBuffer<Float32Array> {
+  data: Float32Array;
+  device: GPUDevice;
+  buffer: GPUBuffer;
+  objects: Sphere[];
+
+  private readonly bufferConfig = () => ({
+    label: "Scene Object Buffer",
+    size: this.data.byteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+
+  constructor(device: GPUDevice, objects: Sphere[] = []) {
+    this.device = device;
+    this.objects = objects;
+    this.data = new Float32Array(objects.length * Sphere.size);
+    this.buffer = this.createBuffer();
+    this.writeBuffer();
+  }
+
+  addObject(object: Sphere) {
+    this.objects.push(object);
+    this.resizeBuffer();
+    this.writeBuffer();
+  }
+
+  resizeBuffer() {
+    const newSize = this.objects.length * Sphere.size;
+    if (this.data.length < newSize) {
+      const newData = new Float32Array(newSize);
+      newData.set(this.data);
+      this.data = newData;
+    }
+  }
+
+  writeBuffer() {
+    for (let i = 0; i < this.objects.length; i++) {
+      const object = this.objects[i];
+      const offset = i * Sphere.size;
+      this.data.set(object.data, offset);
+    }
+    this.device.queue.writeBuffer(this.buffer, 0, this.data);
+  }
+
+  createBuffer() {
+    this.buffer?.destroy();
+    this.buffer = this.device.createBuffer(this.bufferConfig());
+    return this.buffer;
+  }
+
+  destroy() {
+    this.buffer?.destroy();
+  }
+}
+
 class RayTracingState {
   imageBuffer: ImageBuffer;
   camera: Camera;
   renderMode: RenderMode;
+  objects: SceneObjectState;
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     this.imageBuffer = new ImageBuffer(device, canvas.width, canvas.height);
     this.camera = new Camera(device, [canvas.width, canvas.height]);
     this.renderMode = new RenderMode(device);
+    this.objects = new SceneObjectState(device, [
+      new Sphere(new Vector3(0, 0, 0), 10),
+      new Sphere(new Vector3(20, 20, 0), 15),
+      new Sphere(new Vector3(-20, -20, 0), 12),
+    ]);
   }
 
   setFromCanvas(canvas: HTMLCanvasElement) {
@@ -448,6 +594,7 @@ class RayTracingState {
     this.imageBuffer.destroy();
     this.camera.destroy();
     this.renderMode.destroy();
+    this.objects.destroy();
   }
 }
 
@@ -604,6 +751,12 @@ class RayTracingRenderer {
               buffer: this.state.renderMode.buffer,
             },
           },
+          {
+            binding: 3,
+            resource: {
+              buffer: this.state.objects.buffer,
+            },
+          },
         ],
       });
     }
@@ -615,8 +768,16 @@ class RayTracingRenderer {
       this.state.setRenderMode("GPU_BALL");
     }
 
-    if (this.scrollPassed("ray-tracing-basic")) {
+    if (
+      this.scrollPassed("ray-tracing-basic") &&
+      !this.scrollPassed("multiple-balls")
+    ) {
       this.state.setRenderMode("RAY_TRACING_BASIC");
+    }
+
+    if (this.scrollPassed("multiple-balls")) {
+      this.state.setRenderMode("MULTIPLE_BALLS");
+      this.state.objects.writeBuffer();
     }
 
     const shouldPaint =

@@ -443,3 +443,51 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
 ASCII アートが綺麗すぎてそのまま使うようにしている。
 
 <div class="sd" id="ray-tracing-basic" />
+
+## 複数のオブジェクト
+
+次に、複数のオブジェクトを描画するために、`SceneObject` クラスを定義する。
+
+```ts
+class SceneObjectState implements StateBuffer<Float32Array> {
+  data: Float32Array;
+  device: GPUDevice;
+  buffer: GPUBuffer;
+  objects: Sphere[];
+
+  private readonly bufferConfig = () => ({
+    label: "Scene Object Buffer",
+    size: this.data.byteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+
+  constructor(device: GPUDevice, objects: Sphere[] = []) {
+    this.device = device;
+    this.objects = objects;
+    this.data = new Float32Array(objects.length * 4); // 4 for position (x, y, z) and radius
+    this.buffer = this.createBuffer();
+    this.writeBuffer();
+  }
+
+  addObject(object: Sphere) {
+    this.objects.push(object);
+    this.resizeBuffer();
+    this.writeBuffer();
+  }
+
+  resizeBuffer() {
+    const newSize = this.objects.length * Sphere.prototype.size;
+    if (this.data.length < newSize) {
+      const newData = new Float32Array(newSize);
+      newData.set(this.data);
+      this.data = newData;
+    }
+  }
+}
+```
+
+今回は `Sphere` を中心にしているが、今度の展望として複数のオブジェクト型を持つことができるようにしたいと思う。
+
+WGSL は動的な配列をサポートしていないため、`SceneObjectState` は `Float32Array` を使って、必要に応じてサイズを変更する。
+
+<div class="sd" id="multiple-balls" />
