@@ -2,6 +2,32 @@ import { useScrollDetector } from "@/components/react/scroll-detector";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Vector2, Vector3, Vector4 } from "three";
 
+const componentLibrary = /* wgsl */ `
+struct Position {
+  value: vec3<f32>, // x, y, z,
+  _padding: f32, // padding to align to 16 bytes
+}
+
+struct Color {
+  value: vec4<f32>, // r, g, b, a
+}
+
+struct SphereAttribute {
+  radius: f32, // radius
+}
+
+struct EntityMetadata {
+  position: u32, 
+  color: u32,
+  sphere: u32,
+}
+
+const COMPONENT_ID_POSITION = 0u;
+const COMPONENT_ID_COLOR = 1u;
+const COMPONENT_ID_SPHERE = 2u;
+// const COMPONENT_ID_OBJECT_TYPE = 3u;
+const COMPONENT_COUNT = 3u;`;
+
 const objectLibrary = /* wgsl */ `
 struct Sphere {
   center: vec3<f32>, // x, y, z
@@ -21,6 +47,11 @@ struct Intersection {
   color: vec4<f32>,
   position: vec3<f32>,
   hit: bool,
+}
+  
+struct IntersectionV2 {
+  t: f32, // distance along the ray
+  e: i32, // entity ID, could be negative if no intersection
 }`;
 
 const vertexLibrary = /* wgsl */ `
@@ -46,12 +77,16 @@ const computeShader = /* wgsl */ `
 ${cameraLibrary}
 ${objectLibrary}
 ${rayLibrary}
+${componentLibrary}
 
 @group(0) @binding(0) var<storage, read_write> imageBuffer: array<vec4<f32>>;
 @group(0) @binding(1) var<uniform> camera: Camera;
 @group(0) @binding(2) var<uniform> renderMode: u32;
 @group(0) @binding(3) var<storage, read> objects: array<Sphere>;
-
+@group(0) @binding(4) var<storage, read> positions: array<Position>;
+@group(0) @binding(5) var<storage, read> colors: array<Color>;
+@group(0) @binding(6) var<storage, read> spheres: array<SphereAttribute>;
+@group(0) @binding(7) var<storage, read> entityMetadata: array<EntityMetadata>;
 
 const circleCenter = vec3<f32>(0.0, 0.0, 0.0);
 const circleRadius = 10.0;
@@ -134,7 +169,7 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
 
     var color: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
-    if (renderMode >= 4) {
+    if (renderMode >= 4 && renderMode < 5) {
       // Floor intersection
       let t = -origin.y / rayDirection.y;
       if (t > 0.0) {
@@ -157,7 +192,6 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
       }
     }
 
-  
     for (var i = 0u; i < arrayLength(&objects); i++) {
       let sphere = objects[i];
       let intersection = sphereIntersect(ray, sphere);
@@ -173,14 +207,7 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
       }
     } else if (renderMode >= 3) {
       if (ints.hit) {
-        let ambient = 0.25;
-        let lightDirection = normalize(vec3<f32>(1.0, 1.0, 1.0));
-        let lightIntensity = max(dot(ints.normal, lightDirection), 0.0);
-        let diffuse = ambient + (1.0 - ambient) * lightIntensity;
-        color = vec4<f32>(
-          ints.color.rgb * diffuse,
-          ints.color.a
-        );
+        color = calculateLighting(ints.normal, ints.color);
       }
     }
 
@@ -190,6 +217,104 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
 
     imageBuffer[pixel] = color;
   }
+
+  if (renderMode >= 5) {
+    let ray = generateRay(camera, uv);
+    let origin = ray.origin;
+    let rayDirection = ray.direction;
+
+    let background = vec4<f32>(0.3, 0.6, 0.8, 1.0);
+    var color: vec4<f32> = background;
+
+    var intersection = IntersectionV2(
+      -1.0,
+      -1, // no intersection
+    );
+
+    let t = -origin.y / rayDirection.y;
+    if (t > 0.0) {
+      intersection.t = t;
+      intersection.e = -2; // -2 means floor intersection (i'm so ready to shoot myself in the foot with this design decision)
+    }
+
+    for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
+      let eMeta = entityMetadata[e];
+      if (eMeta.position == 1u && eMeta.color == 1u && eMeta.sphere == 1u) {
+        let ni = sphereIntersectV2(ray, i32(e));
+        if (ni.t > 0.0 && ((intersection.t > 0.0 && ni.t < intersection.t)
+            || intersection.t <= 0.0)) {
+          intersection = ni;
+        }
+      }
+    }
+
+    if (intersection.t > 0.0) {
+      if (intersection.e == -2) {
+        color = floorColor(ray, intersection);
+      }
+
+      if (intersection.e >= 0) {
+        let eu = u32(intersection.e);
+        if (entityMetadata[eu].sphere == 1u) {
+          color = sphereColor(ray, intersection);
+        }
+      }
+    }
+
+    imageBuffer[pixel] = color;
+  }
+}
+
+fn floorColor(
+  ray: Ray,
+  intersection: IntersectionV2,
+) -> vec4<f32> {
+  let position = ray.origin + intersection.t * ray.direction;
+  let normal = floorNormal;
+
+  // Calculate the grid color based on the position
+  let gridX = floor(position.x / floorGridSize);
+  let gridY = floor(position.z / floorGridSize);
+  let isEven = (gridX + gridY) % 2 == 0;
+
+  var color: vec4<f32>;
+  if (isEven) {
+    color = floorBaseColor;
+  } else {
+    color = floorAccentColor; 
+  }
+
+  return calculateLighting(normal, color);
+}
+
+fn sphereColor(
+  ray: Ray,
+  intersection: IntersectionV2,
+) -> vec4<f32> {
+  let eu = u32(intersection.e);
+  let position = positions[eu].value;
+  let radius = spheres[eu].radius;
+  
+  let hitPosition = ray.origin + intersection.t * ray.direction;
+  let normal = normalize(hitPosition - position);
+
+  let color = colors[eu].value;
+  return calculateLighting(normal, color);
+}
+
+fn calculateLighting(
+  normal: vec3<f32>,
+  color: vec4<f32>,
+) -> vec4<f32> {
+  let ambient = 0.25;
+  let lightDirection = normalize(vec3<f32>(1.0, 1.0, 1.0));
+  let lightIntensity = max(dot(normal, lightDirection), 0.0);
+  let diffuse = ambient + (1.0 - ambient) * lightIntensity;
+  
+  return vec4<f32>(
+    color.rgb * diffuse,
+    color.a
+  );
 }
 
 fn generateRay(
@@ -229,6 +354,34 @@ fn generateRay(
   );
 
   return Ray(origin, rayDirection);
+}
+
+fn sphereIntersectV2(
+  ray: Ray,
+  e: i32,
+) -> IntersectionV2 {
+  let eu = u32(e);
+  let center = positions[eu].value;
+  let radius = spheres[eu].radius;
+  let oc = center - ray.origin;
+  let a = dot(oc, ray.direction);
+  let b = dot(oc, oc) - a * a - radius * radius;
+  var intersection = IntersectionV2(-1.0, e); // no intersection
+
+  if (b < 0.0 && a > 0.0) {
+    let d = sqrt(radius * radius - b);
+    let t0 = a - d; // near intersection
+    let t1 = a + d; // far intersection
+    if (t0 > 0.0 || t1 > 0.0) {
+      if (t0 < 0.0) {
+        intersection.t = t1; // we are behind the near intersection, take the far one
+      } else {
+        intersection.t = t0; // we found a closer intersection
+      }
+    }
+  }
+
+  return intersection;
 }
 
 fn sphereIntersect(
@@ -396,6 +549,7 @@ const RENDER_MODES = {
   MULTIPLE_BALLS: 2,
   DIFFUSE_LIGHTING: 3,
   FLOOR: 4,
+  ECS: 5,
 };
 
 type RenderModeType = keyof typeof RENDER_MODES;
@@ -654,6 +808,7 @@ class RayTracingState {
   camera: Camera;
   renderMode: RenderMode;
   objects: SceneObjectState;
+  entityRegistry: EntityRegistry;
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     this.imageBuffer = new ImageBuffer(device, canvas.width, canvas.height);
@@ -664,6 +819,22 @@ class RayTracingState {
       new Sphere(new Vector3(15, 15, 5), 15, new Vector4(0.8, 0.3, 0.8, 1.0)),
       new Sphere(new Vector3(-20, 12, 0), 12, new Vector4(0.3, 0.3, 0.8, 1.0)),
     ]);
+    this.entityRegistry = new EntityRegistry(device);
+    this.entityRegistry.spawn([
+      new PositionComponent(0, 10, 0),
+      new ColorComponent(0.8, 0.8, 0.3, 1.0),
+      new SphereComponent(10),
+    ]);
+    this.entityRegistry.spawn([
+      new PositionComponent(15, 15, 5),
+      new ColorComponent(0.8, 0.3, 0.8, 1.0),
+      new SphereComponent(15),
+    ]);
+    this.entityRegistry.spawn([
+      new PositionComponent(-20, 12, 0),
+      new ColorComponent(0.3, 0.3, 0.8, 1.0),
+      new SphereComponent(12),
+    ]);
   }
 
   setFromCanvas(canvas: HTMLCanvasElement) {
@@ -671,7 +842,7 @@ class RayTracingState {
     this.camera.viewport.set(canvas.width, canvas.height);
   }
 
-  setRenderMode(mode: RenderModeType | number) {
+  setRenderMode(mode: RenderModeType) {
     this.renderMode.mode = mode;
   }
 
@@ -680,6 +851,7 @@ class RayTracingState {
     this.camera.destroy();
     this.renderMode.destroy();
     this.objects.destroy();
+    this.entityRegistry.destroy();
   }
 }
 
@@ -842,6 +1014,30 @@ class RayTracingRenderer {
               buffer: this.state.objects.buffer,
             },
           },
+          {
+            binding: 4,
+            resource: {
+              buffer: this.state.entityRegistry.storage.Position.buffer,
+            },
+          },
+          {
+            binding: 5,
+            resource: {
+              buffer: this.state.entityRegistry.storage.Color.buffer,
+            },
+          },
+          {
+            binding: 6,
+            resource: {
+              buffer: this.state.entityRegistry.storage.Sphere.buffer,
+            },
+          },
+          {
+            binding: 7,
+            resource: {
+              buffer: this.state.entityRegistry.entityMetadataBuffer,
+            },
+          },
         ],
       });
     }
@@ -867,7 +1063,11 @@ class RayTracingRenderer {
         if (!this.scrollPassed("floor")) {
           this.state.setRenderMode("DIFFUSE_LIGHTING");
         } else {
-          this.state.setRenderMode("FLOOR");
+          if (!this.scrollPassed("ecs-component")) {
+            this.state.setRenderMode("FLOOR");
+          } else {
+            this.state.setRenderMode("ECS");
+          }
         }
       }
       this.state.objects.writeBuffer();
@@ -993,6 +1193,8 @@ class RayTracingRenderer {
     });
   }
 
+  angle: number = 0;
+
   render() {
     if (
       !this.isInitialized() ||
@@ -1004,11 +1206,25 @@ class RayTracingRenderer {
       );
     }
 
+    if (this.angle >= 360) {
+      this.angle = 0;
+    } else {
+      this.angle += 0.1;
+    }
+
     const commandEncoder = this.device.createCommandEncoder({
       label: "renderEncoder",
     });
 
     if (this.scrollPassed("gpu-ball")) {
+      const data =
+        this.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
+      if (data) {
+        data.y = Math.sin(this.angle) * 10 + 10;
+      }
+
+      this.state.entityRegistry.writeBuffer();
+
       const computePass = commandEncoder.beginComputePass(
         this.computePassDescriptor,
       );
@@ -1036,11 +1252,16 @@ class RayTracingRenderer {
 }
 
 class PositionComponent extends Vector3 {
-  static readonly size = 3;
+  static readonly size = 4;
   static readonly name = "Position" as const;
   static readonly dataclass = Float32Array;
 
+  entityRef: Entity | null = null;
   shouldUpdate = true;
+
+  get data() {
+    return this.toArray();
+  }
 
   constructor(x: number = 0, y: number = 0, z: number = 0) {
     super(x, y, z);
@@ -1051,18 +1272,27 @@ class PositionComponent extends Vector3 {
       set: (target, prop, value) => {
         (target as any).shouldUpdate = true;
         (target as any)[prop] = value;
+        if ((target as any).entityRef) {
+          (target as any).entityRef.shouldUpdate = true;
+        }
         return true;
       },
     });
   }
 }
 
-class MaterialComponent extends Vector4 {
+class ColorComponent extends Vector4 {
   static readonly size = 4;
-  static readonly name = "Material" as const;
+  static readonly name = "Color" as const;
   static readonly dataclass = Float32Array;
 
+  entityRef: Entity | null = null;
+
   shouldUpdate = true;
+
+  get data() {
+    return this.toArray();
+  }
 
   constructor(
     r: number = 1.0,
@@ -1078,6 +1308,9 @@ class MaterialComponent extends Vector4 {
       set: (target, prop, value) => {
         (target as any).shouldUpdate = true;
         (target as any)[prop] = value;
+        if ((target as any).entityRef) {
+          (target as any).entityRef.shouldUpdate = true;
+        }
         return true;
       },
     });
@@ -1088,8 +1321,14 @@ class SphereComponent {
   static readonly size = 1; // Sphere radius
   static readonly name = "Sphere" as const;
   static readonly dataclass = Float32Array;
+  entityRef: Entity | null = null;
+
   shouldUpdate = true;
   radius: number;
+
+  get data() {
+    return [this.radius] as const;
+  }
 
   constructor(radius: number = 1.0) {
     this.radius = radius;
@@ -1100,32 +1339,73 @@ class SphereComponent {
       set: (target, prop, value) => {
         (target as any).shouldUpdate = true;
         (target as any)[prop] = value;
+        if ((target as any).entityRef) {
+          (target as any).entityRef.shouldUpdate = true;
+        }
         return true;
       },
     });
   }
 }
 
+// class ObjectTypeComponent {
+//   static readonly size = 1; // Object type ID
+//   static readonly name = "ObjectType" as const;
+//   static readonly dataclass = Uint32Array;
+//   entityRef: Entity | null = null;
+
+//   shouldUpdate = true;
+//   typeId: number;
+
+//   get data() {
+//     return [this.typeId] as const;
+//   }
+
+//   constructor(typeId: number = 0) {
+//     this.typeId = typeId;
+//     return new Proxy(this, {
+//       get: (target, prop) => {
+//         return (target as any)[prop];
+//       },
+//       set: (target, prop, value) => {
+//         (target as any).shouldUpdate = true;
+//         (target as any)[prop] = value;
+//         if ((target as any).entityRef) {
+//           (target as any).entityRef.shouldUpdate = true;
+//         }
+//         return true;
+//       },
+//     });
+//   }
+// }
+
 const ComponentMap = {
   [PositionComponent.name]: PositionComponent,
-  [MaterialComponent.name]: MaterialComponent,
+  [ColorComponent.name]: ColorComponent,
   [SphereComponent.name]: SphereComponent,
+  // [ObjectTypeComponent.name]: ObjectTypeComponent,
 } as const;
 
 const ComponentIds = {
   [PositionComponent.name]: 0,
-  [MaterialComponent.name]: 1,
+  [ColorComponent.name]: 1,
   [SphereComponent.name]: 2,
+  // [ObjectTypeComponent.name]: 3,
 } as const;
 
-const Components = [PositionComponent];
+const Components = [
+  PositionComponent,
+  ColorComponent,
+  SphereComponent,
+  // ObjectTypeComponent,
+] as const;
 
 type ComponentName = keyof typeof ComponentMap;
 type ComponentType = InstanceType<(typeof Components)[number]>;
 type ComponentStorage = {
-  [K in ComponentName]: {
+  -readonly [K in keyof typeof ComponentMap as (typeof ComponentMap)[K]["name"]]: {
     instances: Array<InstanceType<(typeof ComponentMap)[K]>>;
-    data: InstanceType<(typeof ComponentMap)[K]["dataclass"]>;
+    data: Float32Array | Uint32Array;
     buffer: GPUBuffer;
   };
 };
@@ -1134,25 +1414,29 @@ class EntityRegistry {
   device: GPUDevice;
   entityMaxSize = 32;
   entitySize = 0;
-  readonly componentSize = 1;
+
+  readonly componentSize = Components.length;
 
   storage: ComponentStorage;
+
   get totalIndexDataSize() {
     return this.componentSize * this.entityMaxSize;
   }
 
-  entityActiveComponents = new Int8Array(
+  entityMetadata = new Uint32Array(
     this.entityMaxSize * this.componentSize,
-  ).fill(-1);
+  ).fill(0);
+  entityMetadataBuffer: GPUBuffer;
+
   entities: Map<number, Entity> = new Map();
 
   constructor(device: GPUDevice) {
     this.device = device;
     this.storage = Components.reduce((acc, cur) => {
       acc[cur.name] = {
-        instances: Array.from<InstanceType<typeof cur>>({
+        instances: Array.from({
           length: this.entityMaxSize,
-        }),
+        }) as any,
         data: new cur.dataclass(
           this.entityMaxSize * cur.dataclass.BYTES_PER_ELEMENT,
         ),
@@ -1164,59 +1448,101 @@ class EntityRegistry {
       };
       return acc;
     }, {} as ComponentStorage);
+    this.entityMetadataBuffer = this.device.createBuffer({
+      label: "Entity Metadata Buffer",
+      size: this.totalIndexDataSize * Uint32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
   }
 
-  spawn() {
+  spawn(): Entity;
+  spawn(components: Array<ComponentType>): Entity;
+
+  spawn(components?: Array<ComponentType>): Entity {
     const id = this.entitySize++;
     const entity = new Entity(id);
     this.entities.set(id, entity);
+    if (components) {
+      entity.addComponentBundle(components);
+    }
     return entity;
   }
 
-  updateData() {
+  writeBuffer() {
     for (const entity of this.entities.values()) {
-      for (const [componentName, component] of entity.directComponentMap) {
+      if (!entity.shouldUpdate) {
+        continue;
+      }
+      const index = entity.id;
+      for (let i = 0; i < this.componentSize; i++) {
+        this.entityMetadata[index * this.componentSize + i] = 0;
+      }
+      for (const [ucomponentName, component] of Object.entries(
+        entity.directComponentMap,
+      )) {
+        const componentName = ucomponentName as ComponentName;
+        this.entityMetadata[
+          index * this.componentSize + ComponentIds[componentName]
+        ] = 1;
         if (component.shouldUpdate) {
           const meta = ComponentMap[componentName];
           const storage = this.storage[componentName];
-          const index = entity.id;
-          const offset = index * ComponentMap[componentName].size;
-          storage.data.set([component.x, component.y, component.z], offset);
-          this.entityActiveComponents[
-            index * this.componentSize + ComponentIds[componentName]
-          ] = 1;
+          const offset = index * meta.size;
+          storage.data.set(component.data, offset);
           this.device.queue.writeBuffer(
             storage.buffer,
             offset * meta.dataclass.BYTES_PER_ELEMENT,
             storage.data,
-            offset * meta.dataclass.BYTES_PER_ELEMENT,
-            ComponentMap[componentName].size * meta.dataclass.BYTES_PER_ELEMENT,
+            offset,
+            meta.size,
           );
           component.shouldUpdate = false;
         }
       }
+      entity.shouldUpdate = false;
+    }
+
+    this.device.queue.writeBuffer(
+      this.entityMetadataBuffer,
+      0,
+      this.entityMetadata,
+      0,
+      this.totalIndexDataSize,
+    );
+  }
+
+  destroy() {
+    for (const storage of Object.values(this.storage)) {
+      storage.buffer.destroy();
     }
   }
 }
 
 class Entity {
   id: number;
-  directComponentMap: Map<ComponentName, ComponentType> = new Map();
+  directComponentMap: {
+    -readonly [K in ComponentName]?: InstanceType<(typeof ComponentMap)[K]>;
+  } = {};
   shouldUpdate = true;
 
   constructor(id: number) {
     this.id = id;
   }
 
-  addComponent(component: ComponentType) {
-    const componentName = component.constructor.name as ComponentName;
-    if (this.directComponentMap.has(componentName)) {
+  addComponent<T extends ComponentType>(component: T) {
+    component.shouldUpdate = true;
+    component.entityRef = this;
+    const componentName = component.constructor
+      .name as keyof typeof ComponentMap;
+
+    if (componentName in this.directComponentMap) {
       throw new Error(
         `Component ${componentName} is already added to this entity.`,
       );
     }
 
-    this.directComponentMap.set(componentName, component);
+    this.directComponentMap[componentName] = component as any;
+    this.shouldUpdate = true;
     return this;
   }
 

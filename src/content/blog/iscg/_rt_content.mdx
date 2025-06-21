@@ -779,14 +779,248 @@ raycast 関数も同様に、球体だけでなく床、トーラスなどのオ
 
 まずは、`SceneObject` と `Sphere` をさらに抽象化し、ECS のようなコンポーネントを定義する。
 
-```ts
-interface Component {
-  data: Float32Array;
-  static readonly size: number;
+```wgsl
+struct Position {
+  value: vec3<f32>, // x, y, z,
+  _padding: f32, // padding to align to 16 bytes
 }
 
-class PositionComponent implements Component {
-  data = new Float32Array(3);
-  static readonly size = 3;
+struct Color {
+  value: vec4<f32>, // r, g, b, a
+}
+
+struct SphereAttribute {
+  radius: f32, // radius
+}
+
+struct EntityMetadata {
+  position: u32,
+  color: u32,
+  sphere: u32,
 }
 ```
+
+以上が、今回使われるコンポーネントである。
+
+CPU 側では、コンポーネントのクラスはこのように定義される。
+
+```ts
+class ColorComponent extends Vector4 {
+  static readonly size = 4;
+  static readonly name = "Color" as const;
+  static readonly dataclass = Float32Array;
+
+  entityRef: Entity | null = null;
+
+  shouldUpdate = true;
+
+  get data() {
+    return this.toArray();
+  }
+
+  constructor(
+    r: number = 1.0,
+    g: number = 1.0,
+    b: number = 1.0,
+    a: number = 1.0,
+  ) {
+    super(r, g, b, a);
+    return new Proxy(this, {
+      get: (target, prop) => {
+        return (target as any)[prop];
+      },
+      set: (target, prop, value) => {
+        (target as any).shouldUpdate = true;
+        (target as any)[prop] = value;
+        if ((target as any).entityRef) {
+          (target as any).entityRef.shouldUpdate = true;
+        }
+        return true;
+      },
+    });
+  }
+}
+```
+
+すなわち、ベースクラス、エンティティへの参照、更新フラグ、平坦化されたデータを持つ。
+さらにクラスの静的なプロパティとして、サイズ、名前、データクラスを定義する。
+サイズは 4 の倍数である必要がある。(16 バイトアライメントのため)
+
+もっとも重要な部分は、`EntityRegistry` のクラスである。
+
+```ts
+class EntityRegistry {
+  device: GPUDevice;
+  entityMaxSize = 32;
+  entitySize = 0;
+
+  readonly componentSize = Components.length;
+
+  storage: ComponentStorage;
+
+  get totalIndexDataSize() {
+    return this.componentSize * this.entityMaxSize;
+  }
+
+  entityMetadata = new Uint32Array(
+    this.entityMaxSize * this.componentSize,
+  ).fill(0);
+  entityMetadataBuffer: GPUBuffer;
+
+  entities: Map<number, Entity> = new Map();
+
+  constructor(device: GPUDevice) {
+    this.device = device;
+    this.storage = Components.reduce((acc, cur) => {
+      acc[cur.name] = {
+        instances: Array.from({
+          length: this.entityMaxSize,
+        }) as any,
+        data: new cur.dataclass(
+          this.entityMaxSize * cur.dataclass.BYTES_PER_ELEMENT,
+        ),
+        buffer: this.device.createBuffer({
+          label: `${cur.name} Buffer`,
+          size: cur.dataclass.BYTES_PER_ELEMENT * this.entityMaxSize,
+          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        }),
+      };
+      return acc;
+    }, {} as ComponentStorage);
+    this.entityMetadataBuffer = this.device.createBuffer({
+      label: "Entity Metadata Buffer",
+      size: this.totalIndexDataSize * Uint32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+  }
+
+  spawn(): Entity;
+  spawn(components: Array<ComponentType>): Entity;
+
+  spawn(components?: Array<ComponentType>): Entity {
+    const id = this.entitySize++;
+    const entity = new Entity(id);
+    this.entities.set(id, entity);
+    if (components) {
+      entity.addComponentBundle(components);
+    }
+    return entity;
+  }
+
+  writeBuffer() {
+    for (const entity of this.entities.values()) {
+      if (!entity.shouldUpdate) {
+        continue;
+      }
+      const index = entity.id;
+      for (let i = 0; i < this.componentSize; i++) {
+        this.entityMetadata[index * this.componentSize + i] = 0;
+      }
+      for (const [componentName, component] of entity.directComponentMap) {
+        this.entityMetadata[
+          index * this.componentSize + ComponentIds[componentName]
+        ] = 1;
+        if (component.shouldUpdate) {
+          const meta = ComponentMap[componentName];
+          const storage = this.storage[componentName];
+          const offset = index * meta.size;
+          storage.data.set(component.data, offset);
+          this.device.queue.writeBuffer(
+            storage.buffer,
+            offset * meta.dataclass.BYTES_PER_ELEMENT,
+            storage.data,
+            offset,
+            meta.size,
+          );
+          component.shouldUpdate = false;
+        }
+      }
+      entity.shouldUpdate = false;
+    }
+
+    this.device.queue.writeBuffer(
+      this.entityMetadataBuffer,
+      0,
+      this.entityMetadata,
+      0,
+      this.totalIndexDataSize,
+    );
+  }
+
+  destroy() {
+    for (const storage of Object.values(this.storage)) {
+      storage.buffer.destroy();
+    }
+  }
+}
+```
+
+今回は 32個以下のエンティティを想定している。(delete と動的リサイズがあるともっと複雑になる。)
+EntityRegistry は、エンティティを `spawn` する際に、ID を割り当て、Metadata のアクティブ状態を更新し、バッファを平坦化して GPU に書き込むライフサイクルの管理を行うクラスである。
+
+エンティティ自体は以下のように定義される。
+
+```ts
+class Entity {
+  id: number;
+  directComponentMap: Map<ComponentName, ComponentType> = new Map();
+  shouldUpdate = true;
+
+  constructor(id: number) {
+    this.id = id;
+  }
+
+  addComponent(component: ComponentType) {
+    component.shouldUpdate = true;
+    component.entityRef = this;
+    const componentName = component.constructor.name as ComponentName;
+
+    if (this.directComponentMap.has(componentName)) {
+      throw new Error(
+        `Component ${componentName} is already added to this entity.`,
+      );
+    }
+
+    this.directComponentMap.set(componentName, component);
+    this.shouldUpdate = true;
+    return this;
+  }
+
+  addComponentBundle(components: Array<ComponentType>): Entity {
+    for (const component of components) {
+      this.addComponent(component);
+    }
+    return this;
+  }
+}
+```
+
+`shouldUpdate` のフラグで、エンティティからコンポーネントを更新することができる。
+
+基本的な使い方は
+
+```ts
+this.entityRegistry = new EntityRegistry(device);
+this.entityRegistry.spawn([
+  new PositionComponent(0, 10, 0),
+  new ColorComponent(0.8, 0.8, 0.3, 1.0),
+  new SphereComponent(10),
+]);
+
+const entity = this.entityRegistry.spawn([new PositionComponent(15, 15, 5)]);
+// 後からコンポーネントを追加することもできる。
+entity.addComponentBundle([
+  new ColorComponent(0.8, 0.3, 0.8, 1.0),
+  new SphereComponent(15),
+]);
+
+this.entityRegistry.spawn([
+  new PositionComponent(-20, 12, 0),
+  new ColorComponent(0.3, 0.3, 0.8, 1.0),
+  new SphereComponent(12),
+]);
+```
+
+すると、3つのエンティティが生成される。
+
+<div class="sd" id="ecs-component" />
