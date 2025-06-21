@@ -1,6 +1,6 @@
 import { useScrollDetector } from "@/components/react/scroll-detector";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Vector2, Vector3, Vector4 } from "three";
+import { Ray, Vector2, Vector3, Vector4 } from "three";
 
 const componentLibrary = /* wgsl */ `
 struct Position {
@@ -462,6 +462,8 @@ fn fragmentMain(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
 }
 `;
 
+type System = (rd: RayTracingRenderer) => void;
+
 export function RayTracing() {
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -477,15 +479,45 @@ export function RayTracing() {
     },
   );
 
+  const stateRef = useRef<{
+    angle: number;
+  }>({
+    angle: 0,
+  });
+
+  const jumpingUpandDown: System = (rd) => {
+    if (!scrollPassed("ecs-component")) {
+      return;
+    }
+
+    const state = stateRef.current;
+
+    if (state.angle >= 360) {
+      state.angle = 0;
+    } else {
+      state.angle += 0.1;
+    }
+
+    const data =
+      rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
+    if (data) {
+      data.y = Math.sin(state.angle) * 10 + 10;
+    }
+  };
+
   const initRayTracing = useCallback(
     async (canvas: HTMLCanvasElement) => {
-      rendererRef.current ??= new RayTracingRenderer(canvas, scrollPassed);
+      if (!rendererRef.current) {
+        rendererRef.current = new RayTracingRenderer(canvas, scrollPassed);
+        rendererRef.current.systems.push(jumpingUpandDown);
+      }
       const renderer = rendererRef.current;
       if (!renderer.isInitialized()) {
         try {
           await renderer.init();
 
           const loop = () => {
+            renderer.update();
             renderer.render();
             frameId.current = requestAnimationFrame(loop);
           };
@@ -1193,7 +1225,13 @@ class RayTracingRenderer {
     });
   }
 
-  angle: number = 0;
+  systems: System[] = [];
+
+  update() {
+    for (const system of this.systems) {
+      system(this);
+    }
+  }
 
   render() {
     if (
@@ -1206,23 +1244,11 @@ class RayTracingRenderer {
       );
     }
 
-    if (this.angle >= 360) {
-      this.angle = 0;
-    } else {
-      this.angle += 0.1;
-    }
-
     const commandEncoder = this.device.createCommandEncoder({
       label: "renderEncoder",
     });
 
     if (this.scrollPassed("gpu-ball")) {
-      const data =
-        this.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
-      if (data) {
-        data.y = Math.sin(this.angle) * 10 + 10;
-      }
-
       this.state.entityRegistry.writeBuffer();
 
       const computePass = commandEncoder.beginComputePass(

@@ -1023,4 +1023,47 @@ this.entityRegistry.spawn([
 
 すると、3つのエンティティが生成される。
 
+エンティティもあって、コンポーネントもあって、残りはシステムである。システムはCPU 側であるためもっとも簡単である。
+
+```ts
+type System = (rd: RayTracingRenderer) => void;
+
+class RayTracingRenderer {
+  systems: System[] = [];
+
+  update() {
+    for (const system of this.systems) {
+      system(this);
+    }
+  }
+}
+
+// react component 内で使う場合
+const stateRef = useRef<{
+  angle: number;
+}>({
+  angle: 0,
+});
+
+const jumpingUpandDown: System = (rd) => {
+  if (!scrollPassed("ecs-component")) {
+    return;
+  }
+
+  const state = stateRef.current;
+
+  if (state.angle >= 360) {
+    state.angle = 0;
+  } else {
+    state.angle += 0.1;
+  }
+
+  const data =
+    rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
+  if (data) {
+    data.y = Math.sin(state.angle) * 10 + 10;
+  }
+};
+```
+
 <div class="sd" id="ecs-component" />
