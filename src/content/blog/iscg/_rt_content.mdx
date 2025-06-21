@@ -598,3 +598,195 @@ class RayTracingState {
 前のバージョンは a を負の値にしていたが、時間単位として使いたいので、混乱を避けるために a を正の値にした。また、空の色を `vec4<f32>(0.3, 0.6, 0.8, 1.0)` として、背景色を設定している。
 
 <div class="sd" id="multiple-balls" />
+
+## Diffuse Lighting
+
+次に、拡散反射を実装してみる。
+
+まずは、少しリファクタリングを行う。
+
+```wgsl
+
+fn generateRay(
+  camera: Camera,
+  uv: vec2<f32>,
+) -> Ray {
+  let origin = camera.position;
+  let direction = normalize(camera.direction);
+  let up = normalize(camera.up);
+  let right = normalize(cross(direction, up));
+  let fovScale = tan(camera.fovy / 2.0);
+  let aspect = camera.aspect;
+
+  // tan(fov / 2) unit * aspect
+  // _______________________
+  // |                     |
+  // |  x_______.          |
+  // |__|_______0          | tan(fov / 2) unit
+  // |          |          |
+  // |          |          |
+  // |__________|__________|
+  //            | 1 unit
+  //            |
+                                                        // shift the center
+            // but the fovScale is in the range of [-1, 1] so * 2
+                                    // normalize to 1 unit
+                    // center the ray inside the pixel
+  let Px = (2.0 * (uv.x + 0.5) / camera.viewport.x - 1.0);
+  let Py = (1.0 - 2.0 * (uv.y + 0.5) / camera.viewport.y);
+  // Py is the same but inverted because uv.y 0 starts from the top left corner
+
+  let x = Px * fovScale * aspect;
+  let y = Py * fovScale;
+
+  let rayDirection = normalize(
+    direction + x * right + y * up
+  );
+
+  return Ray(origin, rayDirection);
+}
+
+fn sphereIntersect(
+  ray: Ray,
+  sphere: Sphere,
+) -> Intersection {
+  let oc = sphere.center - ray.origin;
+  let a = dot(oc, ray.direction);
+  let b = dot(oc, oc) - a * a - sphere.radius * sphere.radius;
+  var hit = false;
+  var distance = 0.0;
+  var position = vec3<f32>(0.0, 0.0, 0.0);
+  var normal = vec3<f32>(0.0, 0.0, 0.0);
+
+  if (b < 0.0 && a > 0.0) {
+    hit = true;
+    let d = sqrt(sphere.radius * sphere.radius - b);
+    let t0 = a - d; // near intersection
+    let t1 = a + d; // far intersection
+    if (t0 < 0.0 && t1 < 0.0) {
+      hit = false; // we are behind the sphere
+    } else if (t0 < 0.0) {
+      distance = t1; // we are behind the near intersection, take the far one
+    } else {
+      distance = t0; // we found a closer intersection
+    }
+    position = ray.origin + distance * ray.direction;
+    normal = normalize(position - sphere.center);
+  }
+
+  return Intersection(normal, distance, sphere.color, position, hit);
+}
+```
+
+以上のヘルパー関数により、もっと簡潔にロジックを記述できるようになった。
+
+Render Mode が 3 になった場合のロジックは以下のようになる。
+
+```wgsl
+if (renderMode >= 2) {
+    let ray = generateRay(camera, uv);
+    let origin = ray.origin;
+    let rayDirection = ray.direction;
+
+    var color = vec4<f32>(0.3, 0.6, 0.8, 1.0);
+    var t = 1000.0;
+
+    for (var i = 0u; i < arrayLength(&objects); i++) {
+      let sphere = objects[i];
+      let intersection = sphereIntersect(ray, sphere);
+
+      if (intersection.hit && intersection.distance < t) {
+        t = intersection.distance;
+
+        if (renderMode == 2) {
+          color = intersection.color;
+        } else if (renderMode == 3) {
+          let ambient = 0.25;
+          let lightDirection = normalize(vec3<f32>(1.0, 1.0, 1.0));
+          let lightIntensity = max(dot(intersection.normal, lightDirection), 0.0);
+          let diffuse = ambient + (1.0 - ambient) * lightIntensity;
+          color = vec4<f32>(
+            intersection.color.rgb * diffuse,
+            intersection.color.a
+          );
+        }
+      }
+    }
+
+    imageBuffer[pixel] = color;
+  }
+```
+
+拡散反射の計算は、ambient light と directional light によって光の強さを計算する。
+
+<div class="sd" id="diffuse-lighting" />
+
+## 床
+
+次に、床を追加してみる。
+
+床は比較的に簡単で、下に向いていればヒット、上に向いていればミスとすればよい。
+
+```wgsl
+if (renderMode >= 4) {
+  // Floor intersection
+  let t = -origin.y / rayDirection.y;
+  if (t > 0.0) {
+    let position = origin + t * rayDirection;
+    let gridX = floor(position.x / floorGridSize);
+    let gridY = floor(position.z / floorGridSize);
+    let isEven = (gridX + gridY) % 2 == 0;
+    if (isEven) {
+      color = floorBaseColor;
+    } else {
+      color = floorAccentColor;
+    }
+    ints = Intersection(
+      floorNormal,
+      t,
+      color,
+      position,
+      true
+    );
+  }
+}
+```
+
+<div class="sd" id="floor" />
+
+## 無駄の計算を削減とオブジェクトの抽象化
+
+今までの実装では、`Intersection` で保管している情報は多すぎる。
+
+1. position はいつでも同じ式で `ray.origin + ray.direction * distance` と計算できる。distance はすでにあるため、position は不要である。
+2. normal は position がわかれば、後でオベジェクトから計算できる。
+3. ヒットかどうかは `t` の値で判断できる
+4. color もオブジェクトごとに決まっている。
+
+すなわち、`Intersection` は以下のように簡略化できる。
+
+```wgsl
+struct IntersectionV2 {
+  t: f32,
+  e: u32,
+}
+```
+
+`e` はオブジェクトの id である。(これからエンティティと呼ぶ)
+`t` はヒットした距離である。
+
+raycast 関数も同様に、球体だけでなく床、トーラスなどのオブジェクトを扱えるように、オブジェクト ID で識別し、計算方法を分岐する。
+
+まずは、`SceneObject` と `Sphere` をさらに抽象化し、ECS のようなコンポーネントを定義する。
+
+```ts
+interface Component {
+  data: Float32Array;
+  static readonly size: number;
+}
+
+class PositionComponent implements Component {
+  data = new Float32Array(3);
+  static readonly size = 3;
+}
+```

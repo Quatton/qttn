@@ -9,6 +9,20 @@ struct Sphere {
   color: vec4<f32>, // r, g, b, a
 }`;
 
+const rayLibrary = /* wgsl */ `
+struct Ray {
+  origin: vec3<f32>, // x, y, z
+  direction: vec3<f32>, // x, y, z
+}
+
+struct Intersection {
+  normal: vec3<f32>,
+  distance: f32,
+  color: vec4<f32>,
+  position: vec3<f32>,
+  hit: bool,
+}`;
+
 const vertexLibrary = /* wgsl */ `
 struct VertexOutput {
   @builtin(position) position: vec4<f32>,
@@ -31,6 +45,7 @@ const WORKGROUP_SIZE_Y = 8;
 const computeShader = /* wgsl */ `
 ${cameraLibrary}
 ${objectLibrary}
+${rayLibrary}
 
 @group(0) @binding(0) var<storage, read_write> imageBuffer: array<vec4<f32>>;
 @group(0) @binding(1) var<uniform> camera: Camera;
@@ -42,6 +57,10 @@ const circleCenter = vec3<f32>(0.0, 0.0, 0.0);
 const circleRadius = 10.0;
 const circleColor = vec4<f32>(0.0, 0.0, 1.0, 1.0); 
 
+const floorBaseColor = vec4<f32>(0.8, 0.8, 0.8, 1.0);
+const floorAccentColor = vec4<f32>(0.2, 0.2, 0.2, 1.0);
+const floorGridSize = 10.0;
+const floorNormal = vec3<f32>(0.0, 1.0, 0.0);
 
 @compute @workgroup_size(${WORKGROUP_SIZE_X}, ${WORKGROUP_SIZE_Y}, 1)
 fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
@@ -68,37 +87,9 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
   }
 
   if (renderMode == 1) {
-    let origin = camera.position;
-    let direction = normalize(camera.direction);
-    let up = normalize(camera.up);
-    let right = normalize(cross(direction, up));
-    let fovScale = tan(camera.fovy / 2.0);
-    let aspect = camera.aspect;
-
-    // tan(fov / 2) unit * aspect
-    // _______________________
-    // |                     |
-    // |  x_______.          |
-    // |__|_______0          | tan(fov / 2) unit
-    // |          |          |
-    // |          |          |
-    // |__________|__________|
-    //            | 1 unit
-    //            |
-                                                          // shift the center 
-             // but the fovScale is in the range of [-1, 1] so * 2
-                                      // normalize to 1 unit
-                     // center the ray inside the pixel 
-    let Px = (2.0 * (f32(gId.x) + 0.5) / camera.viewport.x - 1.0);
-    let Py = (1.0 - 2.0 * (f32(gId.y) + 0.5) / camera.viewport.y); 
-    // Py is the same but inverted because uv.y 0 starts from the top left corner
-
-    let x = Px * fovScale * aspect;
-    let y = Py * fovScale;
-
-    let rayDirection = normalize(
-      direction + x * right + y * up
-    );
+    let ray = generateRay(camera, uv);
+    let origin = ray.origin;
+    let rayDirection = ray.direction;
 
     //                ____ 
     //          a ____   \b__----___
@@ -126,58 +117,150 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
     imageBuffer[pixel] = color;
   }
 
-  if (renderMode == 2) {
-    let origin = camera.position;
-    let direction = normalize(camera.direction);
-    let up = normalize(camera.up);
-    let right = normalize(cross(direction, up));
-    let fovScale = tan(camera.fovy / 2.0);
-    let aspect = camera.aspect;
+  if (renderMode >= 2) {
+    let ray = generateRay(camera, uv);
+    let origin = ray.origin;
+    let rayDirection = ray.direction;
 
-    let Px = (2.0 * (f32(gId.x) + 0.5) / camera.viewport.x - 1.0);
-    let Py = (1.0 - 2.0 * (f32(gId.y) + 0.5) / camera.viewport.y); 
-    let x = Px * fovScale * aspect;
-    let y = Py * fovScale;
+    let background = vec4<f32>(0.3, 0.6, 0.8, 1.0);
 
-    let rayDirection = normalize(
-      direction + x * right + y * up
+    var ints = Intersection( 
+      vec3<f32>(0.0, 0.0, 0.0), // normal
+      1000.0, // distance
+      vec4<f32>(0.0, 0.0, 0.0, 1.0), // color
+      vec3<f32>(0.0, 0.0, 0.0), // position
+      false // hit
     );
 
-    var color = vec4<f32>(0.3, 0.6, 0.8, 1.0);
-    var t = 1000.0;
+    var color: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+
+    if (renderMode >= 4) {
+      // Floor intersection
+      let t = -origin.y / rayDirection.y;
+      if (t > 0.0) {
+        let position = origin + t * rayDirection;
+        let gridX = floor(position.x / floorGridSize);
+        let gridY = floor(position.z / floorGridSize);
+        let isEven = (gridX + gridY) % 2 == 0;
+        if (isEven) {
+          color = floorBaseColor;
+        } else {
+          color = floorAccentColor; 
+        }
+        ints = Intersection(
+          floorNormal,
+          t,
+          color,
+          position,
+          true
+        );
+      }
+    }
+
   
     for (var i = 0u; i < arrayLength(&objects); i++) {
       let sphere = objects[i];
-      let oc = sphere.center - origin; // it's confusing when it's negative. i had to change
-      let a = dot(oc, rayDirection);
-      let b = dot(oc, oc) - a * a;
+      let intersection = sphereIntersect(ray, sphere);
 
-      if (b > sphere.radius * sphere.radius) {
-        continue;
+      if (intersection.hit && intersection.distance < ints.distance) {
+        ints = intersection;
       }
+    }
 
-      let d = sqrt(sphere.radius * sphere.radius - b);
-      var t0 = a - d; // near intersection
-      let t1 = a + d; // far intersection
-
-      if (t0 < 0.0 && t1 < 0.0) {
-        continue; // we are behind the sphere
+    if (renderMode == 2) {
+      if (ints.hit) {
+        color = ints.color;
       }
-
-      if (t0 < 0.0) {
-        t0 = t1; // we are behind the near intersection, take the far one
+    } else if (renderMode >= 3) {
+      if (ints.hit) {
+        let ambient = 0.25;
+        let lightDirection = normalize(vec3<f32>(1.0, 1.0, 1.0));
+        let lightIntensity = max(dot(ints.normal, lightDirection), 0.0);
+        let diffuse = ambient + (1.0 - ambient) * lightIntensity;
+        color = vec4<f32>(
+          ints.color.rgb * diffuse,
+          ints.color.a
+        );
       }
+    }
 
-      if (t0 < t) {
-        t = t0; // we found a closer intersection
-        color = sphere.color; // use the sphere color
-      }
+    if (!ints.hit) {
+      color = background;
     }
 
     imageBuffer[pixel] = color;
   }
 }
-`;
+
+fn generateRay(
+  camera: Camera,
+  uv: vec2<f32>,
+) -> Ray {
+  let origin = camera.position;
+  let direction = normalize(camera.direction);
+  let up = normalize(camera.up);
+  let right = normalize(cross(direction, up));
+  let fovScale = tan(camera.fovy / 2.0);
+  let aspect = camera.aspect;
+
+  // tan(fov / 2) unit * aspect
+  // _______________________
+  // |                     |
+  // |  x_______.          |
+  // |__|_______0          | tan(fov / 2) unit
+  // |          |          |
+  // |          |          |
+  // |__________|__________|
+  //            | 1 unit
+  //            |
+                                                        // shift the center 
+            // but the fovScale is in the range of [-1, 1] so * 2
+                                    // normalize to 1 unit
+                    // center the ray inside the pixel 
+  let Px = (2.0 * (uv.x + 0.5) / camera.viewport.x - 1.0);
+  let Py = (1.0 - 2.0 * (uv.y + 0.5) / camera.viewport.y); 
+  // Py is the same but inverted because uv.y 0 starts from the top left corner
+
+  let x = Px * fovScale * aspect;
+  let y = Py * fovScale;
+
+  let rayDirection = normalize(
+    direction + x * right + y * up
+  );
+
+  return Ray(origin, rayDirection);
+}
+
+fn sphereIntersect(
+  ray: Ray,
+  sphere: Sphere,
+) -> Intersection {
+  let oc = sphere.center - ray.origin;
+  let a = dot(oc, ray.direction);
+  let b = dot(oc, oc) - a * a - sphere.radius * sphere.radius;
+  var hit = false;
+  var distance = 0.0;
+  var position = vec3<f32>(0.0, 0.0, 0.0);
+  var normal = vec3<f32>(0.0, 0.0, 0.0); 
+
+  if (b < 0.0 && a > 0.0) {
+    hit = true;
+    let d = sqrt(sphere.radius * sphere.radius - b);
+    let t0 = a - d; // near intersection
+    let t1 = a + d; // far intersection
+    if (t0 < 0.0 && t1 < 0.0) {
+      hit = false; // we are behind the sphere
+    } else if (t0 < 0.0) {
+      distance = t1; // we are behind the near intersection, take the far one
+    } else {
+      distance = t0; // we found a closer intersection
+    }
+    position = ray.origin + distance * ray.direction;
+    normal = normalize(position - sphere.center);
+  }
+
+  return Intersection(normal, distance, sphere.color, position, hit);
+}`;
 
 const presentShader = /* wgsl */ `
 ${vertexLibrary}
@@ -311,6 +394,8 @@ const RENDER_MODES = {
   GPU_BALL: 0,
   RAY_TRACING_BASIC: 1,
   MULTIPLE_BALLS: 2,
+  DIFFUSE_LIGHTING: 3,
+  FLOOR: 4,
 };
 
 type RenderModeType = keyof typeof RENDER_MODES;
@@ -392,7 +477,7 @@ class Camera implements StateBuffer<Float32Array> {
   constructor(
     device: GPUDevice,
     viewport: [number, number],
-    position: Vector3 = new Vector3(0, 0, 50),
+    position: Vector3 = new Vector3(0, 20, 100),
     direction: Vector3 = new Vector3(0, 0, -1), // -Z
     up: Vector3 = new Vector3(0, 1, 0), // Y
     fovy: number = Math.PI / 2,
@@ -575,9 +660,9 @@ class RayTracingState {
     this.camera = new Camera(device, [canvas.width, canvas.height]);
     this.renderMode = new RenderMode(device);
     this.objects = new SceneObjectState(device, [
-      new Sphere(new Vector3(0, 0, 0), 10, new Vector4(0.8, 0.8, 0.3, 1.0)),
-      new Sphere(new Vector3(15, 0, 5), 15, new Vector4(0.8, 0.3, 0.8, 1.0)),
-      new Sphere(new Vector3(-20, -0, 0), 12, new Vector4(0.3, 0.3, 0.8, 1.0)),
+      new Sphere(new Vector3(0, 10, 0), 10, new Vector4(0.8, 0.8, 0.3, 1.0)),
+      new Sphere(new Vector3(15, 15, 5), 15, new Vector4(0.8, 0.3, 0.8, 1.0)),
+      new Sphere(new Vector3(-20, 12, 0), 12, new Vector4(0.3, 0.3, 0.8, 1.0)),
     ]);
   }
 
@@ -776,7 +861,15 @@ class RayTracingRenderer {
     }
 
     if (this.scrollPassed("multiple-balls")) {
-      this.state.setRenderMode("MULTIPLE_BALLS");
+      if (!this.scrollPassed("diffuse-lighting")) {
+        this.state.setRenderMode("MULTIPLE_BALLS");
+      } else {
+        if (!this.scrollPassed("floor")) {
+          this.state.setRenderMode("DIFFUSE_LIGHTING");
+        } else {
+          this.state.setRenderMode("FLOOR");
+        }
+      }
       this.state.objects.writeBuffer();
     }
 
@@ -939,5 +1032,198 @@ class RayTracingRenderer {
     renderPass.end();
 
     this.device.queue.submit([commandEncoder.finish()]);
+  }
+}
+
+class PositionComponent extends Vector3 {
+  static readonly size = 3;
+  static readonly name = "Position" as const;
+  static readonly dataclass = Float32Array;
+
+  shouldUpdate = true;
+
+  constructor(x: number = 0, y: number = 0, z: number = 0) {
+    super(x, y, z);
+    return new Proxy(this, {
+      get: (target, prop) => {
+        return (target as any)[prop];
+      },
+      set: (target, prop, value) => {
+        (target as any).shouldUpdate = true;
+        (target as any)[prop] = value;
+        return true;
+      },
+    });
+  }
+}
+
+class MaterialComponent extends Vector4 {
+  static readonly size = 4;
+  static readonly name = "Material" as const;
+  static readonly dataclass = Float32Array;
+
+  shouldUpdate = true;
+
+  constructor(
+    r: number = 1.0,
+    g: number = 1.0,
+    b: number = 1.0,
+    a: number = 1.0,
+  ) {
+    super(r, g, b, a);
+    return new Proxy(this, {
+      get: (target, prop) => {
+        return (target as any)[prop];
+      },
+      set: (target, prop, value) => {
+        (target as any).shouldUpdate = true;
+        (target as any)[prop] = value;
+        return true;
+      },
+    });
+  }
+}
+
+class SphereComponent {
+  static readonly size = 1; // Sphere radius
+  static readonly name = "Sphere" as const;
+  static readonly dataclass = Float32Array;
+  shouldUpdate = true;
+  radius: number;
+
+  constructor(radius: number = 1.0) {
+    this.radius = radius;
+    return new Proxy(this, {
+      get: (target, prop) => {
+        return (target as any)[prop];
+      },
+      set: (target, prop, value) => {
+        (target as any).shouldUpdate = true;
+        (target as any)[prop] = value;
+        return true;
+      },
+    });
+  }
+}
+
+const ComponentMap = {
+  [PositionComponent.name]: PositionComponent,
+  [MaterialComponent.name]: MaterialComponent,
+  [SphereComponent.name]: SphereComponent,
+} as const;
+
+const ComponentIds = {
+  [PositionComponent.name]: 0,
+  [MaterialComponent.name]: 1,
+  [SphereComponent.name]: 2,
+} as const;
+
+const Components = [PositionComponent];
+
+type ComponentName = keyof typeof ComponentMap;
+type ComponentType = InstanceType<(typeof Components)[number]>;
+type ComponentStorage = {
+  [K in ComponentName]: {
+    instances: Array<InstanceType<(typeof ComponentMap)[K]>>;
+    data: InstanceType<(typeof ComponentMap)[K]["dataclass"]>;
+    buffer: GPUBuffer;
+  };
+};
+
+class EntityRegistry {
+  device: GPUDevice;
+  entityMaxSize = 32;
+  entitySize = 0;
+  readonly componentSize = 1;
+
+  storage: ComponentStorage;
+  get totalIndexDataSize() {
+    return this.componentSize * this.entityMaxSize;
+  }
+
+  entityActiveComponents = new Int8Array(
+    this.entityMaxSize * this.componentSize,
+  ).fill(-1);
+  entities: Map<number, Entity> = new Map();
+
+  constructor(device: GPUDevice) {
+    this.device = device;
+    this.storage = Components.reduce((acc, cur) => {
+      acc[cur.name] = {
+        instances: Array.from<InstanceType<typeof cur>>({
+          length: this.entityMaxSize,
+        }),
+        data: new cur.dataclass(
+          this.entityMaxSize * cur.dataclass.BYTES_PER_ELEMENT,
+        ),
+        buffer: this.device.createBuffer({
+          label: `${cur.name} Buffer`,
+          size: cur.dataclass.BYTES_PER_ELEMENT * this.entityMaxSize,
+          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        }),
+      };
+      return acc;
+    }, {} as ComponentStorage);
+  }
+
+  spawn() {
+    const id = this.entitySize++;
+    const entity = new Entity(id);
+    this.entities.set(id, entity);
+    return entity;
+  }
+
+  updateData() {
+    for (const entity of this.entities.values()) {
+      for (const [componentName, component] of entity.directComponentMap) {
+        if (component.shouldUpdate) {
+          const meta = ComponentMap[componentName];
+          const storage = this.storage[componentName];
+          const index = entity.id;
+          const offset = index * ComponentMap[componentName].size;
+          storage.data.set([component.x, component.y, component.z], offset);
+          this.entityActiveComponents[
+            index * this.componentSize + ComponentIds[componentName]
+          ] = 1;
+          this.device.queue.writeBuffer(
+            storage.buffer,
+            offset * meta.dataclass.BYTES_PER_ELEMENT,
+            storage.data,
+            offset * meta.dataclass.BYTES_PER_ELEMENT,
+            ComponentMap[componentName].size * meta.dataclass.BYTES_PER_ELEMENT,
+          );
+          component.shouldUpdate = false;
+        }
+      }
+    }
+  }
+}
+
+class Entity {
+  id: number;
+  directComponentMap: Map<ComponentName, ComponentType> = new Map();
+  shouldUpdate = true;
+
+  constructor(id: number) {
+    this.id = id;
+  }
+
+  addComponent(component: ComponentType) {
+    const componentName = component.constructor.name as ComponentName;
+    if (this.directComponentMap.has(componentName)) {
+      throw new Error(
+        `Component ${componentName} is already added to this entity.`,
+      );
+    }
+
+    this.directComponentMap.set(componentName, component);
+    return this;
+  }
+
+  addComponentBundle(components: Array<ComponentType>): Entity {
+    for (const component of components) {
+      this.addComponent(component);
+    }
+    return this;
   }
 }
