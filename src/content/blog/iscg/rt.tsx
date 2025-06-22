@@ -1,6 +1,6 @@
 import { useScrollDetector } from "@/components/react/scroll-detector";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Ray, Vector2, Vector3, Vector4 } from "three";
+import { Vector2, Vector3, Vector4 } from "three";
 
 const componentLibrary = /* wgsl */ `
 struct Position {
@@ -16,17 +16,23 @@ struct SphereAttribute {
   radius: f32, // radius
 }
 
+struct TorusAttribute {
+  radius: f32, // radius
+  tubeRadius: f32, // tube radius
+}
+
 struct EntityMetadata {
   position: u32, 
   color: u32,
   sphere: u32,
+  torus: u32,
 }
 
 const COMPONENT_ID_POSITION = 0u;
 const COMPONENT_ID_COLOR = 1u;
 const COMPONENT_ID_SPHERE = 2u;
-// const COMPONENT_ID_OBJECT_TYPE = 3u;
-const COMPONENT_COUNT = 3u;`;
+const COMPONENT_ID_TORUS = 3u;
+const COMPONENT_COUNT = 4u;`;
 
 const objectLibrary = /* wgsl */ `
 struct Sphere {
@@ -87,6 +93,7 @@ ${componentLibrary}
 @group(0) @binding(5) var<storage, read> colors: array<Color>;
 @group(0) @binding(6) var<storage, read> spheres: array<SphereAttribute>;
 @group(0) @binding(7) var<storage, read> entityMetadata: array<EntityMetadata>;
+@group(0) @binding(8) var<storage, read> toruses: array<TorusAttribute>;
 
 const circleCenter = vec3<f32>(0.0, 0.0, 0.0);
 const circleRadius = 10.0;
@@ -239,11 +246,19 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
 
     for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
       let eMeta = entityMetadata[e];
-      if (eMeta.position == 1u && eMeta.color == 1u && eMeta.sphere == 1u) {
-        let ni = sphereIntersectV2(ray, i32(e));
-        if (ni.t > 0.0 && ((intersection.t > 0.0 && ni.t < intersection.t)
-            || intersection.t <= 0.0)) {
-          intersection = ni;
+      if (eMeta.position == 1u && eMeta.color == 1u) {
+        if (eMeta.sphere == 1u) {
+          let ni = sphereIntersectV2(ray, i32(e));
+          if (ni.t > 0.0 && ((intersection.t > 0.0 && ni.t < intersection.t)
+              || intersection.t <= 0.0)) {
+            intersection = ni;
+          }
+        } else if (eMeta.torus == 1u) { 
+          let ni = torusIntersect(ray, i32(e));
+          if (ni.t > 0.0 && ((intersection.t > 0.0 && ni.t < intersection.t)
+              || intersection.t <= 0.0)) {
+            intersection = ni;
+          }
         }
       }
     }
@@ -257,6 +272,9 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
         let eu = u32(intersection.e);
         if (entityMetadata[eu].sphere == 1u) {
           color = sphereColor(ray, intersection);
+        }
+        if (entityMetadata[eu].torus == 1u) {
+          color = torusColor(ray, intersection);
         }
       }
     }
@@ -299,6 +317,23 @@ fn sphereColor(
   let normal = normalize(hitPosition - position);
 
   let color = colors[eu].value;
+  return calculateLighting(normal, color);
+}
+
+fn torusColor(  
+  ray: Ray,
+  intersection: IntersectionV2,
+) -> vec4<f32> {
+  let eu = u32(intersection.e);
+  let position = positions[eu].value;
+  let radius = toruses[eu].radius;
+  let tubeRadius = toruses[eu].tubeRadius;
+
+  let hitPosition = ray.origin + intersection.t * ray.direction;
+  let normal = normalize(hitPosition - position);
+
+  let color = colors[eu].value;
+  
   return calculateLighting(normal, color);
 }
 
@@ -378,6 +413,36 @@ fn sphereIntersectV2(
       } else {
         intersection.t = t0; // we found a closer intersection
       }
+    }
+  }
+
+  return intersection;
+}
+
+fn torusIntersect(
+  ray: Ray, 
+  e: i32,
+) -> IntersectionV2 {
+  let eu = u32(e);
+
+  let position = positions[eu].value;
+  let radius = toruses[eu].radius;
+  let tubeRadius = toruses[eu].tubeRadius;
+
+  let oc = ray.origin - position;
+  let a = dot(ray.direction, ray.direction);
+  let b = dot(oc, ray.direction);
+  let c = dot(oc, oc) - radius * radius - tubeRadius * tubeRadius;
+  let discriminant = b * b - a * c;
+  var intersection = IntersectionV2(-1.0, e); // no intersection
+
+  if (discriminant > 0.0) {
+    let t1 = (-b - sqrt(discriminant)) / a;
+    let t2 = (-b + sqrt(discriminant)) / a;
+
+    if (t1 > 0.0 || t2 > 0.0) {
+      intersection.t = min(t1, t2);
+      intersection.e = e;
     }
   }
 
@@ -464,6 +529,15 @@ fn fragmentMain(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
 
 type System = (rd: RayTracingRenderer) => void;
 
+const TUBE_RADIUS = 5.0;
+
+const toruses = Array.from({ length: 7 }, (_, i) => ({
+  position: new Vector3(0, TUBE_RADIUS * 2 * i + TUBE_RADIUS, 0),
+  radius: 20.0,
+  tubeRadius: TUBE_RADIUS,
+  color: new Vector4(Math.random(), Math.random(), Math.random(), 1.0),
+}));
+
 export function RayTracing() {
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -481,8 +555,12 @@ export function RayTracing() {
 
   const stateRef = useRef<{
     angle: number;
+    spawnedSpheres: Entity[];
+    toruses: Entity[];
   }>({
     angle: 0,
+    spawnedSpheres: [],
+    toruses: [],
   });
 
   const jumpingUpandDown: System = (rd) => {
@@ -502,6 +580,12 @@ export function RayTracing() {
       rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
     if (data) {
       data.y = Math.sin(state.angle) * 10 + 10;
+    }
+
+    const data2 =
+      rd.state.entityRegistry.entities.get(1)?.directComponentMap.Position;
+    if (data2) {
+      data2.z = Math.sin(state.angle + Math.PI) * 10;
     }
   };
 
@@ -1070,6 +1154,12 @@ class RayTracingRenderer {
               buffer: this.state.entityRegistry.entityMetadataBuffer,
             },
           },
+          {
+            binding: 8,
+            resource: {
+              buffer: this.state.entityRegistry.storage.Torus.buffer,
+            },
+          },
         ],
       });
     }
@@ -1277,7 +1367,13 @@ class RayTracingRenderer {
   }
 }
 
-class PositionComponent extends Vector3 {
+interface RayTracingComponent {
+  entityRef: Entity | null;
+  shouldUpdate: boolean;
+  data: ReadonlyArray<number>;
+}
+
+class PositionComponent extends Vector3 implements RayTracingComponent {
   static readonly size = 4;
   static readonly name = "Position" as const;
   static readonly dataclass = Float32Array;
@@ -1374,56 +1470,58 @@ class SphereComponent {
   }
 }
 
-// class ObjectTypeComponent {
-//   static readonly size = 1; // Object type ID
-//   static readonly name = "ObjectType" as const;
-//   static readonly dataclass = Uint32Array;
-//   entityRef: Entity | null = null;
+class TorusComponent implements RayTracingComponent {
+  static readonly size = 2; // Torus radius and tube radius
+  static readonly name = "Torus" as const;
+  static readonly dataclass = Float32Array;
 
-//   shouldUpdate = true;
-//   typeId: number;
+  entityRef: Entity | null = null;
+  shouldUpdate = true;
+  radius: number;
+  tubeRadius: number;
 
-//   get data() {
-//     return [this.typeId] as const;
-//   }
+  get data() {
+    return [this.radius, this.tubeRadius] as const;
+  }
 
-//   constructor(typeId: number = 0) {
-//     this.typeId = typeId;
-//     return new Proxy(this, {
-//       get: (target, prop) => {
-//         return (target as any)[prop];
-//       },
-//       set: (target, prop, value) => {
-//         (target as any).shouldUpdate = true;
-//         (target as any)[prop] = value;
-//         if ((target as any).entityRef) {
-//           (target as any).entityRef.shouldUpdate = true;
-//         }
-//         return true;
-//       },
-//     });
-//   }
-// }
+  constructor(radius: number = 1.0, tubeRadius: number = 0.5) {
+    this.radius = radius;
+    this.tubeRadius = tubeRadius;
+    return new Proxy(this, {
+      get: (target, prop) => {
+        return (target as any)[prop];
+      },
+      set: (target, prop, value) => {
+        (target as any).shouldUpdate = true;
+        (target as any)[prop] = value;
+        if ((target as any).entityRef) {
+          (target as any).entityRef.shouldUpdate = true;
+        }
+        return true;
+      },
+    });
+  }
+}
 
 const ComponentMap = {
   [PositionComponent.name]: PositionComponent,
   [ColorComponent.name]: ColorComponent,
   [SphereComponent.name]: SphereComponent,
-  // [ObjectTypeComponent.name]: ObjectTypeComponent,
+  [TorusComponent.name]: TorusComponent,
 } as const;
 
 const ComponentIds = {
   [PositionComponent.name]: 0,
   [ColorComponent.name]: 1,
   [SphereComponent.name]: 2,
-  // [ObjectTypeComponent.name]: 3,
+  [TorusComponent.name]: 3,
 } as const;
 
 const Components = [
   PositionComponent,
   ColorComponent,
   SphereComponent,
-  // ObjectTypeComponent,
+  TorusComponent,
 ] as const;
 
 type ComponentName = keyof typeof ComponentMap;
