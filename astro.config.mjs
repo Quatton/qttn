@@ -90,5 +90,10 @@ export default defineConfig({
           }
         : {},
     },
+    server: {
+      allowedHosts: [
+        "tower.qttn.dev"
+      ]
+    }
   },
 });
