@@ -1,0 +1,10 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { TowerGame } from "./game.tsx";
+---
+
+<Layout title="tower">
+  <main class="container mx-auto h-[100dvh] pt-16">
+    <TowerGame client:visible />
+  </main>
+</Layout>
