@@ -5,7 +5,7 @@ type ScrollElementCache = {
 };
 
 export function useScrollDetector(
-  hook: (scrollPassed: (id: string) => boolean) => void,
+  hook?: (scrollPassed: (id: string) => boolean) => void,
 ) {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const intersectedElements = useRef<ScrollElementCache>({});
