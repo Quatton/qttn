@@ -1,5 +1,58 @@
-import { useRef, useState, type ComponentPropsWithRef } from "react";
+import {
+  useRef,
+  useState,
+  useCallback,
+  forwardRef,
+  type ComponentPropsWithRef,
+} from "react";
 import rock from "./rock.png";
+
+interface ImageDisplayProps {
+  src?: string;
+  alt: string;
+  caption: string;
+  aspectRatio: number;
+  onFileUpload?: (file: File) => void;
+}
+
+function ImageDisplay({
+  src,
+  alt,
+  caption,
+  aspectRatio,
+  onFileUpload,
+  ref,
+}: ImageDisplayProps & ComponentPropsWithRef<"img">) {
+  return (
+    <figure className="flex h-full min-h-0 min-w-0 flex-col">
+      <div className="min-h-0 min-w-0 flex-1">
+        <div
+          style={{ aspectRatio }}
+          className="relative h-full overflow-clip rounded-md"
+        >
+          <ImageOrSkeleton
+            src={src}
+            ref={ref}
+            alt={alt}
+            className="h-full w-full object-contain"
+          />
+          {onFileUpload && (
+            <input
+              type="file"
+              accept="image/*"
+              className="absolute inset-0 cursor-pointer opacity-0"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onFileUpload(file);
+              }}
+            />
+          )}
+        </div>
+      </div>
+      <figcaption className="text-center">{caption}</figcaption>
+    </figure>
+  );
+}
 
 export function Filter() {
   const originalImgRef = useRef<HTMLImageElement>(null);
@@ -12,75 +65,81 @@ export function Filter() {
     height: rock.height,
   }));
 
+  const [imageSource, setImageSource] = useState<string>(rock.src);
+  const [processedImages, setProcessedImages] = useState({
+    smoothed: undefined as string | undefined,
+    detail: undefined as string | undefined,
+    enhanced: undefined as string | undefined,
+  });
+
   const aspectRatio = width / height;
 
+  const handleFileUpload = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setImageSource(result);
+
+      // Create a temporary image to get dimensions
+      const img = new Image();
+      img.onload = () => {
+        setDimensions({ width: img.width, height: img.height });
+        // Process the image here - for now just clearing processed versions
+        setProcessedImages({
+          smoothed: undefined,
+          detail: undefined,
+          enhanced: undefined,
+        });
+      };
+      img.src = result;
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
   return (
-    <div className="flex items-center justify-center">
-      <div className="not-prose grid aspect-square max-h-full max-w-full grid-cols-2 grid-rows-2 place-content-center gap-2">
-        <figure className="flex flex-col items-center justify-center gap-2">
-          <div style={{ aspectRatio }} className="w-full">
-            <ImageOrSkeleton
-              isProcessing={false}
-              src={rock.src}
-              ref={originalImgRef}
-              alt="Original rock texture image"
-              className="h-full w-full rounded object-contain"
-            />
-          </div>
-          <figcaption className="text-center text-sm font-medium">
-            Original
-          </figcaption>
-        </figure>
-        <figure className="flex flex-col items-center justify-center gap-2">
-          <div style={{ aspectRatio }} className="w-full">
-            <ImageOrSkeleton
-              ref={smoothedImgRef}
-              alt="Smoothed rock texture image"
-              className="h-full w-full rounded object-contain"
-            />
-          </div>
-          <figcaption className="text-center text-sm font-medium">
-            Smoothed
-          </figcaption>
-        </figure>
-        <figure className="flex flex-col items-center justify-center gap-2">
-          <div style={{ aspectRatio }} className="w-full">
-            <ImageOrSkeleton
-              ref={detailImgRef}
-              alt="Detail enhanced rock texture image"
-              className="h-full w-full rounded object-contain"
-            />
-          </div>
-          <figcaption className="text-center text-sm font-medium">
-            Detail
-          </figcaption>
-        </figure>
-        <figure className="flex flex-col items-center justify-center gap-2">
-          <div style={{ aspectRatio }} className="w-full">
-            <ImageOrSkeleton
-              ref={enhancedImgRef}
-              alt="Enhanced rock texture image"
-              className="h-full w-full rounded object-contain"
-            />
-          </div>
-          <figcaption className="text-center text-sm font-medium">
-            Enhanced
-          </figcaption>
-        </figure>
+    <div className="not-prose flex min-h-0 min-w-0 items-center justify-center p-4">
+      <div className="grid aspect-square max-h-full max-w-full grid-cols-2 gap-4">
+        <ImageDisplay
+          ref={originalImgRef}
+          src={imageSource}
+          alt="Original rock texture image"
+          caption="Original"
+          aspectRatio={aspectRatio}
+          onFileUpload={handleFileUpload}
+        />
+        <ImageDisplay
+          ref={smoothedImgRef}
+          src={processedImages.smoothed}
+          alt="Smoothed rock texture image"
+          caption="Smoothed"
+          aspectRatio={aspectRatio}
+        />
+        <ImageDisplay
+          ref={detailImgRef}
+          src={processedImages.detail}
+          alt="Detail enhanced rock texture image"
+          caption="Detail"
+          aspectRatio={aspectRatio}
+        />
+        <ImageDisplay
+          ref={enhancedImgRef}
+          src={processedImages.enhanced}
+          alt="Enhanced rock texture image"
+          caption="Enhanced"
+          aspectRatio={aspectRatio}
+        />
       </div>
     </div>
   );
 }
 
-export function ImageOrSkeleton({
-  isProcessing = true,
-  ...imgProps
-}: ComponentPropsWithRef<"img"> & {
-  isProcessing?: boolean;
-}) {
-  return isProcessing ? (
-    <div className="h-full w-full animate-pulse rounded bg-gray-200" />
+const ImageOrSkeleton = forwardRef<
+  HTMLImageElement,
+  ComponentPropsWithRef<"img">
+>(({ ...imgProps }, ref) => {
+  return imgProps.src === undefined ? (
+    <div className="absolute inset-0 flex animate-pulse items-center justify-center bg-gray-200" />
   ) : (
-    <img {...imgProps} />
+    <img {...imgProps} ref={ref} />
   );
-}
+});
