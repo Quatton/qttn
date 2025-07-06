@@ -32,6 +32,7 @@
     "@iconify-json/heroicons": "^1.2.2",
     "@libsql/client": "^0.15.4",
     "@nanostores/persistent": "^1.0.0",
+    "@nanostores/react": "^1.0.0",
     "@nanostores/vue": "^0.11.0",
     "@oslojs/crypto": "^1.0.1",
     "@react-three/drei": "^10.3.0",
