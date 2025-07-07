@@ -3,10 +3,15 @@ import {
   useState,
   useCallback,
   type ComponentPropsWithRef,
-  useMemo,
+  useEffect,
 } from "react";
 import rock from "./rock.png";
-import { $sigma, $sigmaColor, $useGaussian, smoothImage } from "./img.store";
+import {
+  $sigma,
+  $sigmaColor,
+  $useGaussian,
+  SmoothFilterRenderer,
+} from "./img.store";
 import { useStore } from "@nanostores/react";
 
 interface ImageDisplayProps {
@@ -22,6 +27,7 @@ function ImageDisplay({
   caption,
   aspectRatio,
   onFileUpload,
+  children,
   ...props
 }: ImageDisplayProps & ComponentPropsWithRef<"img">) {
   return (
@@ -35,7 +41,9 @@ function ImageDisplay({
             ref={ref}
             {...props}
             className="h-full w-full object-contain"
-          />
+          >
+            {children}
+          </ImageOrSkeleton>
           {onFileUpload && (
             <input
               type="file"
@@ -56,13 +64,9 @@ function ImageDisplay({
 
 export function Filter() {
   const originalImgRef = useRef<HTMLImageElement>(null);
-  const smoothedImgRef = useRef<HTMLImageElement>(null);
+  const smoothedCanvasRef = useRef<HTMLCanvasElement>(null);
   const detailImgRef = useRef<HTMLImageElement>(null);
   const enhancedImgRef = useRef<HTMLImageElement>(null);
-
-  const sigma = useStore($sigma);
-  const sigmaColor = useStore($sigmaColor);
-  const useGaussian = useStore($useGaussian);
 
   const [{ width, height }, setDimensions] = useState(() => ({
     width: rock.width,
@@ -92,20 +96,45 @@ export function Filter() {
 
   const [ready, setReady] = useState(false);
 
-  const smoothedImageSrc = useMemo(() => {
-    if (!imageSource || !originalImgRef.current || !ready) return undefined;
-    return smoothImage(originalImgRef.current);
-  }, [imageSource, ready, sigma, sigmaColor, useGaussian]);
+  const smoothAnimationFrame = useRef<number | null>(null);
 
-  const detailImageSrc = useMemo(() => {
-    if (!imageSource || !smoothedImgRef.current || !ready) return undefined;
-    return imageSource;
-  }, [imageSource, ready]);
+  useEffect(() => {
+    const canvas = smoothedCanvasRef.current;
+    const img = originalImgRef.current;
+    if (!canvas || !ready || !img) return;
 
-  const enhancedImageSrc = useMemo(() => {
-    if (!imageSource || !detailImgRef.current || !ready) return undefined;
-    return imageSource;
-  }, [imageSource, ready]);
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const renderer = new SmoothFilterRenderer(canvas, $sigma, $sigmaColor);
+    const smoothResizeObserver = new ResizeObserver(() => {
+      renderer.glRenderer.resize(img);
+    });
+    smoothResizeObserver.disconnect();
+    smoothResizeObserver.observe(img);
+
+    function render() {
+      if (!img?.complete) {
+        requestAnimationFrame(render);
+        return;
+      }
+
+      renderer.render();
+      smoothAnimationFrame.current = requestAnimationFrame(render);
+    }
+
+    if (smoothAnimationFrame.current) {
+      cancelAnimationFrame(smoothAnimationFrame.current);
+    }
+    smoothAnimationFrame.current = requestAnimationFrame(render);
+
+    return () => {
+      renderer.glRenderer.destroy();
+      if (smoothAnimationFrame.current) {
+        cancelAnimationFrame(smoothAnimationFrame.current);
+      }
+      smoothResizeObserver.disconnect();
+    };
+  }, [ready, originalImgRef, smoothedCanvasRef]);
 
   return (
     <div className="not-prose flex min-h-0 min-w-0 items-center justify-center p-4">
@@ -122,15 +151,15 @@ export function Filter() {
           onFileUpload={handleFileUpload}
         />
         <ImageDisplay
-          ref={smoothedImgRef}
-          src={smoothedImageSrc}
+          src=" "
           alt="Smoothed rock texture image"
           caption="Smoothed"
           aspectRatio={aspectRatio}
-        />
+        >
+          <canvas className="h-full w-full" ref={smoothedCanvasRef} />
+        </ImageDisplay>
         <ImageDisplay
           ref={detailImgRef}
-          src={detailImageSrc}
           alt="Detail enhanced rock texture image"
           caption="Detail"
           aspectRatio={aspectRatio}
@@ -138,7 +167,6 @@ export function Filter() {
 
         <ImageDisplay
           ref={enhancedImgRef}
-          src={enhancedImageSrc}
           alt="Enhanced rock texture image"
           caption="Enhanced"
           aspectRatio={aspectRatio}
@@ -190,6 +218,8 @@ export function ControlPanel() {
 const ImageOrSkeleton = ({ ref, ...props }: ComponentPropsWithRef<"img">) => {
   return props.src === undefined ? (
     <div className="absolute inset-0 flex animate-pulse items-center justify-center bg-gray-200" />
+  ) : props.children ? (
+    props.children
   ) : (
     <img {...props} ref={ref} />
   );
