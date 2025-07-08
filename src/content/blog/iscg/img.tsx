@@ -7,9 +7,13 @@ import {
 } from "react";
 import rock from "./rock.png";
 import {
+  $detailOffset,
+  $detailScale,
   $sigma,
   $sigmaColor,
   $useGaussian,
+  DetailFilterRenderer,
+  EnhancedFilterRenderer,
   SmoothFilterRenderer,
 } from "./img.store";
 import { useStore } from "@nanostores/react";
@@ -65,8 +69,8 @@ function ImageDisplay({
 export function Filter() {
   const originalImgRef = useRef<HTMLImageElement>(null);
   const smoothedCanvasRef = useRef<HTMLCanvasElement>(null);
-  const detailImgRef = useRef<HTMLImageElement>(null);
-  const enhancedImgRef = useRef<HTMLImageElement>(null);
+  const detailCanvasRef = useRef<HTMLCanvasElement>(null);
+  const enhancedCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const [{ width, height }, setDimensions] = useState(() => ({
     width: rock.width,
@@ -96,43 +100,80 @@ export function Filter() {
 
   const [ready, setReady] = useState(false);
 
-  const smoothAnimationFrame = useRef<number | null>(null);
-
   useEffect(() => {
-    const canvas = smoothedCanvasRef.current;
+    const smoothCanvas = smoothedCanvasRef.current;
     const img = originalImgRef.current;
-    if (!canvas || !ready || !img) return;
+    const detailCanvas = detailCanvasRef.current;
+    const enhancedCanvas = enhancedCanvasRef.current;
 
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const renderer = new SmoothFilterRenderer(canvas, $sigma, $sigmaColor);
-    const smoothResizeObserver = new ResizeObserver(() => {
-      renderer.glRenderer.resize(img);
-    });
-    smoothResizeObserver.disconnect();
-    smoothResizeObserver.observe(img);
+    if (!smoothCanvas || !ready || !img || !detailCanvas || !enhancedCanvas) {
+      return;
+    }
+
+    smoothCanvas.width = img.width;
+    smoothCanvas.height = img.height;
+    const smoothRenderer = new SmoothFilterRenderer(
+      smoothCanvas,
+      $sigma,
+      $sigmaColor,
+    );
+    const detailRenderer = new DetailFilterRenderer(
+      detailCanvas,
+      img,
+      smoothCanvas,
+    );
+    const enhancedRenderer = new EnhancedFilterRenderer(
+      enhancedCanvas,
+      img,
+      detailCanvas,
+    );
 
     function render() {
-      if (!img?.complete) {
-        requestAnimationFrame(render);
-        return;
-      }
-
-      renderer.render();
-      smoothAnimationFrame.current = requestAnimationFrame(render);
+      if (!img || !smoothCanvas || !detailCanvas) return;
+      smoothRenderer.render();
+      detailRenderer.setImages(img, smoothCanvas);
+      detailRenderer.render();
+      enhancedRenderer.setImages(img, detailCanvas);
+      enhancedRenderer.render();
     }
 
-    if (smoothAnimationFrame.current) {
-      cancelAnimationFrame(smoothAnimationFrame.current);
-    }
-    smoothAnimationFrame.current = requestAnimationFrame(render);
+    const ro = new ResizeObserver(() => {
+      smoothRenderer.glRenderer.resize(img);
+      detailRenderer.glRenderer.resize(img);
+      enhancedRenderer.glRenderer.resize(img);
+      render();
+    });
+    ro.observe(img);
+
+    const unsubscribeSigma = $sigma.subscribe(() => {
+      render();
+    });
+
+    const unsubscribeSigmaColor = $sigmaColor.subscribe(() => {
+      render();
+    });
+
+    const unsubscribeUseGaussian = $useGaussian.subscribe(() => {
+      render();
+    });
+
+    const unsubscribeDetailOffset = $detailOffset.subscribe(() => {
+      render();
+    });
+    const unsubscribeDetailScale = $detailScale.subscribe(() => {
+      render();
+    });
 
     return () => {
-      renderer.glRenderer.destroy();
-      if (smoothAnimationFrame.current) {
-        cancelAnimationFrame(smoothAnimationFrame.current);
-      }
-      smoothResizeObserver.disconnect();
+      smoothRenderer.destroy();
+      detailRenderer.destroy();
+      enhancedRenderer.destroy();
+      ro.disconnect();
+      unsubscribeSigma();
+      unsubscribeSigmaColor();
+      unsubscribeUseGaussian();
+      unsubscribeDetailOffset();
+      unsubscribeDetailScale();
     };
   }, [ready, originalImgRef, smoothedCanvasRef]);
 
@@ -141,8 +182,11 @@ export function Filter() {
       <div className="grid aspect-square max-h-full max-w-full grid-cols-2 gap-4">
         <ImageDisplay
           ref={(ref) => {
+            if (!ref) return;
             originalImgRef.current = ref;
-            setReady(true);
+            originalImgRef.current.onload = () => {
+              setReady(true);
+            };
           }}
           src={imageSource}
           alt="Original rock texture image"
@@ -159,57 +203,116 @@ export function Filter() {
           <canvas className="h-full w-full" ref={smoothedCanvasRef} />
         </ImageDisplay>
         <ImageDisplay
-          ref={detailImgRef}
+          src=" "
           alt="Detail enhanced rock texture image"
           caption="Detail"
           aspectRatio={aspectRatio}
-        />
+        >
+          <canvas className="h-full w-full" ref={detailCanvasRef} />
+        </ImageDisplay>
 
         <ImageDisplay
-          ref={enhancedImgRef}
+          src=" "
           alt="Enhanced rock texture image"
           caption="Enhanced"
           aspectRatio={aspectRatio}
-        />
+        >
+          <canvas className="h-full w-full" ref={enhancedCanvasRef} />
+        </ImageDisplay>
       </div>
     </div>
   );
 }
 
 export function ControlPanel() {
+  const [localSigma, setLocalSigma] = useState(useStore($sigma));
+  const [localSigmaColor, setLocalSigmaColor] = useState(useStore($sigmaColor));
+  const [localUseGaussian, setLocalUseGaussian] = useState(
+    useStore($useGaussian),
+  );
+  const [localDetailOffset, setLocalDetailOffset] = useState(
+    useStore($detailOffset),
+  );
+  const [localDetailScale, setLocalDetailScale] = useState(
+    useStore($detailScale),
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      $sigma.set(localSigma);
+      $sigmaColor.set(localSigmaColor);
+      $useGaussian.set(localUseGaussian);
+      $detailOffset.set(localDetailOffset);
+      $detailScale.set(localDetailScale);
+    }, 16);
+    return () => clearTimeout(timer);
+  }, [
+    localSigma,
+    localSigmaColor,
+    localUseGaussian,
+    localDetailOffset,
+    localDetailScale,
+  ]);
+
   return (
-    <div className="flex items-center justify-center p-4">
-      <div className="flex flex-col items-center">
-        <h2 className="text-lg font-semibold">Control Panel</h2>
-        <div className="mt-4">
-          <label className="label">Sigma (Position Smoothing):</label>
-          <input
-            type="range"
-            min="0"
-            max="10"
-            step="0.1"
-            className="range w-full"
-            value={useStore($sigma)}
-            onChange={(e) => $sigma.set(Number(e.target.value))}
-          />
-          <label className="label">Sigma Color (Color Smoothing):</label>
-          <input
-            type="range"
-            min="0"
-            max="10"
-            step="0.1"
-            className="w-full"
-            value={useStore($sigmaColor)}
-            onChange={(e) => $sigmaColor.set(Number(e.target.value))}
-          />
-          <label className="label">Use Gaussian Smoothing:</label>
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={useStore($useGaussian)}
-            onChange={(e) => $useGaussian.set(e.target.checked)}
-          />
-        </div>
+    <div className="flex flex-col gap-4 p-4">
+      <h2 className="text-lg font-semibold">Smoothing</h2>
+      <div>
+        <label className="label">Sigma</label>
+        <input
+          type="range"
+          min="0.1"
+          max="10"
+          step="0.1"
+          className="range w-full"
+          value={localSigma}
+          onChange={(e) => setLocalSigma(Number(e.target.value))}
+        />
+      </div>
+      <div>
+        <label className="label">Sigma Range</label>
+        <input
+          type="range"
+          min="1"
+          max="512"
+          step="0.1"
+          className="range w-full"
+          value={localSigmaColor}
+          onChange={(e) => setLocalSigmaColor(Number(e.target.value))}
+        />
+      </div>
+      <div>
+        <label className="label">Use Gaussian Smoothing:</label>
+        <input
+          type="checkbox"
+          className="checkbox"
+          checked={localUseGaussian}
+          onChange={(e) => setLocalUseGaussian(e.target.checked)}
+        />
+      </div>
+      <div>
+        <label className="label inline-block">Detail Offset</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          className="range w-full"
+          value={localDetailOffset}
+          onChange={(e) => setLocalDetailOffset(Number(e.target.value))}
+        />
+      </div>
+      <div>
+        <label className="label">Detail Scale</label>
+        <input
+          type="range"
+          min="1"
+          max="10"
+          step="0.1"
+          className="range w-full"
+          value={localDetailScale}
+          onChange={(e) => setLocalDetailScale(Number(e.target.value))}
+        />
       </div>
     </div>
   );

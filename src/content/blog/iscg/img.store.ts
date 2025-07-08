@@ -28,13 +28,11 @@ void main() {
   vec4 color = texture(u_image, v_texCoord);
 
   if (u_useGaussian) {
-    // Apply Gaussian smoothing
     color = vec4(
       smoothImageGaussian(color, u_sigma).rgb,
       color.a
     );
   } else {
-    // Apply Bilateral smoothing
     color = vec4(
       smoothImageBilateral(color, u_sigma, u_sigmaColor).rgb,
       color.a
@@ -45,17 +43,102 @@ void main() {
 }
 
 vec4 smoothImageGaussian(vec4 color, float sigma) {
-  // Placeholder for Gaussian smoothing logic
-  // This function should implement the Gaussian smoothing algorithm
-  // For now, just return the original color
-  return color;
+  int r = int(ceil(sigma * 3.0));
+  vec2 texelSize = 1.0 / vec2(textureSize(u_image, 0));
+  
+  vec3 result = vec3(0.0);
+  float weightSum = 0.0;
+  
+  for (int dy = -r; dy <= r; dy++) {
+    for (int dx = -r; dx <= r; dx++) {
+      vec2 offset = vec2(float(dx), float(dy)) * texelSize;
+      vec2 sampleCoord = v_texCoord + offset;
+
+      if (sampleCoord.x < 0.0 || sampleCoord.x > 1.0 || 
+          sampleCoord.y < 0.0 || sampleCoord.y > 1.0) {
+        continue;
+      }
+      
+      vec4 sampleColor = texture(u_image, sampleCoord);
+      float h = sqrt(float(dx * dx + dy * dy));
+      float weight = exp(-(h * h) / (2.0 * sigma * sigma));
+      
+      result += sampleColor.rgb * weight;
+      weightSum += weight;
+    }
+  }
+  
+  return vec4(result / weightSum, color.a);
 }
 
 vec4 smoothImageBilateral(vec4 color, float sigma, float sigmaColor) {
-  // Placeholder for Bilateral smoothing logic
-  // This function should implement the Bilateral smoothing algorithm
-  // For now, just return the original color
-  return color;
+  int r = int(ceil(sigma * 3.0));
+  vec2 texelSize = 1.0 / vec2(textureSize(u_image, 0));
+  vec3 result = vec3(0.0);
+  float weightSum = 0.0;
+
+  for (int dy = -r; dy <= r; dy++) {
+    for (int dx = -r; dx <= r; dx++) {
+      vec2 offset = vec2(float(dx), float(dy)) * texelSize;
+      vec2 sampleCoord = v_texCoord + offset;
+
+      if (sampleCoord.x < 0.0 || sampleCoord.x > 1.0 || 
+          sampleCoord.y < 0.0 || sampleCoord.y > 1.0) {
+        continue;
+      }
+      
+      vec4 sampleColor = texture(u_image, sampleCoord);
+      float h = sqrt(float(dx * dx + dy * dy));
+      float weightSpace = exp(-(h * h) / (2.0 * sigma * sigma));
+      
+      float colorDistance = length(sampleColor.rgb - color.rgb);
+      float weightColor = exp(-(colorDistance * colorDistance) / (2.0 * sigmaColor * sigmaColor));
+      
+      float weight = weightSpace * weightColor;
+      
+      result += sampleColor.rgb * weight;
+      weightSum += weight;
+    }
+  }
+
+  return vec4(result / weightSum, color.a);
+}`;
+
+/** orig - smooth */
+const detailFragmentShaderSource = /* glsl */ `#version 300 es
+precision mediump float;
+in vec2 v_texCoord;
+out vec4 outColor;
+uniform sampler2D u_orig;
+uniform sampler2D u_smooth;
+uniform float u_detailOffset;
+
+void main() {
+  vec4 origColor = texture(u_orig, v_texCoord);
+  vec4 smoothColor = texture(u_smooth, v_texCoord);
+  vec4 detailColor = (origColor - smoothColor) + u_detailOffset;
+  detailColor = clamp(detailColor, 0.0, 1.0);
+  
+  outColor = vec4(detailColor.rgb, origColor.a);
+}`;
+
+/** orig + detail * scale */
+export const enhancedFragmentShaderSource = /* glsl */ `#version 300 es
+precision mediump float;
+in vec2 v_texCoord;
+out vec4 outColor;
+uniform sampler2D u_orig;
+uniform sampler2D u_detail;
+uniform float u_detailScale;
+
+void main() {
+  vec4 origColor = texture(u_orig, v_texCoord);
+  vec4 detailColor = texture(u_detail, v_texCoord);
+  
+  vec4 enhancedColor = origColor + detailColor * u_detailScale;
+  enhancedColor = clamp(enhancedColor, 0.0, 1.0);
+  
+  outColor = enhancedColor;
 }`;
 
 export const $useGaussian = atom<boolean>(true);
@@ -63,6 +146,10 @@ export const $useGaussian = atom<boolean>(true);
 export const $sigma = atom<number>(5);
 /** ピクセルの 色 に関する平滑化の範囲 */
 export const $sigmaColor = atom<number>(1);
+/** Detail offset */
+export const $detailOffset = atom<number>(0.5);
+/** Detail scale */
+export const $detailScale = atom<number>(1.0);
 
 // courtesy of original assignment example
 function smoothImageGaussian(imgData: ImageData, sigma: number) {
@@ -254,7 +341,6 @@ class GLRenderer {
     }
 
     const program = gl.createProgram();
-    if (!program) throw new Error("Failed to create shader program");
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
@@ -273,7 +359,6 @@ class GLRenderer {
   public createPositionBuffer(): WebGLBuffer {
     const gl = this.gl;
     const positionBuffer = gl.createBuffer();
-    if (!positionBuffer) throw new Error("Failed to create position buffer");
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     const positions = new Float32Array([
       -1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,
@@ -285,7 +370,6 @@ class GLRenderer {
   public createTexCoordBuffer(): WebGLBuffer {
     const gl = this.gl;
     const texCoordBuffer = gl.createBuffer();
-    if (!texCoordBuffer) throw new Error("Failed to create texCoord buffer");
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]);
     gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
@@ -295,7 +379,6 @@ class GLRenderer {
   public createTexture(): WebGLTexture {
     const gl = this.gl;
     const texture = gl.createTexture();
-    if (!texture) throw new Error("Failed to create texture");
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -332,8 +415,6 @@ class GLRenderer {
       0, // stride
       0, // offset
     );
-
-    gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -416,5 +497,197 @@ export class SmoothFilterRenderer {
       gl.uniform1i(useGaussianLocation, this.useGaussianStore.get() ? 1 : 0);
     }
     this.glRenderer.renderToCanvas();
+  }
+
+  public destroy(): void {
+    this.glRenderer.destroy();
+  }
+}
+
+export class DetailFilterRenderer {
+  public glRenderer: GLRenderer;
+  private smoothTexture: WebGLTexture;
+
+  constructor(
+    canvas: HTMLCanvasElement,
+    origImg: HTMLImageElement,
+    smoothImg: HTMLCanvasElement,
+  ) {
+    this.glRenderer = new GLRenderer(
+      canvas,
+      vertexShaderSource,
+      detailFragmentShaderSource,
+    );
+    this.glRenderer.resize(origImg);
+    this.smoothTexture = this.glRenderer.createTexture();
+    this.setImages(origImg, smoothImg);
+  }
+
+  public setImages(
+    origImg: HTMLImageElement,
+    smoothImg: HTMLCanvasElement,
+  ): void {
+    const gl = this.glRenderer.gl;
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.glRenderer.texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      gl.RGBA, // internal format
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      origImg,
+    );
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.smoothTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      gl.RGBA, // internal format
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      smoothImg,
+    );
+
+    gl.useProgram(this.glRenderer.program);
+
+    const origLocation = gl.getUniformLocation(
+      this.glRenderer.program,
+      "u_orig",
+    );
+    const smoothLocation = gl.getUniformLocation(
+      this.glRenderer.program,
+      "u_smooth",
+    );
+    if (origLocation !== null) {
+      gl.uniform1i(origLocation, 0);
+    }
+    if (smoothLocation !== null) {
+      gl.uniform1i(smoothLocation, 1);
+    }
+
+    this.render();
+  }
+
+  public render(): void {
+    const gl = this.glRenderer.gl;
+    gl.useProgram(this.glRenderer.program);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.glRenderer.texture);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.smoothTexture);
+
+    const detailOffsetLocation = gl.getUniformLocation(
+      this.glRenderer.program,
+      "u_detailOffset",
+    );
+
+    if (detailOffsetLocation !== null) {
+      gl.uniform1f(detailOffsetLocation, $detailOffset.get());
+    }
+
+    this.glRenderer.renderToCanvas();
+  }
+
+  public destroy(): void {
+    const gl = this.glRenderer.gl;
+    gl.deleteTexture(this.smoothTexture);
+    this.glRenderer.destroy();
+  }
+}
+
+export class EnhancedFilterRenderer {
+  public glRenderer: GLRenderer;
+  private detailTexture: WebGLTexture;
+
+  constructor(
+    canvas: HTMLCanvasElement,
+    origImg: HTMLImageElement,
+    detailImg: HTMLCanvasElement,
+  ) {
+    this.glRenderer = new GLRenderer(
+      canvas,
+      vertexShaderSource,
+      enhancedFragmentShaderSource,
+    );
+    this.glRenderer.resize(origImg);
+    this.detailTexture = this.glRenderer.createTexture();
+    this.setImages(origImg, detailImg);
+  }
+
+  public setImages(
+    origImg: HTMLImageElement,
+    detailImg: HTMLCanvasElement,
+  ): void {
+    const gl = this.glRenderer.gl;
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.glRenderer.texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      gl.RGBA, // internal format
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      origImg,
+    );
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.detailTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      gl.RGBA, // internal format
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      detailImg,
+    );
+
+    gl.useProgram(this.glRenderer.program);
+
+    const origLocation = gl.getUniformLocation(
+      this.glRenderer.program,
+      "u_orig",
+    );
+    const detailLocation = gl.getUniformLocation(
+      this.glRenderer.program,
+      "u_detail",
+    );
+    if (origLocation !== null) {
+      gl.uniform1i(origLocation, 0);
+    }
+    if (detailLocation !== null) {
+      gl.uniform1i(detailLocation, 1);
+    }
+
+    this.render();
+  }
+
+  public render(): void {
+    const gl = this.glRenderer.gl;
+    gl.useProgram(this.glRenderer.program);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.glRenderer.texture);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.detailTexture);
+
+    const detailScaleLocation = gl.getUniformLocation(
+      this.glRenderer.program,
+      "u_detailScale",
+    );
+
+    if (detailScaleLocation !== null) {
+      gl.uniform1f(detailScaleLocation, $detailScale.get());
+    }
+
+    this.glRenderer.renderToCanvas();
+  }
+
+  public destroy(): void {
+    const gl = this.glRenderer.gl;
+    gl.deleteTexture(this.detailTexture);
+    this.glRenderer.destroy();
   }
 }
