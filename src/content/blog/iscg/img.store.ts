@@ -76,6 +76,7 @@ vec4 smoothImageBilateral(vec4 color, float sigma, float sigmaColor) {
   vec2 texelSize = 1.0 / vec2(textureSize(u_image, 0));
   vec3 result = vec3(0.0);
   float weightSum = 0.0;
+  vec4 centerColor = texture(u_image, v_texCoord);
 
   for (int dy = -r; dy <= r; dy++) {
     for (int dx = -r; dx <= r; dx++) {
@@ -91,7 +92,7 @@ vec4 smoothImageBilateral(vec4 color, float sigma, float sigmaColor) {
       float h = sqrt(float(dx * dx + dy * dy));
       float weightSpace = exp(-(h * h) / (2.0 * sigma * sigma));
       
-      float colorDistance = length(sampleColor.rgb - color.rgb);
+      float colorDistance = length(sampleColor.rgb - centerColor.rgb);
       float weightColor = exp(-(colorDistance * colorDistance) / (2.0 * sigmaColor * sigmaColor));
       
       float weight = weightSpace * weightColor;
@@ -130,12 +131,13 @@ out vec4 outColor;
 uniform sampler2D u_orig;
 uniform sampler2D u_detail;
 uniform float u_detailScale;
+uniform float u_detailOffset;
 
 void main() {
   vec4 origColor = texture(u_orig, v_texCoord);
   vec4 detailColor = texture(u_detail, v_texCoord);
   
-  vec4 enhancedColor = origColor + detailColor * u_detailScale;
+  vec4 enhancedColor = origColor + (detailColor - u_detailOffset) * u_detailScale;
   enhancedColor = clamp(enhancedColor, 0.0, 1.0);
   
   outColor = enhancedColor;
@@ -680,6 +682,15 @@ export class EnhancedFilterRenderer {
 
     if (detailScaleLocation !== null) {
       gl.uniform1f(detailScaleLocation, $detailScale.get());
+    }
+
+    const detailOffsetLocation = gl.getUniformLocation(
+      this.glRenderer.program,
+      "u_detailOffset",
+    );
+
+    if (detailOffsetLocation !== null) {
+      gl.uniform1f(detailOffsetLocation, $detailOffset.get());
     }
 
     this.glRenderer.renderToCanvas();

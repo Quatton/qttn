@@ -268,51 +268,155 @@ export function ControlPanel() {
           value={localSigma}
           onChange={(e) => setLocalSigma(Number(e.target.value))}
         />
+        <div className="mt-2 flex justify-between px-2.5 text-xs">
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+        </div>
+        <div className="mt-2 flex justify-between px-2.5 text-xs">
+          <span>0.1</span>
+          <span>2.0</span>
+          <span>4.0</span>
+          <span>6.0</span>
+          <span>8.0</span>
+          <span>10.0</span>
+        </div>
       </div>
       <div>
-        <label className="label">Sigma Range</label>
+        <label className="label" htmlFor="range-sigma-color">
+          Sigma Range
+        </label>{" "}
+        <label className="label" htmlFor="use-gaussian">
+          (Use Gaussian Smoothing:
+          <input
+            id="use-gaussian"
+            type="checkbox"
+            className="checkbox"
+            checked={localUseGaussian}
+            onChange={(e) => setLocalUseGaussian(e.target.checked)}
+          />
+          )
+        </label>
         <input
+          id="range-sigma-color"
           type="range"
-          min="1"
-          max="512"
-          step="0.1"
+          min="0.01"
+          max="2"
+          step="0.01"
           className="range w-full"
           value={localSigmaColor}
           onChange={(e) => setLocalSigmaColor(Number(e.target.value))}
         />
+        <div className="mt-2 flex justify-between px-2.5 text-xs">
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+        </div>
+        <div className="mt-2 flex justify-between px-2.5 text-xs">
+          <span>0.01</span>
+          <span>0.2</span>
+          <span>0.4</span>
+          <span>0.6</span>
+          <span>0.8</span>
+          <span>1.0</span>
+          <span>1.2</span>
+          <span>1.4</span>
+          <span>1.6</span>
+          <span>1.8</span>
+          <span>2.0</span>
+        </div>
       </div>
-      <div>
-        <label className="label">Use Gaussian Smoothing:</label>
-        <input
-          type="checkbox"
-          className="checkbox"
-          checked={localUseGaussian}
-          onChange={(e) => setLocalUseGaussian(e.target.checked)}
-        />
-      </div>
+      <h2 className="text-lg font-semibold">Detail & Enhancement</h2>
+
       <div>
         <label className="label inline-block">Detail Offset</label>
         <input
           type="range"
           min="0"
           max="1"
-          step="0.01"
+          step="0.1"
           className="range w-full"
           value={localDetailOffset}
           onChange={(e) => setLocalDetailOffset(Number(e.target.value))}
         />
+        <div className="mt-2 flex justify-between px-2.5 text-xs">
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+        </div>
+        <div className="mt-2 flex justify-between px-2.5 text-xs">
+          <span>0.0</span>
+          <span>0.1</span>
+          <span>0.2</span>
+          <span>0.3</span>
+          <span>0.4</span>
+          <span>0.5</span>
+          <span>0.6</span>
+          <span>0.7</span>
+          <span>0.8</span>
+          <span>0.9</span>
+          <span>1.0</span>
+        </div>
       </div>
       <div>
         <label className="label">Detail Scale</label>
         <input
           type="range"
-          min="1"
+          min="0"
           max="10"
           step="0.1"
           className="range w-full"
           value={localDetailScale}
           onChange={(e) => setLocalDetailScale(Number(e.target.value))}
         />
+        <div className="mt-2 flex justify-between px-2.5 text-xs">
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+          <span>|</span>
+        </div>
+        <div className="mt-2 flex justify-between px-2.5 text-xs">
+          <span>0.0</span>
+          <span>1.0</span>
+          <span>2.0</span>
+          <span>3.0</span>
+          <span>4.0</span>
+          <span>5.0</span>
+          <span>6.0</span>
+          <span>7.0</span>
+          <span>8.0</span>
+          <span>9.0</span>
+          <span>10.0</span>
+        </div>
       </div>
     </div>
   );
