@@ -9,7 +9,7 @@
     "directory": "./dist",
   },
   "vars": {
-    "NODE_OPTIONS": "--max-old-space-size=2048",
+    "NODE_OPTIONS": "--max-old-space-size=1024",
   },
   "kv_namespaces": [
     {
