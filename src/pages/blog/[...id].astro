@@ -109,3 +109,33 @@ const { Content } = await render(blog);
     color: var(--diff-inserted-fg);
   }
 </style>
+
+<script>
+  import mermaid from "mermaid";
+
+  function renderMermaidCharts() {
+    const mermaidCodeBlocks = document.querySelectorAll(
+      "pre[data-language='mermaid'] > code",
+    );
+
+    mermaidCodeBlocks.forEach((codeBlock) => {
+      const preElement = codeBlock.parentElement;
+      if (preElement) {
+        const mermaidContainer = document.createElement("div");
+        mermaidContainer.classList.add("mermaid");
+        mermaidContainer.textContent = codeBlock.textContent || "";
+        preElement.replaceWith(mermaidContainer);
+      }
+    });
+
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "neutral",
+    });
+    mermaid.run();
+  }
+
+  renderMermaidCharts();
+
+  document.addEventListener("astro:page-load", renderMermaidCharts);
+</script>

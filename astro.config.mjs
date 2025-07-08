@@ -17,8 +17,6 @@ import {
 
 import solidJs from "@astrojs/solid-js";
 import react from "@astrojs/react";
-
-import rehypeMermaid from "rehype-mermaid";
 import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 
@@ -38,11 +36,11 @@ export default defineConfig({
     : `https://${PUBLIC_BASE_URL}`,
   markdown: {
     syntaxHighlight: {
-      excludeLangs: ["mermaid", "math"],
+      excludeLangs: ["math"],
     },
-    // gfm: true,
+    gfm: true,
     remarkPlugins: [remarkMath],
-    rehypePlugins: [rehypeMermaid, rehypeKatex],
+    rehypePlugins: [rehypeKatex],
     shikiConfig: {
       theme: "vesper",
       wrap: true,
