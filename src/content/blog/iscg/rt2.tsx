@@ -692,75 +692,14 @@ class Sphere {
   }
 }
 
-class SceneObjectState implements StateBuffer<Float32Array> {
-  data: Float32Array;
-  device: GPUDevice;
-  buffer: GPUBuffer;
-  objects: Sphere[];
-
-  private readonly bufferConfig = () => ({
-    label: "Scene Object Buffer",
-    size: this.data.byteLength,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-  });
-
-  constructor(device: GPUDevice, objects: Sphere[] = []) {
-    this.device = device;
-    this.objects = objects;
-    this.data = new Float32Array(objects.length * Sphere.size);
-    this.buffer = this.createBuffer();
-    this.writeBuffer();
-  }
-
-  addObject(object: Sphere) {
-    this.objects.push(object);
-    this.resizeBuffer();
-    this.writeBuffer();
-  }
-
-  resizeBuffer() {
-    const newSize = this.objects.length * Sphere.size;
-    if (this.data.length < newSize) {
-      const newData = new Float32Array(newSize);
-      newData.set(this.data);
-      this.data = newData;
-    }
-  }
-
-  writeBuffer() {
-    for (let i = 0; i < this.objects.length; i++) {
-      const object = this.objects[i];
-      const offset = i * Sphere.size;
-      this.data.set(object.data, offset);
-    }
-    this.device.queue.writeBuffer(this.buffer, 0, this.data);
-  }
-
-  createBuffer() {
-    this.buffer?.destroy();
-    this.buffer = this.device.createBuffer(this.bufferConfig());
-    return this.buffer;
-  }
-
-  destroy() {
-    this.buffer?.destroy();
-  }
-}
-
 class RayTracingState {
   imageBuffer: ImageBuffer;
   camera: Camera;
-  objects: SceneObjectState;
   entityRegistry: EntityRegistry;
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     this.imageBuffer = new ImageBuffer(device, canvas.width, canvas.height);
     this.camera = new Camera(device, [canvas.width, canvas.height]);
-    this.objects = new SceneObjectState(device, [
-      new Sphere(new Vector3(0, 10, 0), 10, new Vector4(0.8, 0.8, 0.3, 1.0)),
-      new Sphere(new Vector3(15, 15, 5), 15, new Vector4(0.8, 0.3, 0.8, 1.0)),
-      new Sphere(new Vector3(-20, 12, 0), 12, new Vector4(0.3, 0.3, 0.8, 1.0)),
-    ]);
     this.entityRegistry = new EntityRegistry(device);
     this.entityRegistry.spawn([
       new PositionComponent(0, 10, 0),
@@ -787,7 +726,6 @@ class RayTracingState {
   destroy() {
     this.imageBuffer.destroy();
     this.camera.destroy();
-    this.objects.destroy();
     this.entityRegistry.destroy();
   }
 }
@@ -964,7 +902,6 @@ class RayTracingRenderer {
       ],
     });
 
-    this.state.objects.writeBuffer();
     this.state.camera.writeBuffer();
   }
 
