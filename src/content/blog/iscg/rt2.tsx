@@ -418,63 +418,45 @@ fn fragmentMain(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
 
 type System = (rd: RayTracingRenderer) => void;
 
-const TUBE_RADIUS = 5.0;
-
-const toruses = Array.from({ length: 7 }, (_, i) => ({
-  position: new Vector3(0, TUBE_RADIUS * 2 * i + TUBE_RADIUS, 0),
-  radius: 20.0,
-  tubeRadius: TUBE_RADIUS,
-  color: new Vector4(Math.random(), Math.random(), Math.random(), 1.0),
-}));
-
 export function RayTracing() {
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<RayTracingRenderer | null>(null);
   const frameId = useRef<number | null>(null);
+  const setupRan = useRef(false);
 
-  const stateRef = useRef<{
-    angle: number;
-    spawnedSpheres: Entity[];
-    toruses: Entity[];
-  }>({
-    angle: 0,
-    spawnedSpheres: [],
-    toruses: [],
-  });
-
-  const jumpingUpandDown: System = (rd) => {
-    const state = stateRef.current;
-
-    if (state.angle >= 360) {
-      state.angle = 0;
-    } else {
-      state.angle += 0.1;
-    }
-
-    const data =
-      rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
-    if (data) {
-      data.y = Math.sin(state.angle) * 10 + 10;
-    }
-
-    const data2 =
-      rd.state.entityRegistry.entities.get(1)?.directComponentMap.Position;
-    if (data2) {
-      data2.z = Math.sin(state.angle + Math.PI) * 10;
-    }
-  };
+  function setupRayTracingScene(renderer: RayTracingRenderer) {
+    renderer.state.entityRegistry.spawn([
+      new PositionComponent(0, 10, 0),
+      new ColorComponent(0.8, 0.8, 0.3, 1.0),
+      new SphereComponent(10),
+    ]);
+    renderer.state.entityRegistry.spawn([
+      new PositionComponent(15, 15, 5),
+      new ColorComponent(0.8, 0.3, 0.8, 1.0),
+      new SphereComponent(15),
+    ]);
+    renderer.state.entityRegistry.spawn([
+      new PositionComponent(-20, 12, 0),
+      new ColorComponent(0.3, 0.3, 0.8, 1.0),
+      new SphereComponent(12),
+    ]);
+  }
 
   const initRayTracing = useCallback(
     async (canvas: HTMLCanvasElement) => {
       if (!rendererRef.current) {
         rendererRef.current = new RayTracingRenderer(canvas);
-        rendererRef.current.systems.push(jumpingUpandDown);
       }
       const renderer = rendererRef.current;
       if (!renderer.isInitialized()) {
         try {
           await renderer.init();
+
+          if (!setupRan.current) {
+            setupRayTracingScene(renderer);
+            setupRan.current = true;
+          }
 
           const loop = () => {
             renderer.update();
@@ -508,6 +490,7 @@ export function RayTracing() {
       if (rendererRef.current) {
         rendererRef.current.destroy();
         rendererRef.current = null;
+        setupRan.current = false;
       }
       if (frameId.current) {
         cancelAnimationFrame(frameId.current);
@@ -538,7 +521,6 @@ interface StateBuffer<T extends TypedArray> {
 class Camera implements StateBuffer<Float32Array> {
   readonly viewport: Vector2;
   readonly fovy: number;
-  // readonly aspect: number;
 
   get aspect() {
     return this.viewport.x / this.viewport.y;
@@ -668,30 +650,6 @@ class ImageBuffer implements StateBuffer<Float32Array> {
   }
 }
 
-class Sphere {
-  position: Vector3;
-  radius: number;
-  color: Vector4;
-
-  data: Float32Array;
-  static readonly size = 8;
-
-  constructor(
-    position: Vector3 = new Vector3(0, 0, 0),
-    radius: number = 20,
-    color: Vector4 = new Vector4(0, 0, 1.0, 1.0),
-  ) {
-    this.position = position;
-    this.radius = radius;
-    this.color = color;
-    this.data = new Float32Array([
-      ...this.position.toArray(),
-      this.radius,
-      ...this.color.toArray(),
-    ]);
-  }
-}
-
 class RayTracingState {
   imageBuffer: ImageBuffer;
   camera: Camera;
@@ -701,21 +659,6 @@ class RayTracingState {
     this.imageBuffer = new ImageBuffer(device, canvas.width, canvas.height);
     this.camera = new Camera(device, [canvas.width, canvas.height]);
     this.entityRegistry = new EntityRegistry(device);
-    this.entityRegistry.spawn([
-      new PositionComponent(0, 10, 0),
-      new ColorComponent(0.8, 0.8, 0.3, 1.0),
-      new SphereComponent(10),
-    ]);
-    this.entityRegistry.spawn([
-      new PositionComponent(15, 15, 5),
-      new ColorComponent(0.8, 0.3, 0.8, 1.0),
-      new SphereComponent(15),
-    ]);
-    this.entityRegistry.spawn([
-      new PositionComponent(-20, 12, 0),
-      new ColorComponent(0.3, 0.3, 0.8, 1.0),
-      new SphereComponent(12),
-    ]);
   }
 
   setFromCanvas(canvas: HTMLCanvasElement) {
@@ -745,6 +688,7 @@ class RayTracingRenderer {
   private computeBindGroup?: GPUBindGroup;
 
   state!: RayTracingState;
+  systems: System[] = [];
 
   destroy() {
     if (this.observer) {
@@ -985,8 +929,6 @@ class RayTracingRenderer {
       },
     });
   }
-
-  systems: System[] = [];
 
   update() {
     for (const system of this.systems) {
