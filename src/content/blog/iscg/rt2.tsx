@@ -79,6 +79,7 @@ const WORKGROUP_SIZE_X = 8;
 const WORKGROUP_SIZE_Y = 8;
 
 const computeShader = /* wgsl */ `
+
 ${cameraLibrary}
 ${objectLibrary}
 ${rayLibrary}
@@ -86,12 +87,11 @@ ${componentLibrary}
 
 @group(0) @binding(0) var<storage, read_write> imageBuffer: array<vec4<f32>>;
 @group(0) @binding(1) var<uniform> camera: Camera;
-@group(0) @binding(2) var<storage, read> objects: array<Sphere>;
-@group(0) @binding(3) var<storage, read> positions: array<Position>;
-@group(0) @binding(4) var<storage, read> colors: array<Color>;
-@group(0) @binding(5) var<storage, read> spheres: array<SphereAttribute>;
-@group(0) @binding(6) var<storage, read> entityMetadata: array<EntityMetadata>;
-@group(0) @binding(7) var<storage, read> toruses: array<TorusAttribute>;
+@group(0) @binding(2) var<storage, read> positions: array<Position>;
+@group(0) @binding(3) var<storage, read> colors: array<Color>;
+@group(0) @binding(4) var<storage, read> spheres: array<SphereAttribute>;
+@group(0) @binding(5) var<storage, read> entityMetadata: array<EntityMetadata>;
+@group(0) @binding(6) var<storage, read> toruses: array<TorusAttribute>;
 
 const circleCenter = vec3<f32>(0.0, 0.0, 0.0);
 const circleRadius = 10.0;
@@ -535,54 +535,6 @@ interface StateBuffer<T extends TypedArray> {
   destroy: () => void;
 }
 
-const RENDER_MODES = {
-  GPU_BALL: 0,
-  RAY_TRACING_BASIC: 1,
-  MULTIPLE_BALLS: 2,
-  DIFFUSE_LIGHTING: 3,
-  FLOOR: 4,
-  ECS: 5,
-};
-
-type RenderModeType = keyof typeof RENDER_MODES;
-
-class RenderMode implements StateBuffer<Uint32Array> {
-  data: Uint32Array = new Uint32Array(1); // Single mode value
-  device: GPUDevice;
-  buffer: GPUBuffer;
-
-  private readonly bufferConfig = () => ({
-    label: "Render Mode Buffer",
-    size: this.data.byteLength,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
-
-  constructor(device: GPUDevice, initialMode: number = 0) {
-    this.device = device;
-    this.data[0] = initialMode;
-    this.buffer = this.createBuffer();
-  }
-
-  writeBuffer() {
-    this.device.queue.writeBuffer(this.buffer, 0, this.data);
-  }
-
-  createBuffer() {
-    this.buffer?.destroy();
-    this.buffer = this.device.createBuffer(this.bufferConfig());
-    return this.buffer;
-  }
-
-  destroy() {
-    this.buffer?.destroy();
-  }
-
-  set mode(mode: RenderModeType | number) {
-    this.data[0] = typeof mode === "string" ? RENDER_MODES[mode] : mode;
-    this.writeBuffer();
-  }
-}
-
 class Camera implements StateBuffer<Float32Array> {
   readonly viewport: Vector2;
   readonly fovy: number;
@@ -798,14 +750,12 @@ class SceneObjectState implements StateBuffer<Float32Array> {
 class RayTracingState {
   imageBuffer: ImageBuffer;
   camera: Camera;
-  renderMode: RenderMode;
   objects: SceneObjectState;
   entityRegistry: EntityRegistry;
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     this.imageBuffer = new ImageBuffer(device, canvas.width, canvas.height);
     this.camera = new Camera(device, [canvas.width, canvas.height]);
-    this.renderMode = new RenderMode(device);
     this.objects = new SceneObjectState(device, [
       new Sphere(new Vector3(0, 10, 0), 10, new Vector4(0.8, 0.8, 0.3, 1.0)),
       new Sphere(new Vector3(15, 15, 5), 15, new Vector4(0.8, 0.3, 0.8, 1.0)),
@@ -834,14 +784,9 @@ class RayTracingState {
     this.camera.viewport.set(canvas.width, canvas.height);
   }
 
-  setRenderMode(mode: RenderModeType) {
-    this.renderMode.mode = mode;
-  }
-
   destroy() {
     this.imageBuffer.destroy();
     this.camera.destroy();
-    this.renderMode.destroy();
     this.objects.destroy();
     this.entityRegistry.destroy();
   }
@@ -989,35 +934,29 @@ class RayTracingRenderer {
         {
           binding: 2,
           resource: {
-            buffer: this.state.objects.buffer,
+            buffer: this.state.entityRegistry.storage.Position.buffer,
           },
         },
         {
           binding: 3,
           resource: {
-            buffer: this.state.entityRegistry.storage.Position.buffer,
+            buffer: this.state.entityRegistry.storage.Color.buffer,
           },
         },
         {
           binding: 4,
           resource: {
-            buffer: this.state.entityRegistry.storage.Color.buffer,
+            buffer: this.state.entityRegistry.storage.Sphere.buffer,
           },
         },
         {
           binding: 5,
           resource: {
-            buffer: this.state.entityRegistry.storage.Sphere.buffer,
-          },
-        },
-        {
-          binding: 6,
-          resource: {
             buffer: this.state.entityRegistry.entityMetadataBuffer,
           },
         },
         {
-          binding: 7,
+          binding: 6,
           resource: {
             buffer: this.state.entityRegistry.storage.Torus.buffer,
           },
@@ -1025,11 +964,8 @@ class RayTracingRenderer {
       ],
     });
 
-    // Always use ECS mode (final state)
-    this.state.setRenderMode("ECS");
     this.state.objects.writeBuffer();
     this.state.camera.writeBuffer();
-    this.state.renderMode.writeBuffer();
   }
 
   isInitialized() {
