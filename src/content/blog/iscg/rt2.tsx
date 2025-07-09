@@ -45,16 +45,7 @@ struct Ray {
   origin: vec3<f32>, // x, y, z
   direction: vec3<f32>, // x, y, z
 }
-
 struct Intersection {
-  normal: vec3<f32>,
-  distance: f32,
-  color: vec4<f32>,
-  position: vec3<f32>,
-  hit: bool,
-}
-  
-struct IntersectionV2 {
   t: f32, // distance along the ray
   e: i32, // entity ID, could be negative if no intersection
 }`;
@@ -123,7 +114,7 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
   let background = vec4<f32>(0.3, 0.6, 0.8, 1.0);
   var color: vec4<f32> = background;
 
-  var intersection = IntersectionV2(
+  var intersection = Intersection(
     -1.0,
     -1, // no intersection
   );
@@ -138,7 +129,7 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
     let eMeta = entityMetadata[e];
     if (eMeta.position == 1u && eMeta.color == 1u) {
       if (eMeta.sphere == 1u) {
-        let ni = sphereIntersectV2(ray, i32(e));
+        let ni = sphereIntersect(ray, i32(e));
         if (ni.t > 0.0 && ((intersection.t > 0.0 && ni.t < intersection.t)
             || intersection.t <= 0.0)) {
           intersection = ni;
@@ -174,7 +165,7 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
 
 fn floorColor(
   ray: Ray,
-  intersection: IntersectionV2,
+  intersection: Intersection,
 ) -> vec4<f32> {
   let position = ray.origin + intersection.t * ray.direction;
   let normal = floorNormal;
@@ -196,7 +187,7 @@ fn floorColor(
 
 fn sphereColor(
   ray: Ray,
-  intersection: IntersectionV2,
+  intersection: Intersection,
 ) -> vec4<f32> {
   let eu = u32(intersection.e);
   let position = positions[eu].value;
@@ -211,7 +202,7 @@ fn sphereColor(
 
 fn torusColor(  
   ray: Ray,
-  intersection: IntersectionV2,
+  intersection: Intersection,
 ) -> vec4<f32> {
   let eu = u32(intersection.e);
   let position = positions[eu].value;
@@ -280,17 +271,17 @@ fn generateRay(
   return Ray(origin, rayDirection);
 }
 
-fn sphereIntersectV2(
+fn sphereIntersect(
   ray: Ray,
   e: i32,
-) -> IntersectionV2 {
+) -> Intersection {
   let eu = u32(e);
   let center = positions[eu].value;
   let radius = spheres[eu].radius;
   let oc = center - ray.origin;
   let a = dot(oc, ray.direction);
   let b = dot(oc, oc) - a * a - radius * radius;
-  var intersection = IntersectionV2(-1.0, e); // no intersection
+  var intersection = Intersection(-1.0, e); // no intersection
 
   if (b < 0.0 && a > 0.0) {
     let d = sqrt(radius * radius - b);
@@ -311,7 +302,7 @@ fn sphereIntersectV2(
 fn torusIntersect(
   ray: Ray, 
   e: i32,
-) -> IntersectionV2 {
+) -> Intersection {
   let eu = u32(e);
 
   let position = positions[eu].value;
@@ -323,7 +314,7 @@ fn torusIntersect(
   let b = dot(oc, ray.direction);
   let c = dot(oc, oc) - radius * radius - tubeRadius * tubeRadius;
   let discriminant = b * b - a * c;
-  var intersection = IntersectionV2(-1.0, e); // no intersection
+  var intersection = Intersection(-1.0, e); // no intersection
 
   if (discriminant > 0.0) {
     let t1 = (-b - sqrt(discriminant)) / a;
@@ -336,37 +327,6 @@ fn torusIntersect(
   }
 
   return intersection;
-}
-
-fn sphereIntersect(
-  ray: Ray,
-  sphere: Sphere,
-) -> Intersection {
-  let oc = sphere.center - ray.origin;
-  let a = dot(oc, ray.direction);
-  let b = dot(oc, oc) - a * a - sphere.radius * sphere.radius;
-  var hit = false;
-  var distance = 0.0;
-  var position = vec3<f32>(0.0, 0.0, 0.0);
-  var normal = vec3<f32>(0.0, 0.0, 0.0); 
-
-  if (b < 0.0 && a > 0.0) {
-    hit = true;
-    let d = sqrt(sphere.radius * sphere.radius - b);
-    let t0 = a - d; // near intersection
-    let t1 = a + d; // far intersection
-    if (t0 < 0.0 && t1 < 0.0) {
-      hit = false; // we are behind the sphere
-    } else if (t0 < 0.0) {
-      distance = t1; // we are behind the near intersection, take the far one
-    } else {
-      distance = t0; // we found a closer intersection
-    }
-    position = ray.origin + distance * ray.direction;
-    normal = normalize(position - sphere.center);
-  }
-
-  return Intersection(normal, distance, sphere.color, position, hit);
 }`;
 
 const presentShader = /* wgsl */ `
@@ -440,6 +400,22 @@ export function RayTracing() {
       new PositionComponent(-20, 12, 0),
       new ColorComponent(0.3, 0.3, 0.8, 1.0),
       new SphereComponent(12),
+    ]);
+
+    renderer.state.entityRegistry.spawn([
+      new PositionComponent(0, 8, -20),
+      new ColorComponent(0.2, 0.9, 0.4, 1.0),
+      new TorusComponent(8, 2),
+    ]);
+    renderer.state.entityRegistry.spawn([
+      new PositionComponent(20, 10, -10),
+      new ColorComponent(0.9, 0.5, 0.2, 1.0),
+      new TorusComponent(6, 1.5),
+    ]);
+    renderer.state.entityRegistry.spawn([
+      new PositionComponent(-18, 7, -15),
+      new ColorComponent(0.3, 0.7, 0.9, 1.0),
+      new TorusComponent(5, 1),
     ]);
   }
 
