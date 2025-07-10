@@ -153,10 +153,19 @@ fn computeIrradiance(
   let N = 32u;
   var Ep = vec3<f32>(0.0);
   var Ei = vec3<f32>(0.0);
-  let lightDir = normalize(vec3<f32>(1.0, 1.0, 1.0));
+  
+  let lightPosition = vec3<f32>(50.0, 100.0, 50.0);
   let lightColor = vec3<f32>(1.0, 1.0, 1.0);
-  let lightIntensity = max(dot(normal, lightDir), 0.0);
-  Ep = lightColor * lightIntensity;
+  let lightPower = 10000.0; 
+  
+  let lightVector = lightPosition - hitPosition;
+  let lightDistance = length(lightVector);
+  let lightDir = lightVector / lightDistance;
+  
+  let attenuation = lightPower / (lightDistance * lightDistance);
+  let cosTheta = max(dot(normal, lightDir), 0.0);
+  
+  Ep = lightColor * attenuation * cosTheta;
 
   for (var i = 0u; i < N; i = i + 1u) {
     // idk how to generate a random number in WGSL, so we use a simple
