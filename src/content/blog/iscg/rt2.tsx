@@ -7,31 +7,28 @@ struct Position {
   _padding: f32, // padding to align to 16 bytes
 }
 
-struct Color {
-  value: vec4<f32>, // r, g, b, a
-}
-
 struct SphereAttribute {
   radius: f32, // radius
 }
 
-struct TorusAttribute {
-  radius: f32, // radius
-  tubeRadius: f32, // tube radius
+struct Material {
+  color: vec4<f32>,
+  materialType: u32,
+  roughness: f32,
+  metallic: f32,
+  specular: f32,
 }
 
 struct EntityMetadata {
-  position: u32, 
-  color: u32,
+  position: u32,
   sphere: u32,
-  torus: u32,
+  material: u32,
 }
 
 const COMPONENT_ID_POSITION = 0u;
-const COMPONENT_ID_COLOR = 1u;
-const COMPONENT_ID_SPHERE = 2u;
-const COMPONENT_ID_TORUS = 3u;
-const COMPONENT_COUNT = 4u;`;
+const COMPONENT_ID_SPHERE = 1u;
+const COMPONENT_ID_MATERIAL = 2u;
+const COMPONENT_COUNT = 3u;`;
 
 const objectLibrary = /* wgsl */ `
 struct Sphere {
@@ -79,10 +76,9 @@ ${componentLibrary}
 @group(0) @binding(0) var<storage, read_write> imageBuffer: array<vec4<f32>>;
 @group(0) @binding(1) var<uniform> camera: Camera;
 @group(0) @binding(2) var<storage, read> positions: array<Position>;
-@group(0) @binding(3) var<storage, read> colors: array<Color>;
-@group(0) @binding(4) var<storage, read> spheres: array<SphereAttribute>;
+@group(0) @binding(3) var<storage, read> spheres: array<SphereAttribute>;
+@group(0) @binding(4) var<storage, read> materials: array<Material>;
 @group(0) @binding(5) var<storage, read> entityMetadata: array<EntityMetadata>;
-@group(0) @binding(6) var<storage, read> toruses: array<TorusAttribute>;
 
 const circleCenter = vec3<f32>(0.0, 0.0, 0.0);
 const circleRadius = 10.0;
@@ -127,19 +123,11 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
 
   for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
     let eMeta = entityMetadata[e];
-    if (eMeta.position == 1u && eMeta.color == 1u) {
-      if (eMeta.sphere == 1u) {
-        let ni = sphereIntersect(ray, i32(e));
-        if (ni.t > 0.0 && ((intersection.t > 0.0 && ni.t < intersection.t)
-            || intersection.t <= 0.0)) {
-          intersection = ni;
-        }
-      } else if (eMeta.torus == 1u) { 
-        let ni = torusIntersect(ray, i32(e));
-        if (ni.t > 0.0 && ((intersection.t > 0.0 && ni.t < intersection.t)
-            || intersection.t <= 0.0)) {
-          intersection = ni;
-        }
+    if (eMeta.position == 1u && eMeta.sphere == 1u && eMeta.material == 1u) {
+      let ni = sphereIntersect(ray, i32(e));
+      if (ni.t > 0.0 && ((intersection.t > 0.0 && ni.t < intersection.t)
+          || intersection.t <= 0.0)) {
+        intersection = ni;
       }
     }
   }
@@ -153,9 +141,6 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
       let eu = u32(intersection.e);
       if (entityMetadata[eu].sphere == 1u) {
         color = sphereColor(ray, intersection);
-      }
-      if (entityMetadata[eu].torus == 1u) {
-        color = torusColor(ray, intersection);
       }
     }
   }
@@ -192,30 +177,13 @@ fn sphereColor(
   let eu = u32(intersection.e);
   let position = positions[eu].value;
   let radius = spheres[eu].radius;
-  
   let hitPosition = ray.origin + intersection.t * ray.direction;
   let normal = normalize(hitPosition - position);
-
-  let color = colors[eu].value;
-  return calculateLighting(normal, color);
+  let material = materials[eu];
+  return calculateLighting(normal, material.color);
 }
 
-fn torusColor(  
-  ray: Ray,
-  intersection: Intersection,
-) -> vec4<f32> {
-  let eu = u32(intersection.e);
-  let position = positions[eu].value;
-  let radius = toruses[eu].radius;
-  let tubeRadius = toruses[eu].tubeRadius;
-
-  let hitPosition = ray.origin + intersection.t * ray.direction;
-  let normal = normalize(hitPosition - position);
-
-  let color = colors[eu].value;
-  
-  return calculateLighting(normal, color);
-}
+// torusColor removed
 
 fn calculateLighting(
   normal: vec3<f32>,
@@ -299,35 +267,7 @@ fn sphereIntersect(
   return intersection;
 }
 
-fn torusIntersect(
-  ray: Ray, 
-  e: i32,
-) -> Intersection {
-  let eu = u32(e);
-
-  let position = positions[eu].value;
-  let radius = toruses[eu].radius;
-  let tubeRadius = toruses[eu].tubeRadius;
-
-  let oc = ray.origin - position;
-  let a = dot(ray.direction, ray.direction);
-  let b = dot(oc, ray.direction);
-  let c = dot(oc, oc) - radius * radius - tubeRadius * tubeRadius;
-  let discriminant = b * b - a * c;
-  var intersection = Intersection(-1.0, e); // no intersection
-
-  if (discriminant > 0.0) {
-    let t1 = (-b - sqrt(discriminant)) / a;
-    let t2 = (-b + sqrt(discriminant)) / a;
-
-    if (t1 > 0.0 || t2 > 0.0) {
-      intersection.t = min(t1, t2);
-      intersection.e = e;
-    }
-  }
-
-  return intersection;
-}`;
+`;
 
 const presentShader = /* wgsl */ `
 ${vertexLibrary}
@@ -389,17 +329,17 @@ export function RayTracing() {
     renderer.state.entityRegistry.spawn([
       new PositionComponent(0, 10, 0),
       new SphereComponent(10),
-      new MaterialComponent(new Vector4(0.8, 0.8, 0.3, 1.0)),
+      new MaterialComponent({ color: new Vector4(0.8, 0.8, 0.3, 1.0) }),
     ]);
     renderer.state.entityRegistry.spawn([
       new PositionComponent(15, 15, 5),
       new SphereComponent(15),
-      new MaterialComponent(new Vector4(0.8, 0.3, 0.8, 1.0)),
+      new MaterialComponent({ color: new Vector4(0.8, 0.3, 0.8, 1.0) }),
     ]);
     renderer.state.entityRegistry.spawn([
       new PositionComponent(-20, 12, 0),
       new SphereComponent(12),
-      new MaterialComponent(new Vector4(0.3, 0.3, 0.8, 1.0)),
+      new MaterialComponent({ color: new Vector4(0.3, 0.3, 0.8, 1.0) }),
     ]);
     // Torus and ColorComponent entities removed
   }
@@ -783,25 +723,19 @@ class RayTracingRenderer {
         {
           binding: 3,
           resource: {
-            buffer: this.state.entityRegistry.storage.Color.buffer,
+            buffer: this.state.entityRegistry.storage.Sphere.buffer,
           },
         },
         {
           binding: 4,
           resource: {
-            buffer: this.state.entityRegistry.storage.Sphere.buffer,
+            buffer: this.state.entityRegistry.storage.Material.buffer,
           },
         },
         {
           binding: 5,
           resource: {
             buffer: this.state.entityRegistry.entityMetadataBuffer,
-          },
-        },
-        {
-          binding: 6,
-          resource: {
-            buffer: this.state.entityRegistry.storage.Torus.buffer,
           },
         },
       ],
@@ -1011,14 +945,21 @@ const MaterialType = {
   Reflective: 2,
 } as const;
 
+interface MaterialComponentOptions {
+  color?: Vector4;
+  type?: (typeof MaterialType)[keyof typeof MaterialType];
+  roughness?: number;
+  metallic?: number;
+  specular?: number;
+}
+
 class MaterialComponent extends RayTracingComponent {
-  // color * 4 + // type * 1 + roughness * 1 + metallic * 1 + specular * 1
   static readonly size = 8;
   static readonly name = "Material" as const;
   static readonly dataclass = Float32Array;
 
   color: Vector4;
-  type: (typeof MaterialType)[keyof typeof MaterialType];
+  materialType: (typeof MaterialType)[keyof typeof MaterialType];
   roughness: number;
   metallic: number;
   specular: number;
@@ -1026,26 +967,20 @@ class MaterialComponent extends RayTracingComponent {
   get data() {
     return [
       ...this.color.toArray(),
-      this.type,
+      this.materialType,
       this.roughness,
       this.metallic,
       this.specular,
     ] as const;
   }
 
-  constructor(
-    color: Vector4 = new Vector4(1, 1, 1, 1),
-    type: (typeof MaterialType)[keyof typeof MaterialType] = MaterialType.Diffuse,
-    roughness: number = 0.5,
-    metallic: number = 0.0,
-    specular: number = 0.5,
-  ) {
+  constructor(options: MaterialComponentOptions = {}) {
     super();
-    this.color = color;
-    this.type = type;
-    this.roughness = roughness;
-    this.metallic = metallic;
-    this.specular = specular;
+    this.color = options.color ?? new Vector4(1, 1, 1, 1);
+    this.materialType = options.type ?? MaterialType.Diffuse;
+    this.roughness = options.roughness ?? 0.5;
+    this.metallic = options.metallic ?? 0.0;
+    this.specular = options.specular ?? 0.5;
   }
 }
 
