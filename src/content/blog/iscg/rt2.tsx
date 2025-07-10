@@ -13,7 +13,7 @@ struct SphereAttribute {
 
 struct Material {
   color: vec4<f32>,
-  materialType: u32,
+  materialType: f32,  // Changed from u32 to f32 to match the storage
   roughness: f32,
   metallic: f32,
   specular: f32,
@@ -89,14 +89,14 @@ ${componentLibrary}
 
 const floorBaseMaterial = Material(
   vec4<f32>(0.8, 0.8, 0.8, 1.0), // color
-  0u, // materialType
+  0.0, // materialType
   0.5, // roughness
   0.0, // metallic
   0.5  // specular
 );
 const floorAccentMaterial = Material(
   vec4<f32>(0.2, 0.2, 0.2, 1.0), // color
-  0u, // materialType
+  0.0, // materialType
   0.5, // roughness
   0.0, // metallic
   0.5  // specular
@@ -204,10 +204,8 @@ fn generateRay(
   let fovScale = tan(camera.fovy / 2.0);
   let aspect = camera.aspect;
 
-  // Convert pixel coordinates to normalized device coordinates [-1, 1]
   let Px = (2.0 * (uv.x + 0.5) / camera.viewport.x - 1.0);
   let Py = (1.0 - 2.0 * (uv.y + 0.5) / camera.viewport.y); 
-  // Py is inverted because uv.y 0 starts from the top left corner
 
   let x = Px * fovScale * aspect;
   let y = Py * fovScale;
@@ -277,6 +275,7 @@ fn trace(ray: Ray, intersection: Intersection) -> Intersection {
 
   return closest;
 }
+
 fn shade(initialRay: Ray, initialIntersection: Intersection) -> vec4<f32> {
   var ray = initialRay;
   var intersection = initialIntersection;
@@ -314,18 +313,17 @@ fn shade(initialRay: Ray, initialIntersection: Intersection) -> vec4<f32> {
       break;
     }
 
-    if (material.materialType == 0u) {
+    if (material.materialType == 0.0) {
       let Kd = material.color.rgb;
       let irradiance = computeIrradiance(ray, hitPosition, normal);
       let diffuseColor = (Kd / PI) * irradiance;
       finalColor += Ks * diffuseColor;
       break;
-    } else if (material.materialType == 1u) { 
+    } else if (material.materialType == 1.0) {  // Changed from == 1u to < 1.5 for float comparison
       Ks *= material.color.rgb; 
       ray.origin = hitPosition + normal * 0.001;
       ray.direction = reflect(ray.direction, normal);
     } else {
-      // it entered her for some reason???
       finalColor += Ks * material.color.rgb;
       break;
     }
