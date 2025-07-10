@@ -126,8 +126,8 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
     -1, // no intersection
   );
 
-  intersection = trace(ray, intersection);
-  let color = shade(ray, intersection);
+  let firstHit = trace(ray, intersection);
+  let color = shade(ray, firstHit);
 
   imageBuffer[pixel] = color;
 }
@@ -221,15 +221,14 @@ fn generateRay(
 
 fn sphereIntersect(
   ray: Ray,
-  e: i32,
+  eu: u32,
 ) -> Intersection {
-  let eu = u32(e);
   let center = positions[eu].value;
   let radius = spheres[eu].radius;
   let oc = center - ray.origin;
   let a = dot(oc, ray.direction);
   let b = dot(oc, oc) - a * a - radius * radius;
-  var intersection = Intersection(-1.0, e); // no intersection
+  var intersection = Intersection(-1.0, i32(eu)); // no intersection
 
   if (b < 0.0 && a > 0.0) {
     let d = sqrt(radius * radius - b);
@@ -269,7 +268,7 @@ fn trace(ray: Ray, intersection: Intersection) -> Intersection {
   for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
     let eMeta = entityMetadata[e];
     if (eMeta.position == 1u && eMeta.sphere == 1u && eMeta.material == 1u) {
-      let ni = sphereIntersect(ray, i32(e));
+      let ni = sphereIntersect(ray, e);
       if (ni.t > 0.0 && ((closest.t > 0.0 && ni.t < closest.t) || closest.t <= 0.0)) {
         closest = ni;
       }
@@ -278,55 +277,56 @@ fn trace(ray: Ray, intersection: Intersection) -> Intersection {
 
   return closest;
 }
-
 fn shade(initialRay: Ray, initialIntersection: Intersection) -> vec4<f32> {
-  var currentRay = initialRay;
-  var currentIntersection = initialIntersection;
+  var ray = initialRay;
+  var intersection = initialIntersection;
   var finalColor = vec3<f32>(0.0);
-  var reflectance = vec3<f32>(1.0); 
+  var Ks = vec3<f32>(1.0);
   
   for (var bounce = 0u; bounce < MAX_BOUNCES; bounce++) {
-    if (currentIntersection.t <= 0.0) {
-      // Hit background - accumulate background color and exit
-      finalColor += reflectance * background.rgb;
+    if (bounce > 0u) {
+      intersection = trace(ray, Intersection(-1.0, -1));
+    }
+
+    if (intersection.t <= 0.0) {
+      finalColor += Ks * background.rgb;
       break;
     }
 
+    let hitPosition = ray.origin + intersection.t * ray.direction;
     var normal: vec3<f32>;
     var material: Material;
-    let hitPosition = currentRay.origin + currentIntersection.t * currentRay.direction;
 
-    if (currentIntersection.e == -2) {
+    if (intersection.e == -2) {
       normal = floorNormal;
       material = floorBaseMaterial;
-    } else if (currentIntersection.e == -3) {
+    } else if (intersection.e == -3) {
       normal = floorNormal;
       material = floorAccentMaterial;
-    } else if (currentIntersection.e >= 0) {
-      let eu = u32(currentIntersection.e);
+    } else if (intersection.e >= 0) {
+      let eu = u32(intersection.e);
       material = materials[eu];
       if (entityMetadata[eu].sphere == 1u) {
-        normal = calculateSphereNormal(currentRay, currentIntersection);
+        normal = calculateSphereNormal(ray, intersection);
       }
     } else {
-      finalColor += reflectance * background.rgb;
+      finalColor += Ks * background.rgb;
       break;
     }
 
     if (material.materialType == 0u) {
       let Kd = material.color.rgb;
-      let irradiance = computeIrradiance(currentRay, hitPosition, normal);
+      let irradiance = computeIrradiance(ray, hitPosition, normal);
       let diffuseColor = (Kd / PI) * irradiance;
-      finalColor += reflectance * diffuseColor;
+      finalColor += Ks * diffuseColor;
       break;
-    } else if (material.materialType == 1u) {
-      let Ks = material.color.rgb;
-      reflectance *= Ks;
-      let reflectedDir = reflect(currentRay.direction, normal);
-      currentRay = Ray(hitPosition + 0.001 * normal, reflectedDir);
-      currentIntersection = trace(currentRay, Intersection(-1.0, -1));
+    } else if (material.materialType == 1u) { 
+      Ks *= material.color.rgb; 
+      ray.origin = hitPosition + normal * 0.001;
+      ray.direction = reflect(ray.direction, normal);
     } else {
-      finalColor += reflectance * background.rgb;
+      // it entered her for some reason???
+      finalColor += Ks * material.color.rgb;
       break;
     }
   }
