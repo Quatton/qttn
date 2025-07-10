@@ -179,7 +179,6 @@ fn sphereColor(
   return calculateLighting(normal, material.color);
 }
 
-// torusColor removed
 
 fn calculateLighting(
   normal: vec3<f32>,
@@ -337,7 +336,6 @@ export function RayTracing() {
       new SphereComponent(12),
       new MaterialComponent({ color: new Vector4(0.3, 0.3, 0.8, 1.0) }),
     ]);
-    // Torus and ColorComponent entities removed
   }
 
   const initRayTracing = useCallback(
@@ -914,8 +912,6 @@ class PositionComponent extends RayTracingComponent {
   }
 }
 
-// ColorComponent removed
-
 class SphereComponent extends RayTracingComponent {
   static readonly size = 1;
   static readonly name = "Sphere" as const;
@@ -932,8 +928,6 @@ class SphereComponent extends RayTracingComponent {
     this.radius = radius;
   }
 }
-
-// TorusComponent removed
 
 const MaterialType = {
   Diffuse: 0,
