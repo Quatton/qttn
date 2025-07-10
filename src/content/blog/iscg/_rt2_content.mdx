@@ -1,3 +1,170 @@
 # レイトレーシング [2]
 
 タエチャスク ナッチャノン 05241011
+
+基本課題の拡張として、反射を実装することにした。
+
+## ECS のリファクタリング
+
+- ColorComponent を廃止し、MaterialComponent を導入した。(BRDF を実装しようとして、かなり複雑になったため、roughness, metallic, specular などのプロパティは使わなかった。)
+
+- EntityRegistry の `writeBuffer` メソッドをリファクタリングした。以前は更新が必要なエンティティごとに GPU にデータを書き込んでいたが、新しい実装では、まず CPU 側のデータ配列をすべて更新し、最後に各コンポーネントのバッファに一度だけまとめて書き込むように変更した。これにより、GPU への書き込み回数が大幅に削減された。
+
+- setup system の導入。初期化に役に立つ
+
+#### MaterialComponent.ts
+
+```typescript
+const MaterialType = {
+  Diffuse: 0,
+  Specular: 1, // 鏡面反射
+} as const;
+
+class MaterialComponent extends RayTracingComponent {
+  static readonly size = 8;
+  static readonly name = "Material" as const;
+  static readonly dataclass = Float32Array;
+
+  color: Vector4;
+  materialType: (typeof MaterialType)[keyof typeof MaterialType];
+  // ... other properties that i didn't use for brdf (lol)
+
+  constructor(options: MaterialComponentOptions = {}) {
+    super();
+    this.color = options.color ?? new Vector4(1, 1, 1, 1);
+    this.materialType = options.type ?? MaterialType.Diffuse;
+    // ...
+  }
+}
+```
+
+## 再帰的レイトレーシングによる反射
+
+メインに使われる関数は `trace` と `shade` である。WGSL は再帰的な関数呼び出しをサポートしていないため、for ループを使用した。
+
+### trace 関数
+
+`trace` 関数は、与えられた光線 (Ray) に対して、シーン内のすべてのオブジェクト（床を含む）との交点を計算し、最も近い交点の情報 (Intersection) を返す。以前のようにオブジェクトごとに色を計算するのではなく、どのエンティティにヒットしたかという情報だけを返す、より純粋な交差判定関数となった。
+
+```wgsl
+
+fn trace(ray: Ray, intersection: Intersection) -> Intersection {
+  var closest = intersection;
+
+  // Check floor intersection
+  let t = -ray.origin.y / ray.direction.y;
+  if (t > 0.0 && ((closest.t < 0.0) || (t < closest.t))) {
+    let position = ray.origin + t * ray.direction;
+    let gridX = floor(position.x / floorGridSize);
+    let gridY = floor(position.z / floorGridSize);
+    let isEven = (gridX + gridY) % 2 == 0;
+    closest.t = t;
+    if (isEven) {
+      closest.e = -2; // -2 = base floor
+    } else {
+      closest.e = -3; // -3 = accent floor
+    }
+  }
+
+  // Check sphere intersections
+  for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
+    let eMeta = entityMetadata[e];
+    if (eMeta.position == 1u && eMeta.sphere == 1u && eMeta.material == 1u) {
+      let ni = sphereIntersect(ray, e);
+      if (ni.t > 0.0 && ((closest.t > 0.0 && ni.t < closest.t) || closest.t <= 0.0)) {
+        closest = ni;
+      }
+    }
+  }
+
+  return closest;
+}
+```
+
+trace　はほとんど元の関数の一部をそのまま使用しているということ。変わった部分は、床のグリッドを別々のオブジェクトとして扱うようにした。
+
+### shade 関数
+
+`shade` 関数は、ピクセルの最終的な色を決定する。この関数はループを使い、光の反射をシミュレートする。
+
+1. 最初の光線で `trace` を呼び出し、最も近い交点を見つける。initialIntersection 使わなくてもいい説はあるが、なぜか真っ青（空の色）になって、initialIntersection を使うことにしないと解決できないことがあった。バグを修正するのに時間がかかったので、そのままにした。
+2. 交点が見つからなかった場合、背景色を返して終了する。
+3. 交点が見つかった場合、その点の Material を取得する。
+4. マテリアルが Diffuse (拡散) の場合: `computeIrradiance` を呼び出して、光源からの直接光と環境光を計算し、その色を最終的な色としてループを終了する。
+5. マテリアルが Specular (鏡面反射) の場合:
+   - 反射光の寄与度 (Ks) をマテリアルの色で更新する。
+   - 光線の始点を交点から少しずらし、反射ベクトルを新しい光線の方向として設定する。
+   - ループの次のイテレーションに進み、反射した光線を追跡する。
+6. このループを `MAX_BOUNCES` 回繰り返すことで、複数回の反射を表現する。
+
+```wgsl
+fn shade(initialRay: Ray, initialIntersection: Intersection) -> vec4<f32> {
+  var ray = initialRay;
+  var intersection = initialIntersection;
+  var finalColor = vec3<f32>(0.0);
+  var Ks = vec3<f32>(1.0); // 反射光の寄与度
+
+  for (var bounce = 0u; bounce < MAX_BOUNCES; bounce++) {
+    if (bounce > 0u) {
+      intersection = trace(ray, Intersection(-1.0, -1));
+    }
+
+    if (intersection.t <= 0.0) { // 何にもヒットしなかった
+      finalColor += Ks * background.rgb;
+      break;
+    }
+
+    let hitPosition = ray.origin + intersection.t * ray.direction;
+    var normal: vec3<f32>;
+    var material: Material;
+
+    // ... 交点から normal と material を取得 ...
+
+    if (material.materialType == 0.0) { // Diffuse
+      let irradiance = computeIrradiance(ray, hitPosition, normal);
+      let diffuseColor = (material.color.rgb / PI) * irradiance;
+      finalColor += Ks * diffuseColor;
+      break; // 拡散面では追跡終了
+    } else if (material.materialType == 1.0) { // Specular
+      Ks *= material.color.rgb; // 反射の色を乗算
+      ray.origin = hitPosition + normal * 0.001; // 始点をずらす
+      ray.direction = reflect(ray.direction, normal); // 反射ベクトルを計算
+    } else {
+      // ...
+      break;
+    }
+  }
+
+  return vec4<f32>(finalColor, 1.0);
+}
+```
+
+### computeIrradiance
+
+元の diffuse lighting を使っていたが、ポイントライトを実装した。
+
+```wgsl
+
+fn computeIrradiance(
+  ray: Ray,
+  hitPosition: vec3<f32>,
+  normal: vec3<f32>
+) -> vec3<f32> {
+  let lightPosition = vec3<f32>(30.0, 80.0, 10.0);
+  let lightColor = vec3<f32>(1.0, 1.0, 1.0);
+  let lightPower = 10000.0;
+
+  let lightVector = lightPosition - hitPosition;
+  let lightDistance = length(lightVector);
+  let lightDir = lightVector / lightDistance;
+
+  let attenuation = lightPower / (lightDistance * lightDistance);
+  let cosTheta = max(dot(normal, lightDir), 0.0);
+
+  let diffuse = lightColor * attenuation * cosTheta;
+
+  return diffuse + background.rgb * 0.8;
+}
+```
+
+ということで、反射を実装することができた。

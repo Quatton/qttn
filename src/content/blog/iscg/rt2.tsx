@@ -149,11 +149,6 @@ fn computeIrradiance(
   hitPosition: vec3<f32>,
   normal: vec3<f32>
 ) -> vec3<f32> {
-  let N = 32u;
-  var Ep = vec3<f32>(0.0);
-  var Ei = vec3<f32>(0.0);
-  
-  // https://learnopengl.com/Lighting/Multiple-lights
   let lightPosition = vec3<f32>(30.0, 80.0, 10.0);
   let lightColor = vec3<f32>(1.0, 1.0, 1.0);
   let lightPower = 10000.0; 
@@ -165,32 +160,9 @@ fn computeIrradiance(
   let attenuation = lightPower / (lightDistance * lightDistance);
   let cosTheta = max(dot(normal, lightDir), 0.0);
   
-  Ep = lightColor * attenuation * cosTheta;
+  let diffuse = lightColor * attenuation * cosTheta;
 
-  for (var i = 0u; i < N; i = i + 1u) {
-    // idk how to generate a random number in WGSL, so we use a simple
-    // uniform sampling method
-    let phi = 2.0 * PI * f32(i) / f32(N);
-    let cosTheta = f32(i) / f32(N);
-    let sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-    let x = cos(phi) * sinTheta;
-    let y = sin(phi) * sinTheta;
-    let z = cosTheta;
-    let up = vec3<f32>(0.0, 1.0, 0.0);
-    let tangent = normalize(cross(up, normal));
-    let bitangent = cross(normal, tangent);
-    let sampleDir = normalize(
-      tangent * x +
-      bitangent * y +
-      normal * z
-    );
-    let iblRay = Ray(hitPosition + 0.001 * normal, sampleDir);
-    let iblHit = trace(iblRay, Intersection(-1.0, -1));
-    if (iblHit.t <= 0.0) {
-      Ei = Ei + background.rgb;
-    }
-  }
-  return Ep + (Ei / f32(N));
+  return diffuse + background.rgb * 0.8;
 }
 
 fn generateRay(
@@ -403,6 +375,7 @@ export function RayTracing() {
       new SphereComponent(15),
       new MaterialComponent({
         color: new Vector4(0.8, 0.3, 0.8, 1.0),
+        type: MaterialType.Specular,
       }),
     ]);
     renderer.state.entityRegistry.spawn([
@@ -423,7 +396,7 @@ export function RayTracing() {
   const jumpingUpandDown: System = (rd) => {
     const state = stateRef.current;
 
-    if (state.angle >= 2 * Math.PI) {
+    if (state.angle >= 4 * Math.PI) {
       state.angle = 0;
     } else {
       state.angle += 0.1;
@@ -431,10 +404,20 @@ export function RayTracing() {
 
     const data =
       rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
-    if (data) {
-      data.position.y = Math.sin(state.angle) * 20 + 15;
-      data.shouldUpdate = true; // im too lazy to implement a proper proxy system for nested properties
+
+    const data1 =
+      rd.state.entityRegistry.entities.get(1)?.directComponentMap.Position;
+
+    if (!data || !data1) {
+      return;
     }
+    data.position.y = Math.sin(state.angle) * 20 + 15;
+    const radius = 60;
+    data1.position.x = Math.cos(state.angle / 2) * radius + data.position.x;
+    data1.position.z = Math.sin(state.angle / 2) * radius + data.position.z;
+    data1.position.y = Math.sin(state.angle / 2) * 10 + 15;
+    data.shouldUpdate = true;
+    data1.shouldUpdate = true; // im too lazy to implement a proper proxy system for nested properties
   };
 
   const initRayTracing = useCallback(
