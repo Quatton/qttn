@@ -59,8 +59,11 @@ struct Camera {
   fovy: f32, // field of view in radians
   aspect: f32, // aspect ratio (width / height)
   position: vec3<f32>, // x, y, z
+  _padding: f32,
   direction: vec3<f32>, // x, y, z
+  _padding2: f32,
   up: vec3<f32>, // x, y, z
+  _padding3: f32,
 }`;
 
 const WORKGROUP_SIZE_X = 8;
@@ -127,42 +130,8 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
     -1, // no intersection
   );
 
-  let t = -origin.y / rayDirection.y;
-  if (t > 0.0) {
-    let position = origin + t * rayDirection;
-    let gridX = floor(position.x / floorGridSize);
-    let gridY = floor(position.z / floorGridSize);
-    let isEven = (gridX + gridY) % 2 == 0;
-    intersection.t = t;
-    if (isEven) {
-      intersection.e = -2; // -2 = base floor
-    } else {
-      intersection.e = -3; // -3 = accent floor
-    }
-  }
-
-
   intersection = trace(ray, intersection);
-
-  var normal: vec3<f32>;
-  var material: Material;
-
-  if (intersection.t > 0.0) {
-    if (intersection.e == -2) {
-      normal = floorNormal;
-      material = floorBaseMaterial;
-    } else if (intersection.e == -3) {
-      normal = floorNormal;
-      material = floorAccentMaterial;
-    } else if (intersection.e >= 0) {
-      let eu = u32(intersection.e);
-      material = materials[eu];
-      if (entityMetadata[eu].sphere == 1u) {
-        normal = calculateSphereNormal(ray, intersection);
-      }
-    }
-    color = calculateLighting(normal, material.color);
-  }
+  color = shade(ray, intersection);
 
   imageBuffer[pixel] = color;
 }
@@ -263,6 +232,22 @@ fn sphereIntersect(
 
 fn trace(ray: Ray, intersection: Intersection) -> Intersection {
   var closest = intersection;
+
+  let t = -ray.origin.y / ray.direction.y;
+
+  if (t > 0.0 && ((closest.t < 0.0) || (t < closest.t))) {
+    let position = ray.origin + t * ray.direction;
+    let gridX = floor(position.x / floorGridSize);
+    let gridY = floor(position.z / floorGridSize);
+    let isEven = (gridX + gridY) % 2 == 0;
+    closest.t = t;
+    if (isEven) {
+      closest.e = -2; // -2 = base floor
+    } else {
+      closest.e = -3; // -3 = accent floor
+    }
+  }
+
   for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
     let eMeta = entityMetadata[e];
     if (eMeta.position == 1u && eMeta.sphere == 1u && eMeta.material == 1u) {
@@ -274,6 +259,34 @@ fn trace(ray: Ray, intersection: Intersection) -> Intersection {
     }
   }
   return closest;
+}
+
+fn shade(ray: Ray, intersection: Intersection) -> vec4<f32> {
+  let background = vec4<f32>(0.3, 0.6, 0.8, 1.0);
+
+  if (intersection.t <= 0.0) {
+    return background;
+  }
+
+  var normal: vec3<f32>;
+  var material: Material;
+
+  if (intersection.e == -2) {
+    normal = floorNormal;
+    material = floorBaseMaterial;
+  } else if (intersection.e == -3) {
+    normal = floorNormal;
+    material = floorAccentMaterial;
+  } else if (intersection.e >= 0) {
+    let eu = u32(intersection.e);
+    material = materials[eu];
+    
+    if (entityMetadata[eu].sphere == 1u) {
+      normal = calculateSphereNormal(ray, intersection);
+    }
+  }
+
+  return calculateLighting(normal, material.color);
 }
 `;
 
@@ -465,16 +478,17 @@ class Camera implements StateBuffer<Float32Array> {
   constructor(
     device: GPUDevice,
     viewport: [number, number],
-    position: Vector3 = new Vector3(0, 20, 50),
-    direction: Vector3 = new Vector3(0, 0, -1), // -Z
-    up: Vector3 = new Vector3(0, 1, 0), // Y
+    position: Vector3 = new Vector3(0, 50, 50),
+    direction: Vector3 = new Vector3(0, -1, -2), // -Z
+    up: Vector3 = new Vector3(0, 1, 0),
     fovy: number = Math.PI / 2,
   ) {
     this.device = device;
     this.position = position;
     this.viewport = new Vector2(viewport[0], viewport[1]);
     this.direction = direction;
-    this.up = up;
+    const right = direction.clone().cross(up).normalize();
+    this.up = right.cross(direction).normalize();
     this.fovy = fovy;
     this.buffer = this.createBuffer();
   }
