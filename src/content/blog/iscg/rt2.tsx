@@ -1090,6 +1090,64 @@ class TorusComponent implements RayTracingComponent {
   }
 }
 
+const MaterialType = {
+  Diffuse: 0,
+  Specular: 1,
+  Reflective: 2,
+} as const;
+
+class MaterialComponent implements RayTracingComponent {
+  // color * 4 + // type * 1 + roughness * 1 + metallic * 1 + specular * 1
+  static readonly size = 8;
+
+  entityRef: Entity | null = null;
+  shouldUpdate = true;
+
+  color: Vector4;
+  type: (typeof MaterialType)[keyof typeof MaterialType];
+  roughness: number;
+  metallic: number;
+  specular: number;
+
+  get data() {
+    return [
+      ...this.color.toArray(),
+      this.type,
+      this.roughness,
+      this.metallic,
+      this.specular,
+    ] as const;
+  }
+
+  constructor(
+    color: Vector4 = new Vector4(1, 1, 1, 1),
+    type: (typeof MaterialType)[keyof typeof MaterialType] = MaterialType.Diffuse,
+    roughness: number = 0.5,
+    metallic: number = 0.0,
+    specular: number = 0.5,
+  ) {
+    this.color = color;
+    this.type = type;
+    this.roughness = roughness;
+    this.metallic = metallic;
+    this.specular = specular;
+
+    return new Proxy(this, {
+      get: (target, prop) => {
+        return (target as any)[prop];
+      },
+      set: (target, prop, value) => {
+        (target as any).shouldUpdate = true;
+        (target as any)[prop] = value;
+        if ((target as any).entityRef) {
+          (target as any).entityRef.shouldUpdate = true;
+        }
+        return true;
+      },
+    });
+  }
+}
+
 const ComponentMap = {
   [PositionComponent.name]: PositionComponent,
   [ColorComponent.name]: ColorComponent,
