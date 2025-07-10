@@ -391,30 +391,57 @@ export function RayTracing() {
 
   function setupRayTracingScene(renderer: RayTracingRenderer) {
     renderer.state.entityRegistry.spawn([
-      new PositionComponent(0, 10, 0),
-      new SphereComponent(10),
-      new MaterialComponent({ color: new Vector4(0.8, 0.8, 0.3, 1.0) }),
+      new PositionComponent(0, 30, -60),
+      new SphereComponent(30),
+      new MaterialComponent({
+        color: new Vector4(0.8, 0.8, 0.3, 1.0),
+        type: MaterialType.Specular,
+      }),
     ]);
     renderer.state.entityRegistry.spawn([
       new PositionComponent(15, 15, 5),
       new SphereComponent(15),
-      new MaterialComponent({ color: new Vector4(0.8, 0.3, 0.8, 1.0) }),
+      new MaterialComponent({
+        color: new Vector4(0.8, 0.3, 0.8, 1.0),
+      }),
     ]);
     renderer.state.entityRegistry.spawn([
       new PositionComponent(-20, 12, 0),
       new SphereComponent(12),
       new MaterialComponent({
         color: new Vector4(0.3, 0.3, 0.8, 1.0),
-        type: MaterialType.Specular,
-        roughness: 0.0,
       }),
     ]);
   }
+
+  const stateRef = useRef<{
+    angle: number;
+  }>({
+    angle: 0,
+  });
+
+  const jumpingUpandDown: System = (rd) => {
+    const state = stateRef.current;
+
+    if (state.angle >= 2 * Math.PI) {
+      state.angle = 0;
+    } else {
+      state.angle += 0.1;
+    }
+
+    const data =
+      rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
+    if (data) {
+      data.position.y = Math.sin(state.angle) * 20 + 15;
+      data.shouldUpdate = true; // im too lazy to implement a proper proxy system for nested properties
+    }
+  };
 
   const initRayTracing = useCallback(
     async (canvas: HTMLCanvasElement) => {
       if (!rendererRef.current) {
         rendererRef.current = new RayTracingRenderer(canvas);
+        rendererRef.current.systems.push(jumpingUpandDown);
       }
       const renderer = rendererRef.current;
       if (!renderer.isInitialized()) {
@@ -974,7 +1001,19 @@ class PositionComponent extends RayTracingComponent {
   static readonly name = "Position" as const;
   static readonly dataclass = Float32Array;
 
-  position: Vector3;
+  private _position: Vector3;
+
+  get position() {
+    return this._position;
+  }
+
+  set position(value: Vector3) {
+    this._position = value;
+    this.shouldUpdate = true;
+    if (this.entityRef) {
+      this.entityRef.shouldUpdate = true;
+    }
+  }
 
   get data() {
     return this.position.toArray();
@@ -982,7 +1021,19 @@ class PositionComponent extends RayTracingComponent {
 
   constructor(x: number = 0, y: number = 0, z: number = 0) {
     super();
-    this.position = new Vector3(x, y, z);
+    this._position = new Vector3(x, y, z);
+
+    // Create a proxy for the Vector3 to intercept property changes
+    this._position = new Proxy(this._position, {
+      set: (target, prop, value) => {
+        (target as any)[prop] = value;
+        this.shouldUpdate = true;
+        if (this.entityRef) {
+          this.entityRef.shouldUpdate = true;
+        }
+        return true;
+      },
+    });
   }
 }
 
