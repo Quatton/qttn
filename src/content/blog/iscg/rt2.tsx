@@ -71,6 +71,8 @@ const WORKGROUP_SIZE_Y = 8;
 
 const computeShader = /* wgsl */ `
 
+const PI = 3.1415926;
+
 ${cameraLibrary}
 ${objectLibrary}
 ${rayLibrary}
@@ -118,12 +120,6 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
   let uv = vec2<f32>(f32(gId.x), f32(gId.y));
 
   let ray = generateRay(camera, uv);
-  let origin = ray.origin;
-  let rayDirection = ray.direction;
-
-  let background = vec4<f32>(0.3, 0.6, 0.8, 1.0);
-  var color: vec4<f32> = background;
-
 
   var intersection = Intersection(
     -1.0,
@@ -131,7 +127,7 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
   );
 
   intersection = trace(ray, intersection);
-  color = shade(ray, intersection);
+  let color = shade(ray, intersection);
 
   imageBuffer[pixel] = color;
 }
@@ -148,19 +144,44 @@ fn calculateSphereNormal(
 }
 
 
-fn calculateLighting(
-  normal: vec3<f32>,
-  color: vec4<f32>,
-) -> vec4<f32> {
-  let ambient = 0.25;
-  let lightDirection = normalize(vec3<f32>(1.0, 1.0, 1.0));
-  let lightIntensity = max(dot(normal, lightDirection), 0.0);
-  let diffuse = ambient + (1.0 - ambient) * lightIntensity;
-  
-  return vec4<f32>(
-    color.rgb * diffuse,
-    color.a
-  );
+// Monte Carlo IBL + direct lighting
+fn computeIrradiance(
+  ray: Ray,
+  hitPosition: vec3<f32>,
+  normal: vec3<f32>
+) -> vec3<f32> {
+  let N = 32u;
+  var Ep = vec3<f32>(0.0);
+  var Ei = vec3<f32>(0.0);
+  let lightDir = normalize(vec3<f32>(1.0, 1.0, 1.0));
+  let lightColor = vec3<f32>(1.0, 1.0, 1.0);
+  let lightIntensity = max(dot(normal, lightDir), 0.0);
+  Ep = lightColor * lightIntensity;
+
+  for (var i = 0u; i < N; i = i + 1u) {
+    // idk how to generate a random number in WGSL, so we use a simple
+    // uniform sampling method
+    let phi = 2.0 * PI * f32(i) / f32(N);
+    let cosTheta = f32(i) / f32(N);
+    let sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    let x = cos(phi) * sinTheta;
+    let y = sin(phi) * sinTheta;
+    let z = cosTheta;
+    let up = vec3<f32>(0.0, 1.0, 0.0);
+    let tangent = normalize(cross(up, normal));
+    let bitangent = cross(normal, tangent);
+    let sampleDir = normalize(
+      tangent * x +
+      bitangent * y +
+      normal * z
+    );
+    let iblRay = Ray(hitPosition + 0.001 * normal, sampleDir);
+    let iblHit = trace(iblRay, Intersection(-1.0, -1));
+    if (iblHit.t <= 0.0) {
+      Ei = Ei + background.rgb;
+    }
+  }
+  return Ep + (Ei / f32(N));
 }
 
 fn generateRay(
@@ -174,23 +195,10 @@ fn generateRay(
   let fovScale = tan(camera.fovy / 2.0);
   let aspect = camera.aspect;
 
-  // tan(fov / 2) unit * aspect
-  // _______________________
-  // |                     |
-  // |  x_______.          |
-  // |__|_______0          | tan(fov / 2) unit
-  // |          |          |
-  // |          |          |
-  // |__________|__________|
-  //            | 1 unit
-  //            |
-                                                        // shift the center 
-            // but the fovScale is in the range of [-1, 1] so * 2
-                                    // normalize to 1 unit
-                    // center the ray inside the pixel 
+  // Convert pixel coordinates to normalized device coordinates [-1, 1]
   let Px = (2.0 * (uv.x + 0.5) / camera.viewport.x - 1.0);
   let Py = (1.0 - 2.0 * (uv.y + 0.5) / camera.viewport.y); 
-  // Py is the same but inverted because uv.y 0 starts from the top left corner
+  // Py is inverted because uv.y 0 starts from the top left corner
 
   let x = Px * fovScale * aspect;
   let y = Py * fovScale;
@@ -233,8 +241,8 @@ fn sphereIntersect(
 fn trace(ray: Ray, intersection: Intersection) -> Intersection {
   var closest = intersection;
 
+  // Check floor intersection
   let t = -ray.origin.y / ray.direction.y;
-
   if (t > 0.0 && ((closest.t < 0.0) || (t < closest.t))) {
     let position = ray.origin + t * ray.direction;
     let gridX = floor(position.x / floorGridSize);
@@ -248,12 +256,12 @@ fn trace(ray: Ray, intersection: Intersection) -> Intersection {
     }
   }
 
+  // Check sphere intersections
   for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
     let eMeta = entityMetadata[e];
     if (eMeta.position == 1u && eMeta.sphere == 1u && eMeta.material == 1u) {
       let ni = sphereIntersect(ray, i32(e));
-      if (ni.t > 0.0 && ((closest.t > 0.0 && ni.t < closest.t)
-          || closest.t <= 0.0)) {
+      if (ni.t > 0.0 && ((closest.t > 0.0 && ni.t < closest.t) || closest.t <= 0.0)) {
         closest = ni;
       }
     }
@@ -261,7 +269,6 @@ fn trace(ray: Ray, intersection: Intersection) -> Intersection {
 
   return closest;
 }
-
 fn shade(ray: Ray, intersection: Intersection) -> vec4<f32> {
   if (intersection.t <= 0.0) {
     return background;
@@ -269,6 +276,7 @@ fn shade(ray: Ray, intersection: Intersection) -> vec4<f32> {
 
   var normal: vec3<f32>;
   var material: Material;
+  let hitPosition = ray.origin + intersection.t * ray.direction;
 
   if (intersection.e == -2) {
     normal = floorNormal;
@@ -279,14 +287,24 @@ fn shade(ray: Ray, intersection: Intersection) -> vec4<f32> {
   } else if (intersection.e >= 0) {
     let eu = u32(intersection.e);
     material = materials[eu];
-    
     if (entityMetadata[eu].sphere == 1u) {
       normal = calculateSphereNormal(ray, intersection);
     }
+  } else {
+    return background;
   }
 
-  return calculateLighting(normal, material.color);
-}`;
+  if (material.materialType == 0u) {
+    // Lambertian: (Kd / PI) * irradiance
+    let Kd = material.color.rgb;
+    let irradiance = computeIrradiance(ray, hitPosition, normal);
+    let result = (Kd / PI) * irradiance;
+    return vec4<f32>(result, material.color.a);
+  }
+
+  return background;
+}
+`;
 
 const presentShader = /* wgsl */ `
 ${vertexLibrary}
@@ -956,8 +974,6 @@ class SphereComponent extends RayTracingComponent {
 
 const MaterialType = {
   Diffuse: 0,
-  Specular: 1,
-  Reflective: 2,
 } as const;
 
 interface MaterialComponentOptions {
