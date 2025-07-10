@@ -154,7 +154,8 @@ fn computeIrradiance(
   var Ep = vec3<f32>(0.0);
   var Ei = vec3<f32>(0.0);
   
-  let lightPosition = vec3<f32>(50.0, 100.0, 50.0);
+  // https://learnopengl.com/Lighting/Multiple-lights
+  let lightPosition = vec3<f32>(30.0, 80.0, 10.0);
   let lightColor = vec3<f32>(1.0, 1.0, 1.0);
   let lightPower = 10000.0; 
   
@@ -278,6 +279,7 @@ fn trace(ray: Ray, intersection: Intersection) -> Intersection {
 
   return closest;
 }
+
 fn shade(ray: Ray, intersection: Intersection) -> vec4<f32> {
   if (intersection.t <= 0.0) {
     return background;
@@ -309,6 +311,14 @@ fn shade(ray: Ray, intersection: Intersection) -> vec4<f32> {
     let irradiance = computeIrradiance(ray, hitPosition, normal);
     let result = (Kd / PI) * irradiance;
     return vec4<f32>(result, material.color.a);
+  } else if (material.materialType == 1u) {
+    // Specular reflection
+    let reflectedDir = reflect(ray.direction, normal);
+    let reflectedRay = Ray(hitPosition + 0.001 * normal, reflectedDir);
+    let reflectedIntersection = trace(reflectedRay, Intersection(-1.0, -1));
+    let reflectedColor = shade(reflectedRay, reflectedIntersection);
+    let Ks = material.color.rgb;
+    return vec4<f32>(Ks * reflectedColor.rgb, material.color.a);
   }
 
   return background;
@@ -385,7 +395,11 @@ export function RayTracing() {
     renderer.state.entityRegistry.spawn([
       new PositionComponent(-20, 12, 0),
       new SphereComponent(12),
-      new MaterialComponent({ color: new Vector4(0.3, 0.3, 0.8, 1.0) }),
+      new MaterialComponent({
+        color: new Vector4(0.3, 0.3, 0.8, 1.0),
+        type: MaterialType.Specular,
+        roughness: 0.0,
+      }),
     ]);
   }
 
@@ -983,6 +997,7 @@ class SphereComponent extends RayTracingComponent {
 
 const MaterialType = {
   Diffuse: 0,
+  Specular: 1,
 } as const;
 
 interface MaterialComponentOptions {
