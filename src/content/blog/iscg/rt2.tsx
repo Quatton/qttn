@@ -153,31 +153,32 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
   }
 
 
+
   var normal: vec3<f32>;
-  var surfaceColor: vec4<f32>;
+  var material: Material;
   var hit: bool = false;
 
   if (intersection.t > 0.0) {
     if (intersection.e == -2) {
       normal = floorNormal;
-      surfaceColor = floorBaseMaterial.color;
+      material = floorBaseMaterial;
       hit = true;
     } else if (intersection.e == -3) {
       normal = floorNormal;
-      surfaceColor = floorAccentMaterial.color;
+      material = floorAccentMaterial;
       hit = true;
     } else if (intersection.e >= 0) {
       let eu = u32(intersection.e);
       if (entityMetadata[eu].sphere == 1u) {
         normal = calculateSphereNormal(ray, intersection);
-        surfaceColor = materials[eu].color;
+        material = materials[eu];
         hit = true;
       }
     }
   }
 
   if (hit) {
-    color = calculateLighting(normal, surfaceColor);
+    color = calculateLighting(normal, material.color);
   }
 
   imageBuffer[pixel] = color;
