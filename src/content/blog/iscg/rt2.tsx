@@ -72,6 +72,7 @@ const WORKGROUP_SIZE_Y = 8;
 const computeShader = /* wgsl */ `
 
 const PI = 3.1415926;
+const MAX_BOUNCES = 8u;
 
 ${cameraLibrary}
 ${objectLibrary}
@@ -86,7 +87,6 @@ ${componentLibrary}
 @group(0) @binding(4) var<storage, read> materials: array<Material>;
 @group(0) @binding(5) var<storage, read> entityMetadata: array<EntityMetadata>;
 
-// Floor materials (arbitrary values)
 const floorBaseMaterial = Material(
   vec4<f32>(0.8, 0.8, 0.8, 1.0), // color
   0u, // materialType
@@ -144,7 +144,6 @@ fn calculateSphereNormal(
 }
 
 
-// Monte Carlo IBL + direct lighting
 fn computeIrradiance(
   ray: Ray,
   hitPosition: vec3<f32>,
@@ -280,48 +279,59 @@ fn trace(ray: Ray, intersection: Intersection) -> Intersection {
   return closest;
 }
 
-fn shade(ray: Ray, intersection: Intersection) -> vec4<f32> {
-  if (intersection.t <= 0.0) {
-    return background;
-  }
-
-  var normal: vec3<f32>;
-  var material: Material;
-  let hitPosition = ray.origin + intersection.t * ray.direction;
-
-  if (intersection.e == -2) {
-    normal = floorNormal;
-    material = floorBaseMaterial;
-  } else if (intersection.e == -3) {
-    normal = floorNormal;
-    material = floorAccentMaterial;
-  } else if (intersection.e >= 0) {
-    let eu = u32(intersection.e);
-    material = materials[eu];
-    if (entityMetadata[eu].sphere == 1u) {
-      normal = calculateSphereNormal(ray, intersection);
+fn shade(initialRay: Ray, initialIntersection: Intersection) -> vec4<f32> {
+  var currentRay = initialRay;
+  var currentIntersection = initialIntersection;
+  var finalColor = vec3<f32>(0.0);
+  var reflectance = vec3<f32>(1.0); 
+  
+  for (var bounce = 0u; bounce < MAX_BOUNCES; bounce++) {
+    if (currentIntersection.t <= 0.0) {
+      // Hit background - accumulate background color and exit
+      finalColor += reflectance * background.rgb;
+      break;
     }
-  } else {
-    return background;
-  }
 
-  if (material.materialType == 0u) {
-    // Lambertian: (Kd / PI) * irradiance
-    let Kd = material.color.rgb;
-    let irradiance = computeIrradiance(ray, hitPosition, normal);
-    let result = (Kd / PI) * irradiance;
-    return vec4<f32>(result, material.color.a);
-  } else if (material.materialType == 1u) {
-    // Specular reflection
-    let reflectedDir = reflect(ray.direction, normal);
-    let reflectedRay = Ray(hitPosition + 0.001 * normal, reflectedDir);
-    let reflectedIntersection = trace(reflectedRay, Intersection(-1.0, -1));
-    let reflectedColor = shade(reflectedRay, reflectedIntersection);
-    let Ks = material.color.rgb;
-    return vec4<f32>(Ks * reflectedColor.rgb, material.color.a);
-  }
+    var normal: vec3<f32>;
+    var material: Material;
+    let hitPosition = currentRay.origin + currentIntersection.t * currentRay.direction;
 
-  return background;
+    if (currentIntersection.e == -2) {
+      normal = floorNormal;
+      material = floorBaseMaterial;
+    } else if (currentIntersection.e == -3) {
+      normal = floorNormal;
+      material = floorAccentMaterial;
+    } else if (currentIntersection.e >= 0) {
+      let eu = u32(currentIntersection.e);
+      material = materials[eu];
+      if (entityMetadata[eu].sphere == 1u) {
+        normal = calculateSphereNormal(currentRay, currentIntersection);
+      }
+    } else {
+      finalColor += reflectance * background.rgb;
+      break;
+    }
+
+    if (material.materialType == 0u) {
+      let Kd = material.color.rgb;
+      let irradiance = computeIrradiance(currentRay, hitPosition, normal);
+      let diffuseColor = (Kd / PI) * irradiance;
+      finalColor += reflectance * diffuseColor;
+      break;
+    } else if (material.materialType == 1u) {
+      let Ks = material.color.rgb;
+      reflectance *= Ks;
+      let reflectedDir = reflect(currentRay.direction, normal);
+      currentRay = Ray(hitPosition + 0.001 * normal, reflectedDir);
+      currentIntersection = trace(currentRay, Intersection(-1.0, -1));
+    } else {
+      finalColor += reflectance * background.rgb;
+      break;
+    }
+  }
+  
+  return vec4<f32>(finalColor, 1.0);
 }
 `;
 
