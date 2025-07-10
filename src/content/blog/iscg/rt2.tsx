@@ -80,10 +80,6 @@ ${componentLibrary}
 @group(0) @binding(4) var<storage, read> materials: array<Material>;
 @group(0) @binding(5) var<storage, read> entityMetadata: array<EntityMetadata>;
 
-const circleCenter = vec3<f32>(0.0, 0.0, 0.0);
-const circleRadius = 10.0;
-const circleColor = vec4<f32>(0.0, 0.0, 1.0, 1.0); 
-
 const floorBaseColor = vec4<f32>(0.8, 0.8, 0.8, 1.0);
 const floorAccentColor = vec4<f32>(0.2, 0.2, 0.2, 1.0);
 const floorGridSize = 10.0;
