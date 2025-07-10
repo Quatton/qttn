@@ -141,18 +141,8 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
     }
   }
 
-  for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
-    let eMeta = entityMetadata[e];
-    if (eMeta.position == 1u && eMeta.sphere == 1u && eMeta.material == 1u) {
-      let ni = sphereIntersect(ray, i32(e));
-      if (ni.t > 0.0 && ((intersection.t > 0.0 && ni.t < intersection.t)
-          || intersection.t <= 0.0)) {
-        intersection = ni;
-      }
-    }
-  }
 
-
+  intersection = trace(ray, intersection);
 
   var normal: vec3<f32>;
   var material: Material;
@@ -271,6 +261,20 @@ fn sphereIntersect(
   return intersection;
 }
 
+fn trace(ray: Ray, intersection: Intersection) -> Intersection {
+  var closest = intersection;
+  for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
+    let eMeta = entityMetadata[e];
+    if (eMeta.position == 1u && eMeta.sphere == 1u && eMeta.material == 1u) {
+      let ni = sphereIntersect(ray, i32(e));
+      if (ni.t > 0.0 && ((closest.t > 0.0 && ni.t < closest.t)
+          || closest.t <= 0.0)) {
+        closest = ni;
+      }
+    }
+  }
+  return closest;
+}
 `;
 
 const presentShader = /* wgsl */ `
