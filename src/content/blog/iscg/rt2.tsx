@@ -77,11 +77,26 @@ ${componentLibrary}
 @group(0) @binding(1) var<uniform> camera: Camera;
 @group(0) @binding(2) var<storage, read> positions: array<Position>;
 @group(0) @binding(3) var<storage, read> spheres: array<SphereAttribute>;
+
 @group(0) @binding(4) var<storage, read> materials: array<Material>;
 @group(0) @binding(5) var<storage, read> entityMetadata: array<EntityMetadata>;
 
-const floorBaseColor = vec4<f32>(0.8, 0.8, 0.8, 1.0);
-const floorAccentColor = vec4<f32>(0.2, 0.2, 0.2, 1.0);
+// Floor materials (arbitrary values)
+const floorBaseMaterial = Material(
+  vec4<f32>(0.8, 0.8, 0.8, 1.0), // color
+  0u, // materialType
+  0.5, // roughness
+  0.0, // metallic
+  0.5  // specular
+);
+const floorAccentMaterial = Material(
+  vec4<f32>(0.2, 0.2, 0.2, 1.0), // color
+  0u, // materialType
+  0.5, // roughness
+  0.0, // metallic
+  0.5  // specular
+);
+
 const floorGridSize = 10.0;
 const floorNormal = vec3<f32>(0.0, 1.0, 0.0);
 
@@ -106,6 +121,7 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
   let background = vec4<f32>(0.3, 0.6, 0.8, 1.0);
   var color: vec4<f32> = background;
 
+
   var intersection = Intersection(
     -1.0,
     -1, // no intersection
@@ -113,8 +129,16 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
 
   let t = -origin.y / rayDirection.y;
   if (t > 0.0) {
+    let position = origin + t * rayDirection;
+    let gridX = floor(position.x / floorGridSize);
+    let gridY = floor(position.z / floorGridSize);
+    let isEven = (gridX + gridY) % 2 == 0;
     intersection.t = t;
-    intersection.e = -2; // -2 means floor intersection
+    if (isEven) {
+      intersection.e = -2; // -2 = base floor
+    } else {
+      intersection.e = -3; // -3 = accent floor
+    }
   }
 
   for (var e = 0u; e < arrayLength(&entityMetadata); e++) {
@@ -128,55 +152,46 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
     }
   }
 
+
+  var normal: vec3<f32>;
+  var surfaceColor: vec4<f32>;
+  var hit: bool = false;
+
   if (intersection.t > 0.0) {
     if (intersection.e == -2) {
-      color = floorColor(ray, intersection);
-    }
-
-    if (intersection.e >= 0) {
+      normal = floorNormal;
+      surfaceColor = floorBaseMaterial.color;
+      hit = true;
+    } else if (intersection.e == -3) {
+      normal = floorNormal;
+      surfaceColor = floorAccentMaterial.color;
+      hit = true;
+    } else if (intersection.e >= 0) {
       let eu = u32(intersection.e);
       if (entityMetadata[eu].sphere == 1u) {
-        color = sphereColor(ray, intersection);
+        normal = calculateSphereNormal(ray, intersection);
+        surfaceColor = materials[eu].color;
+        hit = true;
       }
     }
+  }
+
+  if (hit) {
+    color = calculateLighting(normal, surfaceColor);
   }
 
   imageBuffer[pixel] = color;
 }
 
-fn floorColor(
+fn calculateSphereNormal(
   ray: Ray,
   intersection: Intersection,
-) -> vec4<f32> {
-  let position = ray.origin + intersection.t * ray.direction;
-  let normal = floorNormal;
-
-  // Calculate the grid color based on the position
-  let gridX = floor(position.x / floorGridSize);
-  let gridY = floor(position.z / floorGridSize);
-  let isEven = (gridX + gridY) % 2 == 0;
-
-  var color: vec4<f32>;
-  if (isEven) {
-    color = floorBaseColor;
-  } else {
-    color = floorAccentColor; 
-  }
-
-  return calculateLighting(normal, color);
-}
-
-fn sphereColor(
-  ray: Ray,
-  intersection: Intersection,
-) -> vec4<f32> {
+) -> vec3<f32> {
   let eu = u32(intersection.e);
   let position = positions[eu].value;
-  let radius = spheres[eu].radius;
   let hitPosition = ray.origin + intersection.t * ray.direction;
   let normal = normalize(hitPosition - position);
-  let material = materials[eu];
-  return calculateLighting(normal, material.color);
+  return normal;
 }
 
 
