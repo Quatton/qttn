@@ -102,6 +102,7 @@ const floorAccentMaterial = Material(
 
 const floorGridSize = 10.0;
 const floorNormal = vec3<f32>(0.0, 1.0, 0.0);
+const background = vec4<f32>(0.3, 0.6, 0.8, 1.0);
 
 @compute @workgroup_size(${WORKGROUP_SIZE_X}, ${WORKGROUP_SIZE_Y}, 1)
 fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
@@ -116,7 +117,6 @@ fn computeMain(@builtin(global_invocation_id) gId: vec3<u32>) {
   let center = camera.viewport / vec2<f32>(2.0);
   let uv = vec2<f32>(f32(gId.x), f32(gId.y));
 
-  // Only ECS mode (final state)
   let ray = generateRay(camera, uv);
   let origin = ray.origin;
   let rayDirection = ray.direction;
@@ -258,12 +258,11 @@ fn trace(ray: Ray, intersection: Intersection) -> Intersection {
       }
     }
   }
+
   return closest;
 }
 
 fn shade(ray: Ray, intersection: Intersection) -> vec4<f32> {
-  let background = vec4<f32>(0.3, 0.6, 0.8, 1.0);
-
   if (intersection.t <= 0.0) {
     return background;
   }
@@ -287,8 +286,7 @@ fn shade(ray: Ray, intersection: Intersection) -> vec4<f32> {
   }
 
   return calculateLighting(normal, material.color);
-}
-`;
+}`;
 
 const presentShader = /* wgsl */ `
 ${vertexLibrary}
