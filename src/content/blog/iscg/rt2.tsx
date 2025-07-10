@@ -388,35 +388,20 @@ export function RayTracing() {
   function setupRayTracingScene(renderer: RayTracingRenderer) {
     renderer.state.entityRegistry.spawn([
       new PositionComponent(0, 10, 0),
-      new ColorComponent(0.8, 0.8, 0.3, 1.0),
       new SphereComponent(10),
+      new MaterialComponent(new Vector4(0.8, 0.8, 0.3, 1.0)),
     ]);
     renderer.state.entityRegistry.spawn([
       new PositionComponent(15, 15, 5),
-      new ColorComponent(0.8, 0.3, 0.8, 1.0),
       new SphereComponent(15),
+      new MaterialComponent(new Vector4(0.8, 0.3, 0.8, 1.0)),
     ]);
     renderer.state.entityRegistry.spawn([
       new PositionComponent(-20, 12, 0),
-      new ColorComponent(0.3, 0.3, 0.8, 1.0),
       new SphereComponent(12),
+      new MaterialComponent(new Vector4(0.3, 0.3, 0.8, 1.0)),
     ]);
-
-    renderer.state.entityRegistry.spawn([
-      new PositionComponent(0, 8, -20),
-      new ColorComponent(0.2, 0.9, 0.4, 1.0),
-      new TorusComponent(8, 2),
-    ]);
-    renderer.state.entityRegistry.spawn([
-      new PositionComponent(20, 10, -10),
-      new ColorComponent(0.9, 0.5, 0.2, 1.0),
-      new TorusComponent(6, 1.5),
-    ]);
-    renderer.state.entityRegistry.spawn([
-      new PositionComponent(-18, 7, -15),
-      new ColorComponent(0.3, 0.7, 0.9, 1.0),
-      new TorusComponent(5, 1),
-    ]);
+    // Torus and ColorComponent entities removed
   }
 
   const initRayTracing = useCallback(
@@ -954,85 +939,58 @@ class RayTracingRenderer {
   }
 }
 
-interface RayTracingComponent {
-  entityRef: Entity | null;
-  shouldUpdate: boolean;
-  data: ReadonlyArray<number>;
-}
+abstract class RayTracingComponent {
+  entityRef: Entity | null = null;
+  shouldUpdate = true;
 
-class PositionComponent extends Vector3 implements RayTracingComponent {
+  /**
+   * Abstract getter for the component's data to be sent to the GPU.
+   */
+  abstract get data(): ReadonlyArray<number>;
+
+  protected constructor() {
+    // The constructor returns a Proxy of the instance.
+    // This intercepts any property set, automatically flagging the component
+    // and its parent entity as needing a buffer update.
+    return new Proxy(this, {
+      set: (target, prop, value) => {
+        // Update the actual property on the target object
+        (target as any)[prop] = value;
+
+        // Mark this component and its entity as dirty
+        this.shouldUpdate = true;
+        if (this.entityRef) {
+          this.entityRef.shouldUpdate = true;
+        }
+        return true;
+      },
+    });
+  }
+}
+class PositionComponent extends RayTracingComponent {
   static readonly size = 4;
   static readonly name = "Position" as const;
   static readonly dataclass = Float32Array;
 
-  entityRef: Entity | null = null;
-  shouldUpdate = true;
+  position: Vector3;
 
   get data() {
-    return this.toArray();
+    return this.position.toArray();
   }
 
   constructor(x: number = 0, y: number = 0, z: number = 0) {
-    super(x, y, z);
-    return new Proxy(this, {
-      get: (target, prop) => {
-        return (target as any)[prop];
-      },
-      set: (target, prop, value) => {
-        (target as any).shouldUpdate = true;
-        (target as any)[prop] = value;
-        if ((target as any).entityRef) {
-          (target as any).entityRef.shouldUpdate = true;
-        }
-        return true;
-      },
-    });
+    super();
+    this.position = new Vector3(x, y, z);
   }
 }
 
-class ColorComponent extends Vector4 {
-  static readonly size = 4;
-  static readonly name = "Color" as const;
-  static readonly dataclass = Float32Array;
+// ColorComponent removed
 
-  entityRef: Entity | null = null;
-
-  shouldUpdate = true;
-
-  get data() {
-    return this.toArray();
-  }
-
-  constructor(
-    r: number = 1.0,
-    g: number = 1.0,
-    b: number = 1.0,
-    a: number = 1.0,
-  ) {
-    super(r, g, b, a);
-    return new Proxy(this, {
-      get: (target, prop) => {
-        return (target as any)[prop];
-      },
-      set: (target, prop, value) => {
-        (target as any).shouldUpdate = true;
-        (target as any)[prop] = value;
-        if ((target as any).entityRef) {
-          (target as any).entityRef.shouldUpdate = true;
-        }
-        return true;
-      },
-    });
-  }
-}
-
-class SphereComponent {
-  static readonly size = 1; // Sphere radius
+class SphereComponent extends RayTracingComponent {
+  static readonly size = 1;
   static readonly name = "Sphere" as const;
   static readonly dataclass = Float32Array;
-  entityRef: Entity | null = null;
 
-  shouldUpdate = true;
   radius: number;
 
   get data() {
@@ -1040,55 +998,12 @@ class SphereComponent {
   }
 
   constructor(radius: number = 1.0) {
+    super();
     this.radius = radius;
-    return new Proxy(this, {
-      get: (target, prop) => {
-        return (target as any)[prop];
-      },
-      set: (target, prop, value) => {
-        (target as any).shouldUpdate = true;
-        (target as any)[prop] = value;
-        if ((target as any).entityRef) {
-          (target as any).entityRef.shouldUpdate = true;
-        }
-        return true;
-      },
-    });
   }
 }
 
-class TorusComponent implements RayTracingComponent {
-  static readonly size = 2; // Torus radius and tube radius
-  static readonly name = "Torus" as const;
-  static readonly dataclass = Float32Array;
-
-  entityRef: Entity | null = null;
-  shouldUpdate = true;
-  radius: number;
-  tubeRadius: number;
-
-  get data() {
-    return [this.radius, this.tubeRadius] as const;
-  }
-
-  constructor(radius: number = 1.0, tubeRadius: number = 0.5) {
-    this.radius = radius;
-    this.tubeRadius = tubeRadius;
-    return new Proxy(this, {
-      get: (target, prop) => {
-        return (target as any)[prop];
-      },
-      set: (target, prop, value) => {
-        (target as any).shouldUpdate = true;
-        (target as any)[prop] = value;
-        if ((target as any).entityRef) {
-          (target as any).entityRef.shouldUpdate = true;
-        }
-        return true;
-      },
-    });
-  }
-}
+// TorusComponent removed
 
 const MaterialType = {
   Diffuse: 0,
@@ -1096,12 +1011,11 @@ const MaterialType = {
   Reflective: 2,
 } as const;
 
-class MaterialComponent implements RayTracingComponent {
+class MaterialComponent extends RayTracingComponent {
   // color * 4 + // type * 1 + roughness * 1 + metallic * 1 + specular * 1
   static readonly size = 8;
-
-  entityRef: Entity | null = null;
-  shouldUpdate = true;
+  static readonly name = "Material" as const;
+  static readonly dataclass = Float32Array;
 
   color: Vector4;
   type: (typeof MaterialType)[keyof typeof MaterialType];
@@ -1126,54 +1040,38 @@ class MaterialComponent implements RayTracingComponent {
     metallic: number = 0.0,
     specular: number = 0.5,
   ) {
+    super();
     this.color = color;
     this.type = type;
     this.roughness = roughness;
     this.metallic = metallic;
     this.specular = specular;
-
-    return new Proxy(this, {
-      get: (target, prop) => {
-        return (target as any)[prop];
-      },
-      set: (target, prop, value) => {
-        (target as any).shouldUpdate = true;
-        (target as any)[prop] = value;
-        if ((target as any).entityRef) {
-          (target as any).entityRef.shouldUpdate = true;
-        }
-        return true;
-      },
-    });
   }
 }
 
 const ComponentMap = {
   [PositionComponent.name]: PositionComponent,
-  [ColorComponent.name]: ColorComponent,
   [SphereComponent.name]: SphereComponent,
-  [TorusComponent.name]: TorusComponent,
+  [MaterialComponent.name]: MaterialComponent,
 } as const;
 
 const ComponentIds = {
   [PositionComponent.name]: 0,
-  [ColorComponent.name]: 1,
-  [SphereComponent.name]: 2,
-  [TorusComponent.name]: 3,
+  [SphereComponent.name]: 1,
+  [MaterialComponent.name]: 2,
 } as const;
 
 const Components = [
   PositionComponent,
-  ColorComponent,
   SphereComponent,
-  TorusComponent,
+  MaterialComponent,
 ] as const;
 
 type ComponentName = keyof typeof ComponentMap;
 type ComponentType = InstanceType<(typeof Components)[number]>;
 type ComponentStorage = {
-  -readonly [K in keyof typeof ComponentMap as (typeof ComponentMap)[K]["name"]]: {
-    instances: Array<InstanceType<(typeof ComponentMap)[K]>>;
+  -readonly [K in keyof typeof ComponentMap]: {
+    instances: Array<InstanceType<(typeof ComponentMap)[K]> | undefined>;
     data: Float32Array | Uint32Array;
     buffer: GPUBuffer;
   };
@@ -1203,9 +1101,9 @@ class EntityRegistry {
     this.device = device;
     this.storage = Components.reduce((acc, cur) => {
       acc[cur.name] = {
-        instances: Array.from({
-          length: this.entityMaxSize,
-        }) as any,
+        instances: Array.from<
+          InstanceType<(typeof ComponentMap)[ComponentName]>
+        >({ length: this.entityMaxSize }) as any,
         data: new cur.dataclass(this.entityMaxSize * cur.size),
         buffer: this.device.createBuffer({
           label: `${cur.name} Buffer`,
