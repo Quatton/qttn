@@ -533,7 +533,7 @@ class Camera implements StateBuffer<Float32Array> {
   constructor(
     device: GPUDevice,
     viewport: [number, number],
-    position: Vector3 = new Vector3(0, 20, 100),
+    position: Vector3 = new Vector3(0, 20, 50),
     direction: Vector3 = new Vector3(0, 0, -1), // -Z
     up: Vector3 = new Vector3(0, 1, 0), // Y
     fovy: number = Math.PI / 2,
@@ -1148,12 +1148,10 @@ class EntityRegistry {
         instances: Array.from({
           length: this.entityMaxSize,
         }) as any,
-        data: new cur.dataclass(
-          this.entityMaxSize * cur.dataclass.BYTES_PER_ELEMENT,
-        ),
+        data: new cur.dataclass(this.entityMaxSize * cur.size),
         buffer: this.device.createBuffer({
           label: `${cur.name} Buffer`,
-          size: cur.dataclass.BYTES_PER_ELEMENT * this.entityMaxSize,
+          size: cur.size * this.entityMaxSize * cur.dataclass.BYTES_PER_ELEMENT,
           usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         }),
       };
@@ -1180,10 +1178,10 @@ class EntityRegistry {
   }
 
   writeBuffer() {
+    let anyUpdates = false;
     for (const entity of this.entities.values()) {
-      if (!entity.shouldUpdate) {
-        continue;
-      }
+      if (!entity.shouldUpdate) continue;
+      anyUpdates = true;
       const index = entity.id;
       for (let i = 0; i < this.componentSize; i++) {
         this.entityMetadata[index * this.componentSize + i] = 0;
@@ -1200,26 +1198,23 @@ class EntityRegistry {
           const storage = this.storage[componentName];
           const offset = index * meta.size;
           storage.data.set(component.data, offset);
-          this.device.queue.writeBuffer(
-            storage.buffer,
-            offset * meta.dataclass.BYTES_PER_ELEMENT,
-            storage.data,
-            offset,
-            meta.size,
-          );
           component.shouldUpdate = false;
         }
       }
       entity.shouldUpdate = false;
     }
 
-    this.device.queue.writeBuffer(
-      this.entityMetadataBuffer,
-      0,
-      this.entityMetadata,
-      0,
-      this.totalIndexDataSize,
-    );
+    if (anyUpdates) {
+      for (const componentName of Components.map((c) => c.name)) {
+        const storage = this.storage[componentName];
+        this.device.queue.writeBuffer(storage.buffer, 0, storage.data);
+      }
+      this.device.queue.writeBuffer(
+        this.entityMetadataBuffer,
+        0,
+        this.entityMetadata,
+      );
+    }
   }
 
   destroy() {
