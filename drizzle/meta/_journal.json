@@ -57,6 +57,27 @@
       "when": 1727076547994,
       "tag": "0007_unique_pandemic",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1771072437236,
+      "tag": "0008_large_loki",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1771072463223,
+      "tag": "0009_third_bloodscream",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1771072480137,
+      "tag": "0010_chief_bucky",
+      "breakpoints": true
     }
   ]
 }

@@ -34,7 +34,7 @@ export type GameMode = (typeof gameModes)[number];
 export const WordShortList = sqliteTable(
   "word_short_list",
   {
-    id: text("id")
+    id: integer("id")
       .references(() => Words.id, {
         onDelete: "cascade",
         onUpdate: "cascade",
@@ -42,11 +42,7 @@ export const WordShortList = sqliteTable(
       .primaryKey()
       .notNull(),
     created_at: integer("created_at", { mode: "timestamp" }).notNull().default(now),
-    random: real("random")
-      .notNull()
-      .default(sql`(RANDOM())`),
   },
-  (table) => [index("random_index").on(table.random)],
 );
 
 export const Games = sqliteTable("games", {
@@ -88,7 +84,10 @@ export const GameWords = sqliteTable(
     updated_at: integer("updated_at", { mode: "timestamp" }).notNull().default(now),
     matched: integer("matched", { mode: "boolean" }).notNull().default(false),
   },
-  (table) => [primaryKey({ columns: [table.word_id, table.game_id] })],
+  (table) => [
+    primaryKey({ columns: [table.word_id, table.game_id] }),
+    index("game_words_game_id_index").on(table.game_id, table.index),
+  ],
 );
 
 export const gameWordRelations = relations(GameWords, ({ one }) => ({

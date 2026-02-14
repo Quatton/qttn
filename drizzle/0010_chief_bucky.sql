@@ -1,0 +1,1 @@
+CREATE INDEX `game_words_game_id_index` ON `game_words` (`game_id`,`index`);
