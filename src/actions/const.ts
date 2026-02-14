@@ -1,76 +1,66 @@
-import { keys } from "@/lib/const/rules";
-import { ActionError, defineAction } from "astro:actions";
-import { z } from "astro/zod";
 import { db } from "@/db/drizzle";
-import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
 import { gameModes, Games, GameWords, now, Words, WordShortList, type GameMode } from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
+import { keys } from "@/lib/const/rules";
+import { z } from "astro/zod";
+import { ActionError, defineAction } from "astro:actions";
+import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
 
 async function generateWords(
-  client: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   limit: number,
   mode: GameMode = "easy",
 ) {
-  return await client
-    .transaction(async (tx) => {
-      const sq = tx.$with("sq").as(
-        tx
-          .select()
-          .from(WordShortList)
-          .orderBy(asc(sql`random()`))
-          .where(
-            and(
-              eq(Words.likely_not_a_word_count, 0),
-              eq(Words.inappropriate_count, 0),
-              ...(mode === "easy" ? [gte(Words.sampled_count, 100)] : []),
-            ),
-          )
-          .innerJoin(Words, eq(WordShortList.id, Words.id))
-          .limit(limit * 5),
-      );
+  const sq = tx.$with("sq").as(
+    tx
+      .select()
+      .from(WordShortList)
+      .orderBy(asc(sql`random()`))
+      .where(
+        and(
+          eq(Words.likely_not_a_word_count, 0),
+          eq(Words.inappropriate_count, 0),
+          ...(mode === "easy" ? [gte(Words.sampled_count, 100)] : []),
+        ),
+      )
+      .innerJoin(Words, eq(WordShortList.id, Words.id))
+      .limit(limit),
+  );
 
-      const words = await tx
-        .with(sq)
-        .select({
-          id: sq.words.id,
-          name: sq.words.name,
-        })
-        .from(sq)
-        .orderBy(asc(sq.words.rejected_rate));
-
-      const eighty = Math.floor(mode === "easy" ? limit * 0.8 : limit * 0.2);
-      const twenty = limit - eighty;
-
-      const _t = [...words.slice(0, eighty), ...words.slice(words.length - twenty)];
-
-      const t = _t.map((word) => ({
-        id: word.id,
-        name: word.name,
-      }));
-
-      await tx
-        .update(Words)
-        .set({
-          sampled_count: sql`${Words.sampled_count} + 1`,
-          rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / (${Words.sampled_count} + 1)`,
-          success_rate: sql`CAST (${Words.success_count} as REAL) / (${Words.sampled_count} + 1)`,
-        })
-        .where(
-          inArray(
-            Words.id,
-            t.map((word) => word.id),
-          ),
-        );
-
-      return t;
+  const words = await tx
+    .with(sq)
+    .select({
+      id: sq.words.id,
+      name: sq.words.name,
     })
-    .catch((e) => {
-      console.error(e);
-      throw new ActionError({
-        code: "NOT_FOUND",
-        message: "Cannot generate words",
-      });
-    });
+    .from(sq)
+    .orderBy(asc(sq.words.rejected_rate));
+
+  const eighty = Math.floor(mode === "easy" ? limit * 0.8 : limit * 0.2);
+  const twenty = limit - eighty;
+
+  const _t = [...words.slice(0, eighty), ...words.slice(words.length - twenty)];
+
+  const t = _t.map((word) => ({
+    id: word.id,
+    name: word.name,
+  }));
+
+  await tx
+    .update(Words)
+    .set({
+      sampled_count: sql`${Words.sampled_count} + 1`,
+      rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / (${Words.sampled_count} + 1)`,
+      success_rate: sql`CAST (${Words.success_count} as REAL) / (${Words.sampled_count} + 1)`,
+    })
+    .where(
+      inArray(
+        Words.id,
+        t.map((word) => word.id),
+      ),
+    );
+
+  return t;
 }
 
 async function defineWord(word: string) {
@@ -239,7 +229,7 @@ export const game = {
           .update(Words)
           .set({
             rejected_count: sql`${Words.rejected_count} + 1`,
-            rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / ${Words.sampled_count}`,
+            rejected_rate: sql`CAST ((${Words.rejected_count} + 1) as REAL) / ${Words.sampled_count}`,
             likely_not_a_word_count:
               input.reason === "notAWord" ? sql`${Words.likely_not_a_word_count} + 1` : undefined,
             inappropriate_count:
