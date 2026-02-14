@@ -1,7 +1,7 @@
+import { generateRandomString, type RandomReader } from "@oslojs/crypto/random";
+import type { InferSelectModel } from "drizzle-orm";
 import { relations, sql } from "drizzle-orm";
 import { index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import type { InferSelectModel } from "drizzle-orm";
-import { generateRandomString, type RandomReader } from "@oslojs/crypto/random";
 
 export const now = sql`(unixepoch())`;
 export const Words = sqliteTable("words", {
@@ -31,19 +31,16 @@ export const generateRandomId = () => generateRandomString(random, ALPHABET, 5);
 export const gameModes = ["easy", "hard"] as const;
 export type GameMode = (typeof gameModes)[number];
 
-export const WordShortList = sqliteTable(
-  "word_short_list",
-  {
-    id: integer("id")
-      .references(() => Words.id, {
-        onDelete: "cascade",
-        onUpdate: "cascade",
-      })
-      .primaryKey()
-      .notNull(),
-    created_at: integer("created_at", { mode: "timestamp" }).notNull().default(now),
-  },
-);
+export const WordShortList = sqliteTable("word_short_list", {
+  id: integer("id")
+    .references(() => Words.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    })
+    .primaryKey()
+    .notNull(),
+  created_at: integer("created_at", { mode: "timestamp" }).notNull().default(now),
+});
 
 export const Games = sqliteTable("games", {
   id: text("id").primaryKey().$defaultFn(generateRandomId),
