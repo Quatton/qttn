@@ -1,5 +1,5 @@
-import { defineConfig } from "drizzle-kit";
 import dotenv from "dotenv";
+import { defineConfig } from "drizzle-kit";
 
 if (process.env.PROD) dotenv.config({ path: ".env.production" });
 else dotenv.config({ path: ".env.local" });
