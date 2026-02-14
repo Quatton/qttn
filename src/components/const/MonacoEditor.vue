@@ -3,11 +3,7 @@ import { useConstCode } from "@/hooks/vue/useConstCode";
 import type { GameSession } from "@/lib/const/rules";
 import { editor, wordStore } from "@/store/word";
 import { shikiToMonaco } from "@shikijs/monaco";
-import {
-  breakpointsTailwind,
-  useBreakpoints,
-  useLocalStorage,
-} from "@vueuse/core";
+import { breakpointsTailwind, useBreakpoints, useLocalStorage } from "@vueuse/core";
 import * as monaco from "monaco-editor";
 import { createHighlighter } from "shiki";
 import { onMounted, onUnmounted, ref, shallowRef } from "vue";
@@ -18,8 +14,7 @@ const $props = defineProps<{
 
 const element = ref<HTMLElement | null>(null);
 
-const editorDecorations =
-  shallowRef<monaco.editor.IEditorDecorationsCollection | null>(null);
+const editorDecorations = shallowRef<monaco.editor.IEditorDecorationsCollection | null>(null);
 
 const breakpoint = useBreakpoints(breakpointsTailwind);
 
@@ -27,8 +22,7 @@ function onWindowResize(e: UIEvent) {
   editor.value?.layout();
   const parent = editor.value?.getDomNode()?.parentElement;
   editor.value?.updateOptions({
-    fontSize:
-      (parent ?? document.body).clientWidth > breakpointsTailwind.sm ? 16 : 12,
+    fontSize: (parent ?? document.body).clientWidth > breakpointsTailwind.sm ? 16 : 12,
   });
 }
 
@@ -86,10 +80,7 @@ onMounted(async () => {
             inlineClassName: `bracket-highlighting-${
               ((match.matches?.[0] ?? "")
                 .split("")
-                .reduceRight(
-                  (acc: number, c: string) => acc * 31 + c.charCodeAt(0),
-                  0,
-                ) %
+                .reduceRight((acc: number, c: string) => acc * 31 + c.charCodeAt(0), 0) %
                 6) +
               1
             }`,
@@ -99,9 +90,7 @@ onMounted(async () => {
 
       wordStore.value = wordStore.value.map((word) => ({
         ...word,
-        match: code.value
-          .toLowerCase()
-          .includes(word.name.replace(/[aeiou]$/, "")),
+        match: code.value.toLowerCase().includes(word.name.replace(/[aeiou]$/, "")),
       }));
     }
 

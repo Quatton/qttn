@@ -531,7 +531,7 @@ type System = (rd: RayTracingRenderer) => void;
 
 const TUBE_RADIUS = 5.0;
 
-const toruses = Array.from({ length: 7 }, (_, i) => ({
+const _toruses = Array.from({ length: 7 }, (_, i) => ({
   position: new Vector3(0, TUBE_RADIUS * 2 * i + TUBE_RADIUS, 0),
   radius: 20.0,
   tubeRadius: TUBE_RADIUS,
@@ -544,7 +544,7 @@ export function RayTracing() {
   const rendererRef = useRef<RayTracingRenderer | null>(null);
   const frameId = useRef<number | null>(null);
 
-  const { scrollPassed } = useScrollDetector((scrollPassed: (id: string) => boolean) => {
+  const { scrollPassed } = useScrollDetector((_scrollPassed: (id: string) => boolean) => {
     if (!rendererRef.current) {
       return;
     }

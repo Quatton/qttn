@@ -54,14 +54,9 @@ const lengths = [0.5, 0.5, 0.5, 0.5, 0.5];
 function RobotArm({ target }: { target?: Vector3 }) {
   const { scrollPassed } = useScrollDetectorState();
 
-  const [rotations, setRotations] = useState(
-    colors.map(() => new Quaternion()),
-  );
+  const [rotations, setRotations] = useState(colors.map(() => new Quaternion()));
 
-  const jointRefs = useRef([
-    ...colors.map(() => createRef<Mesh>()),
-    createRef<Mesh>(),
-  ]);
+  const jointRefs = useRef([...colors.map(() => createRef<Mesh>()), createRef<Mesh>()]);
 
   return (
     <group>

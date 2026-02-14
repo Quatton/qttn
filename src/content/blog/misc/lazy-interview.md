@@ -18,7 +18,7 @@ One of my greatest strengths is my attention to detail. I once spent a week opti
 
 After landing the job, I would like to share the technique I used to prepare for the final round of the interview with the manager. At first, I checked [35 interview questions for managers](https://www.indeed.com/career-advice/interviewing/interview-questions-for-managers) and was overwhelmed by the number of questions and how much I needed to prepared. But then I realized... **some of these questions do actually overlap!**
 
-Let's go back to the two responses. This is a classic example of the "Double-Edged Sword" technique. Your weakness is your strength. Your strength is your weakness. You can use the same story to answer both questions. This might seem like an obvious one, but maybe you have  non-trivial strengths and weaknesses. Here are some non-exhaustive examples I have compiled:
+Let's go back to the two responses. This is a classic example of the "Double-Edged Sword" technique. Your weakness is your strength. Your strength is your weakness. You can use the same story to answer both questions. This might seem like an obvious one, but maybe you have non-trivial strengths and weaknesses. Here are some non-exhaustive examples I have compiled:
 
 | Weakness                         | Strength                                        |
 | -------------------------------- | ----------------------------------------------- |
@@ -126,4 +126,4 @@ Depending on the _dimensions_ of your story, it's unlikely that one story can co
 
 These stories cover many more aspects of my work environment and my personality.
 
-## 
+##

@@ -1,6 +1,6 @@
-import { useEffect, useRef, type RefObject } from "react";
-import * as glm from "gl-matrix";
 import { useScrollDetector } from "@/components/react/scroll-detector";
+import * as glm from "gl-matrix";
+import { useEffect, useRef, type RefObject } from "react";
 
 const curveVs = `#version 300 es
 
@@ -899,7 +899,7 @@ function linspace(start: number, end: number, num: number) {
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: <explanation>
-function arange(start: number, end: number, step: number) {
+function _arange(start: number, end: number, step: number) {
   return Array.from({ length: Math.ceil((end - start) / step) }, (_, i) => start + i * step);
 }
 
@@ -980,12 +980,11 @@ function distanceFromLineAB(p: [number, number], a: [number, number], b: [number
 }
 
 const factCache = new Map<number, number>();
-// biome-ignore lint/correctness/noUnusedVariables: <explanation>
-function fact(x: number): number {
+function _fact(x: number): number {
   const cached = factCache.get(x);
   if (cached) return cached;
   if (x <= 1) return 1;
-  const res = x * fact(x - 1);
+  const res = x * _fact(x - 1);
   factCache.set(x, res);
   return res;
 }

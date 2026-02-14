@@ -92,8 +92,7 @@ import { words } from "@/store/words"; // Import from another file // [!code hig
 
 const code = ref("I ate a cake, and a banana ate me.");
 const matchedAll = computed(
-  () =>
-    wordStore.value.length > 0 && wordStore.value.every((word) => word.match),
+  () => wordStore.value.length > 0 && wordStore.value.every((word) => word.match),
 );
 watch(
   () => code.value,

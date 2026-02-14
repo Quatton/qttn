@@ -155,9 +155,7 @@ class RayTracingRenderer {
       label: "renderEncoder",
     });
 
-    const renderPass = commandEncoder.beginRenderPass(
-      this.renderPassDescriptor,
-    );
+    const renderPass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
     renderPass.setPipeline(this.renderPipeline);
     renderPass.setBindGroup(0, this.renderBindGroup);
@@ -192,17 +190,11 @@ class RayTracingRenderer {
     const dpr = window.devicePixelRatio || 1;
     const width = Math.max(
       1,
-      Math.min(
-        Math.floor(canvas.clientWidth * dpr),
-        this.device.limits.maxTextureDimension2D,
-      ),
+      Math.min(Math.floor(canvas.clientWidth * dpr), this.device.limits.maxTextureDimension2D),
     );
     const height = Math.max(
       1,
-      Math.min(
-        Math.floor(canvas.clientHeight * dpr),
-        this.device.limits.maxTextureDimension2D,
-      ),
+      Math.min(Math.floor(canvas.clientHeight * dpr), this.device.limits.maxTextureDimension2D),
     );
     canvas.width = width;
     canvas.height = height;
@@ -818,12 +810,7 @@ class ColorComponent extends Vector4 {
     return this.toArray();
   }
 
-  constructor(
-    r: number = 1.0,
-    g: number = 1.0,
-    b: number = 1.0,
-    a: number = 1.0,
-  ) {
+  constructor(r: number = 1.0, g: number = 1.0, b: number = 1.0, a: number = 1.0) {
     super(r, g, b, a);
     return new Proxy(this, {
       get: (target, prop) => {
@@ -862,9 +849,7 @@ class EntityRegistry {
     return this.componentSize * this.entityMaxSize;
   }
 
-  entityMetadata = new Uint32Array(
-    this.entityMaxSize * this.componentSize,
-  ).fill(0);
+  entityMetadata = new Uint32Array(this.entityMaxSize * this.componentSize).fill(0);
   entityMetadataBuffer: GPUBuffer;
 
   entities: Map<number, Entity> = new Map();
@@ -876,9 +861,7 @@ class EntityRegistry {
         instances: Array.from({
           length: this.entityMaxSize,
         }) as any,
-        data: new cur.dataclass(
-          this.entityMaxSize * cur.dataclass.BYTES_PER_ELEMENT,
-        ),
+        data: new cur.dataclass(this.entityMaxSize * cur.dataclass.BYTES_PER_ELEMENT),
         buffer: this.device.createBuffer({
           label: `${cur.name} Buffer`,
           size: cur.dataclass.BYTES_PER_ELEMENT * this.entityMaxSize,
@@ -917,9 +900,7 @@ class EntityRegistry {
         this.entityMetadata[index * this.componentSize + i] = 0;
       }
       for (const [componentName, component] of entity.directComponentMap) {
-        this.entityMetadata[
-          index * this.componentSize + ComponentIds[componentName]
-        ] = 1;
+        this.entityMetadata[index * this.componentSize + ComponentIds[componentName]] = 1;
         if (component.shouldUpdate) {
           const meta = ComponentMap[componentName];
           const storage = this.storage[componentName];
@@ -976,9 +957,7 @@ class Entity {
     const componentName = component.constructor.name as ComponentName;
 
     if (this.directComponentMap.has(componentName)) {
-      throw new Error(
-        `Component ${componentName} is already added to this entity.`,
-      );
+      throw new Error(`Component ${componentName} is already added to this entity.`);
     }
 
     this.directComponentMap.set(componentName, component);
@@ -1009,10 +988,7 @@ this.entityRegistry.spawn([
 
 const entity = this.entityRegistry.spawn([new PositionComponent(15, 15, 5)]);
 // 後からコンポーネントを追加することもできる。
-entity.addComponentBundle([
-  new ColorComponent(0.8, 0.3, 0.8, 1.0),
-  new SphereComponent(15),
-]);
+entity.addComponentBundle([new ColorComponent(0.8, 0.3, 0.8, 1.0), new SphereComponent(15)]);
 
 this.entityRegistry.spawn([
   new PositionComponent(-20, 12, 0),
@@ -1058,8 +1034,7 @@ const jumpingUpandDown: System = (rd) => {
     state.angle += 0.1;
   }
 
-  const data =
-    rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
+  const data = rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
   if (data) {
     data.y = Math.sin(state.angle) * 10 + 10;
   }

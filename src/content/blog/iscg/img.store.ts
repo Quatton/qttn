@@ -154,7 +154,7 @@ export const $detailOffset = atom<number>(0.5);
 export const $detailScale = atom<number>(1.0);
 
 // courtesy of original assignment example
-function smoothImageGaussian(imgData: ImageData, sigma: number) {
+function _smoothImageGaussian(imgData: ImageData, sigma: number) {
   const data = imgData.data;
 
   const r = Math.ceil(sigma * 3);
@@ -204,7 +204,7 @@ function smoothImageGaussian(imgData: ImageData, sigma: number) {
   return imgData;
 }
 
-function smoothImageBilateral(imgData: ImageData, sigma: number, sigmaColor: number) {
+function _smoothImageBilateral(imgData: ImageData, sigma: number, sigmaColor: number) {
   const data = imgData.data;
 
   const r = Math.ceil(sigma * 3);

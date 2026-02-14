@@ -27,12 +27,7 @@ const { execute, isLoading } = useAsyncState(
 </script>
 
 <template>
-  <button
-    type="submit"
-    class="btn btn-primary"
-    @click="() => execute()"
-    :disabled="isLoading"
-  >
+  <button type="submit" class="btn btn-primary" @click="() => execute()" :disabled="isLoading">
     Start a new game
   </button>
 </template>

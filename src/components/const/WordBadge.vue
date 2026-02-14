@@ -5,9 +5,7 @@ import { Icon } from "@iconify/vue";
 
 const modal = {
   showModal: (idx: number) => {
-    (
-      document.getElementById(`definition-${idx}`) as HTMLDialogElement
-    ).showModal();
+    (document.getElementById(`definition-${idx}`) as HTMLDialogElement).showModal();
   },
   close: (idx: number) => {
     (document.getElementById(`definition-${idx}`) as HTMLDialogElement).close();
@@ -16,10 +14,7 @@ const modal = {
 
 const $emit = defineEmits<{
   defineWord: [word: string];
-  swapOutWord: [
-    idx: number,
-    reason: "difficult" | "notAWord" | "inappropriate",
-  ];
+  swapOutWord: [idx: number, reason: "difficult" | "notAWord" | "inappropriate"];
 }>();
 
 withDefaults(
@@ -52,19 +47,13 @@ withDefaults(
         class="menu dropdown-content rounded-box bg-base-100 z-50 w-60 p-2 shadow-md"
       >
         <li>
-          <button @click="$emit('swapOutWord', idx, 'difficult')">
-            Too difficult
-          </button>
+          <button @click="$emit('swapOutWord', idx, 'difficult')">Too difficult</button>
         </li>
         <li>
-          <button @click="$emit('swapOutWord', idx, 'notAWord')">
-            Likely not a word
-          </button>
+          <button @click="$emit('swapOutWord', idx, 'notAWord')">Likely not a word</button>
         </li>
         <li>
-          <button @click="$emit('swapOutWord', idx, 'inappropriate')">
-            Report inappropriate
-          </button>
+          <button @click="$emit('swapOutWord', idx, 'inappropriate')">Report inappropriate</button>
         </li>
       </ul>
     </div>
@@ -113,9 +102,7 @@ withDefaults(
                         <li :class="{ 'mt-2': i > 0 }">
                           <p>{{ def.definition }}</p>
                           <p v-if="def.example" class="mt-2">
-                            <span class="badge badge-ghost badge-sm"
-                              >Example</span
-                            >
+                            <span class="badge badge-ghost badge-sm">Example</span>
                             {{ def.example }}
                           </p>
                         </li>
@@ -134,10 +121,7 @@ withDefaults(
               </a>
             </p>
           </div>
-          <div
-            v-if="definition.sourceUrls"
-            v-for="source in definition.sourceUrls"
-          >
+          <div v-if="definition.sourceUrls" v-for="source in definition.sourceUrls">
             <p class="text-muted-content text-xs">
               <a :href="source" target="_blank">{{ source }}</a>
             </p>
@@ -146,10 +130,7 @@ withDefaults(
             Provided by <a :href="apiByURL" target="_blank">{{ apiBy }}</a>
           </p>
         </div>
-        <div
-          class="skeleton min-h-96 w-full"
-          v-else-if="definitionLoading"
-        ></div>
+        <div class="skeleton min-h-96 w-full" v-else-if="definitionLoading"></div>
         <div class="h-full pt-28 text-center" v-else>(No definition found)</div>
       </div>
       <form method="dialog" class="modal-backdrop">

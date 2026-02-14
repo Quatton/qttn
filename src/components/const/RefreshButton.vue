@@ -28,20 +28,19 @@ const {
   { immediate: false },
 );
 
-const { isLoading: isHarderLoading, execute: executeSwitchDifficulty } =
-  useAsyncState(
-    async () => {
-      if (!$props.gameId) {
-        return;
-      }
-      return await actions.constAction.updateGame.orThrow({
-        id: $props.gameId,
-        mode: mode.value === "easy" ? "hard" : "easy",
-      });
-    },
-    undefined,
-    { immediate: false },
-  );
+const { isLoading: isHarderLoading, execute: executeSwitchDifficulty } = useAsyncState(
+  async () => {
+    if (!$props.gameId) {
+      return;
+    }
+    return await actions.constAction.updateGame.orThrow({
+      id: $props.gameId,
+      mode: mode.value === "easy" ? "hard" : "easy",
+    });
+  },
+  undefined,
+  { immediate: false },
+);
 
 const isLoading = computed(() => isResetLoading.value || isHarderLoading.value);
 

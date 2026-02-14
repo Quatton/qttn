@@ -22,9 +22,7 @@ async function getDataUrl() {
   }
   const el = document.getElementById("photoframe") as HTMLDivElement;
   const editorHeight = editor.value.getScrollHeight();
-  const editorElement = document.getElementById(
-    "monaco-editor",
-  ) as HTMLDivElement;
+  const editorElement = document.getElementById("monaco-editor") as HTMLDivElement;
   const { height } = editorElement.getBoundingClientRect();
   const { height: frameHeight } = el.getBoundingClientRect();
 

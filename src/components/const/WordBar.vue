@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import type {
-  CompressedWord,
-  CompressedWordWithMatch,
-  GameSession,
-} from "@/lib/const/rules";
+import type { CompressedWord, CompressedWordWithMatch, GameSession } from "@/lib/const/rules";
 import { actions } from "astro:actions";
 import { onMounted, ref } from "vue";
 import { useAutoAnimate } from "@formkit/auto-animate/vue";
@@ -28,10 +24,7 @@ const updateWord = (idx: number, word: CompressedWord) => {
 
 const isLoading = ref<number | false>(false);
 
-const swapOutWord = async (
-  idx: number,
-  reason: "difficult" | "notAWord" | "inappropriate",
-) => {
+const swapOutWord = async (idx: number, reason: "difficult" | "notAWord" | "inappropriate") => {
   isLoading.value = idx;
   const { data } = await actions.constAction.swapOut({
     gameId: $props.game.id,
@@ -73,10 +66,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-    class="flex flex-wrap items-end justify-center gap-2 @sm:gap-4"
-    ref="parent"
-  >
+  <div class="flex flex-wrap items-end justify-center gap-2 @sm:gap-4" ref="parent">
     <WordBadge
       v-for="(word, idx) in wordStore"
       :key="word.id"

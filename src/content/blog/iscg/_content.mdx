@@ -70,11 +70,7 @@ void main() {
 
 ```ts
 const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-const fragmentShader = compileShader(
-  gl,
-  gl.FRAGMENT_SHADER,
-  fragmentShaderSource,
-);
+const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
 const program = createProgram(gl, vertexShader, fragmentShader);
 ```
 
@@ -300,12 +296,7 @@ if (scrollPassed("show-points")) {
 ```ts
 function mouseDownHandler(e: MouseEvent) {
   if (!canvasRef.current) return;
-  const [worldX, worldY] = screenToWorld(
-    e.clientX,
-    e.clientY,
-    canvasRef.current,
-    PITCH,
-  );
+  const [worldX, worldY] = screenToWorld(e.clientX, e.clientY, canvasRef.current, PITCH);
   vertices.current.push(glm.vec2.fromValues(worldX, worldY));
 }
 ```
@@ -442,11 +433,7 @@ interface Line {
   end: number;
   addVertexAt: (vertex: Vertex, index: number) => void;
   isNear(point: [number, number], threshold: number): boolean;
-  nearestSegmentIndex: (
-    point: [number, number],
-    threshold: number,
-    vertexMap: VertexMap,
-  ) => number;
+  nearestSegmentIndex: (point: [number, number], threshold: number, vertexMap: VertexMap) => number;
 }
 ```
 
@@ -553,10 +540,7 @@ class Line {
 
 ```ts
 function linspace(start: number, end: number, num: number) {
-  return Array.from(
-    { length: num },
-    (_, i) => start + (end - start) * (i / (num - 1)),
-  );
+  return Array.from({ length: num }, (_, i) => start + (end - start) * (i / (num - 1)));
 }
 ```
 
@@ -585,11 +569,7 @@ for (const [idx, line] of lines.current.items) {
   const segments = line.getOrCompute();
 
   gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    new Float32Array(segments.flat()),
-    gl.STATIC_DRAW,
-  );
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(segments.flat()), gl.STATIC_DRAW);
   gl.enableVertexAttribArray(curvePosLocation);
   gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
   gl.uniform4f(uColorLoc_curve, 0.0, 0.0, 0.0, 1.0);
