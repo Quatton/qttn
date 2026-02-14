@@ -26,14 +26,12 @@ const { PUBLIC_BASE_URL } = loadEnv(
   // @ts-ignore
   process.env.NODE_ENV,
   process.cwd(),
-  "PUBLIC_BASE_URL"
+  "PUBLIC_BASE_URL",
 );
 
 // https://astro.build/config
 export default defineConfig({
-  site: import.meta.env.DEV
-    ? `http://${PUBLIC_BASE_URL}`
-    : `https://${PUBLIC_BASE_URL}`,
+  site: import.meta.env.DEV ? `http://${PUBLIC_BASE_URL}` : `https://${PUBLIC_BASE_URL}`,
   markdown: {
     syntaxHighlight: {
       excludeLangs: ["math"],
@@ -84,14 +82,12 @@ export default defineConfig({
       // Without this, MessageChannel from node:worker_threads needs to be polyfilled.
       alias: import.meta.env.PROD
         ? {
-            "react-dom/server": "react-dom/server.edge", 
+            "react-dom/server": "react-dom/server.edge",
           }
         : {},
     },
     server: {
-      allowedHosts: [
-        "tower.qttn.dev"
-      ]
-    }
+      allowedHosts: ["tower.qttn.dev"],
+    },
   },
 });

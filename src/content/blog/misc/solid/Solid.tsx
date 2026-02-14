@@ -6,9 +6,7 @@ export function SolidComponent() {
       <button class="btn" onClick={increment}>
         Increment
       </button>
-      <p class="bg-base-200 grid h-12 w-12 place-content-center rounded-sm">
-        {test()}
-      </p>
+      <p class="bg-base-200 grid h-12 w-12 place-content-center rounded-sm">{test()}</p>
     </div>
   );
 }

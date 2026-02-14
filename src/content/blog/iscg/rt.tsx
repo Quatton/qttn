@@ -544,14 +544,12 @@ export function RayTracing() {
   const rendererRef = useRef<RayTracingRenderer | null>(null);
   const frameId = useRef<number | null>(null);
 
-  const { scrollPassed } = useScrollDetector(
-    (scrollPassed: (id: string) => boolean) => {
-      if (!rendererRef.current) {
-        return;
-      }
-      rendererRef.current.handleResize();
-    },
-  );
+  const { scrollPassed } = useScrollDetector((scrollPassed: (id: string) => boolean) => {
+    if (!rendererRef.current) {
+      return;
+    }
+    rendererRef.current.handleResize();
+  });
 
   const stateRef = useRef<{
     angle: number;
@@ -576,14 +574,12 @@ export function RayTracing() {
       state.angle += 0.1;
     }
 
-    const data =
-      rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
+    const data = rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
     if (data) {
       data.y = Math.sin(state.angle) * 10 + 10;
     }
 
-    const data2 =
-      rd.state.entityRegistry.entities.get(1)?.directComponentMap.Position;
+    const data2 = rd.state.entityRegistry.entities.get(1)?.directComponentMap.Position;
     if (data2) {
       data2.z = Math.sin(state.angle + Math.PI) * 10;
     }
@@ -609,9 +605,7 @@ export function RayTracing() {
           loop();
         } catch (err) {
           console.error(err);
-          setError(
-            err instanceof Error ? err.message : "Failed to initialize WebGPU.",
-          );
+          setError(err instanceof Error ? err.message : "Failed to initialize WebGPU.");
           return;
         }
       }
@@ -1003,10 +997,7 @@ class RayTracingRenderer {
   }
 
   // in WebGPU world, we get adapter and then we throw it away so I don't really need to store it
-  constructor(
-    canvas: HTMLCanvasElement,
-    scrollPassed: (id: string) => boolean,
-  ) {
+  constructor(canvas: HTMLCanvasElement, scrollPassed: (id: string) => boolean) {
     this.canvas = canvas;
     this.scrollPassed = scrollPassed;
 
@@ -1064,17 +1055,11 @@ class RayTracingRenderer {
     const dpr = window.devicePixelRatio || 1;
     const width = Math.max(
       1,
-      Math.min(
-        Math.floor(canvas.clientWidth * dpr),
-        this.device.limits.maxTextureDimension2D,
-      ),
+      Math.min(Math.floor(canvas.clientWidth * dpr), this.device.limits.maxTextureDimension2D),
     );
     const height = Math.max(
       1,
-      Math.min(
-        Math.floor(canvas.clientHeight * dpr),
-        this.device.limits.maxTextureDimension2D,
-      ),
+      Math.min(Math.floor(canvas.clientHeight * dpr), this.device.limits.maxTextureDimension2D),
     );
     canvas.width = width;
     canvas.height = height;
@@ -1164,17 +1149,11 @@ class RayTracingRenderer {
       });
     }
 
-    if (
-      this.scrollPassed("gpu-ball") &&
-      !this.scrollPassed("ray-tracing-basic")
-    ) {
+    if (this.scrollPassed("gpu-ball") && !this.scrollPassed("ray-tracing-basic")) {
       this.state.setRenderMode("GPU_BALL");
     }
 
-    if (
-      this.scrollPassed("ray-tracing-basic") &&
-      !this.scrollPassed("multiple-balls")
-    ) {
+    if (this.scrollPassed("ray-tracing-basic") && !this.scrollPassed("multiple-balls")) {
       this.state.setRenderMode("RAY_TRACING_BASIC");
     }
 
@@ -1195,8 +1174,7 @@ class RayTracingRenderer {
       this.state.objects.writeBuffer();
     }
 
-    const shouldPaint =
-      this.scrollPassed("cpu-ball") && !this.scrollPassed("gpu-ball");
+    const shouldPaint = this.scrollPassed("cpu-ball") && !this.scrollPassed("gpu-ball");
 
     this.state.camera.writeBuffer();
 
@@ -1263,10 +1241,7 @@ class RayTracingRenderer {
       alphaMode: "premultiplied",
     });
 
-    await Promise.all([
-      this.createRenderPipeline(),
-      this.createComputePipeline(),
-    ]);
+    await Promise.all([this.createRenderPipeline(), this.createComputePipeline()]);
 
     if (!this.isInitialized()) {
       throw Error("Renderer is not initialized.");
@@ -1341,9 +1316,7 @@ class RayTracingRenderer {
     if (this.scrollPassed("gpu-ball")) {
       this.state.entityRegistry.writeBuffer();
 
-      const computePass = commandEncoder.beginComputePass(
-        this.computePassDescriptor,
-      );
+      const computePass = commandEncoder.beginComputePass(this.computePassDescriptor);
 
       computePass.setPipeline(this.computePipeline);
       computePass.setBindGroup(0, this.computeBindGroup);
@@ -1354,9 +1327,7 @@ class RayTracingRenderer {
       computePass.end();
     }
 
-    const renderPass = commandEncoder.beginRenderPass(
-      this.renderPassDescriptor,
-    );
+    const renderPass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
     renderPass.setPipeline(this.renderPipeline);
     renderPass.setBindGroup(0, this.renderBindGroup);
@@ -1416,12 +1387,7 @@ class ColorComponent extends Vector4 {
     return this.toArray();
   }
 
-  constructor(
-    r: number = 1.0,
-    g: number = 1.0,
-    b: number = 1.0,
-    a: number = 1.0,
-  ) {
+  constructor(r: number = 1.0, g: number = 1.0, b: number = 1.0, a: number = 1.0) {
     super(r, g, b, a);
     return new Proxy(this, {
       get: (target, prop) => {
@@ -1517,12 +1483,7 @@ const ComponentIds = {
   [TorusComponent.name]: 3,
 } as const;
 
-const Components = [
-  PositionComponent,
-  ColorComponent,
-  SphereComponent,
-  TorusComponent,
-] as const;
+const Components = [PositionComponent, ColorComponent, SphereComponent, TorusComponent] as const;
 
 type ComponentName = keyof typeof ComponentMap;
 type ComponentType = InstanceType<(typeof Components)[number]>;
@@ -1547,9 +1508,7 @@ class EntityRegistry {
     return this.componentSize * this.entityMaxSize;
   }
 
-  entityMetadata = new Uint32Array(
-    this.entityMaxSize * this.componentSize,
-  ).fill(0);
+  entityMetadata = new Uint32Array(this.entityMaxSize * this.componentSize).fill(0);
   entityMetadataBuffer: GPUBuffer;
 
   entities: Map<number, Entity> = new Map();
@@ -1561,9 +1520,7 @@ class EntityRegistry {
         instances: Array.from({
           length: this.entityMaxSize,
         }) as any,
-        data: new cur.dataclass(
-          this.entityMaxSize * cur.dataclass.BYTES_PER_ELEMENT,
-        ),
+        data: new cur.dataclass(this.entityMaxSize * cur.dataclass.BYTES_PER_ELEMENT),
         buffer: this.device.createBuffer({
           label: `${cur.name} Buffer`,
           size: cur.dataclass.BYTES_PER_ELEMENT * this.entityMaxSize,
@@ -1601,13 +1558,9 @@ class EntityRegistry {
       for (let i = 0; i < this.componentSize; i++) {
         this.entityMetadata[index * this.componentSize + i] = 0;
       }
-      for (const [ucomponentName, component] of Object.entries(
-        entity.directComponentMap,
-      )) {
+      for (const [ucomponentName, component] of Object.entries(entity.directComponentMap)) {
         const componentName = ucomponentName as ComponentName;
-        this.entityMetadata[
-          index * this.componentSize + ComponentIds[componentName]
-        ] = 1;
+        this.entityMetadata[index * this.componentSize + ComponentIds[componentName]] = 1;
         if (component.shouldUpdate) {
           const meta = ComponentMap[componentName];
           const storage = this.storage[componentName];
@@ -1656,13 +1609,10 @@ class Entity {
   addComponent<T extends ComponentType>(component: T) {
     component.shouldUpdate = true;
     component.entityRef = this;
-    const componentName = component.constructor
-      .name as keyof typeof ComponentMap;
+    const componentName = component.constructor.name as keyof typeof ComponentMap;
 
     if (componentName in this.directComponentMap) {
-      throw new Error(
-        `Component ${componentName} is already added to this entity.`,
-      );
+      throw new Error(`Component ${componentName} is already added to this entity.`);
     }
 
     this.directComponentMap[componentName] = component as any;

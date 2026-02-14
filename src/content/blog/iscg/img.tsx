@@ -1,10 +1,4 @@
-import {
-  useRef,
-  useState,
-  useCallback,
-  type ComponentPropsWithRef,
-  useEffect,
-} from "react";
+import { useRef, useState, useCallback, type ComponentPropsWithRef, useEffect } from "react";
 import rock from "./rock.png";
 import {
   $detailOffset,
@@ -37,15 +31,8 @@ function ImageDisplay({
   return (
     <figure className="flex h-full min-h-0 min-w-0 flex-col">
       <div className="min-h-0 min-w-0 flex-1">
-        <div
-          style={{ aspectRatio }}
-          className="relative h-full overflow-clip rounded-md"
-        >
-          <ImageOrSkeleton
-            ref={ref}
-            {...props}
-            className="h-full w-full object-contain"
-          >
+        <div style={{ aspectRatio }} className="relative h-full overflow-clip rounded-md">
+          <ImageOrSkeleton ref={ref} {...props} className="h-full w-full object-contain">
             {children}
           </ImageOrSkeleton>
           {onFileUpload && (
@@ -112,21 +99,9 @@ export function Filter() {
 
     smoothCanvas.width = img.width;
     smoothCanvas.height = img.height;
-    const smoothRenderer = new SmoothFilterRenderer(
-      smoothCanvas,
-      $sigma,
-      $sigmaColor,
-    );
-    const detailRenderer = new DetailFilterRenderer(
-      detailCanvas,
-      img,
-      smoothCanvas,
-    );
-    const enhancedRenderer = new EnhancedFilterRenderer(
-      enhancedCanvas,
-      img,
-      detailCanvas,
-    );
+    const smoothRenderer = new SmoothFilterRenderer(smoothCanvas, $sigma, $sigmaColor);
+    const detailRenderer = new DetailFilterRenderer(detailCanvas, img, smoothCanvas);
+    const enhancedRenderer = new EnhancedFilterRenderer(enhancedCanvas, img, detailCanvas);
 
     function render() {
       if (!img || !smoothCanvas || !detailCanvas) return;
@@ -227,15 +202,9 @@ export function Filter() {
 export function ControlPanel() {
   const [localSigma, setLocalSigma] = useState(useStore($sigma));
   const [localSigmaColor, setLocalSigmaColor] = useState(useStore($sigmaColor));
-  const [localUseGaussian, setLocalUseGaussian] = useState(
-    useStore($useGaussian),
-  );
-  const [localDetailOffset, setLocalDetailOffset] = useState(
-    useStore($detailOffset),
-  );
-  const [localDetailScale, setLocalDetailScale] = useState(
-    useStore($detailScale),
-  );
+  const [localUseGaussian, setLocalUseGaussian] = useState(useStore($useGaussian));
+  const [localDetailOffset, setLocalDetailOffset] = useState(useStore($detailOffset));
+  const [localDetailScale, setLocalDetailScale] = useState(useStore($detailScale));
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -246,13 +215,7 @@ export function ControlPanel() {
       $detailScale.set(localDetailScale);
     }, 16);
     return () => clearTimeout(timer);
-  }, [
-    localSigma,
-    localSigmaColor,
-    localUseGaussian,
-    localDetailOffset,
-    localDetailScale,
-  ]);
+  }, [localSigma, localSigmaColor, localUseGaussian, localDetailOffset, localDetailScale]);
 
   return (
     <div className="flex flex-col gap-4 p-4">

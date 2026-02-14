@@ -180,12 +180,7 @@ function smoothImageGaussian(imgData: ImageData, sigma: number) {
         for (let dx = -r; dx <= r; dx++) {
           const px1 = px + dx;
           const py1 = py + dy;
-          if (
-            px1 < 0 ||
-            px1 >= imgData.width ||
-            py1 < 0 ||
-            py1 >= imgData.height
-          ) {
+          if (px1 < 0 || px1 >= imgData.width || py1 < 0 || py1 >= imgData.height) {
             continue; // Skip pixels outside the image bounds
           }
           const idx = (py1 * imgData.width + px1) * 4;
@@ -209,11 +204,7 @@ function smoothImageGaussian(imgData: ImageData, sigma: number) {
   return imgData;
 }
 
-function smoothImageBilateral(
-  imgData: ImageData,
-  sigma: number,
-  sigmaColor: number,
-) {
+function smoothImageBilateral(imgData: ImageData, sigma: number, sigmaColor: number) {
   const data = imgData.data;
 
   const r = Math.ceil(sigma * 3);
@@ -245,12 +236,7 @@ function smoothImageBilateral(
         for (let dx = -r; dx <= r; dx++) {
           const px1 = px + dx;
           const py1 = py + dy;
-          if (
-            px1 < 0 ||
-            px1 >= imgData.width ||
-            py1 < 0 ||
-            py1 >= imgData.height
-          ) {
+          if (px1 < 0 || px1 >= imgData.width || py1 < 0 || py1 >= imgData.height) {
             continue;
           }
           const idx1 = (py1 * imgData.width + px1) * 4;
@@ -260,11 +246,7 @@ function smoothImageBilateral(
           const g1 = data[idx1 + 1];
           const b1 = data[idx1 + 2];
           let weightColor = Math.exp(
-            -(
-              (r1 - r0) * (r1 - r0) +
-              (g1 - g0) * (g1 - g0) +
-              (b1 - b0) * (b1 - b0)
-            ) /
+            -((r1 - r0) * (r1 - r0) + (g1 - g0) * (g1 - g0) + (b1 - b0) * (b1 - b0)) /
               (2 * sigmaColor * sigmaColor),
           );
 
@@ -294,11 +276,7 @@ class GLRenderer {
   public texCoordBuffer: WebGLBuffer;
   public texture: WebGLTexture;
 
-  constructor(
-    canvas: HTMLCanvasElement,
-    vertexShaderSource: string,
-    fragmentShaderSource: string,
-  ) {
+  constructor(canvas: HTMLCanvasElement, vertexShaderSource: string, fragmentShaderSource: string) {
     this.canvas = canvas;
     const gl = canvas.getContext("webgl2");
     if (!gl) {
@@ -311,20 +289,14 @@ class GLRenderer {
     this.texture = this.createTexture();
   }
 
-  public createProgram(
-    vertexShaderSource: string,
-    fragmentShaderSource: string,
-  ): WebGLProgram {
+  public createProgram(vertexShaderSource: string, fragmentShaderSource: string): WebGLProgram {
     const gl = this.gl;
     const vertexShader = gl.createShader(gl.VERTEX_SHADER);
     if (!vertexShader) throw new Error("Failed to create vertex shader");
     gl.shaderSource(vertexShader, vertexShaderSource);
     gl.compileShader(vertexShader);
     if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-      console.error(
-        "Vertex shader compilation failed:",
-        gl.getShaderInfoLog(vertexShader),
-      );
+      console.error("Vertex shader compilation failed:", gl.getShaderInfoLog(vertexShader));
       gl.deleteShader(vertexShader);
       throw new Error("Vertex shader compilation failed");
     }
@@ -334,10 +306,7 @@ class GLRenderer {
     gl.shaderSource(fragmentShader, fragmentShaderSource);
     gl.compileShader(fragmentShader);
     if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-      console.error(
-        "Fragment shader compilation failed:",
-        gl.getShaderInfoLog(fragmentShader),
-      );
+      console.error("Fragment shader compilation failed:", gl.getShaderInfoLog(fragmentShader));
       gl.deleteShader(fragmentShader);
       throw new Error("Fragment shader compilation failed");
     }
@@ -347,10 +316,7 @@ class GLRenderer {
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error(
-        "Shader program linking failed:",
-        gl.getProgramInfoLog(program),
-      );
+      console.error("Shader program linking failed:", gl.getProgramInfoLog(program));
       gl.deleteProgram(program);
       throw new Error("Failed to link shader program");
     }
@@ -362,9 +328,7 @@ class GLRenderer {
     const gl = this.gl;
     const positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    const positions = new Float32Array([
-      -1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,
-    ]);
+    const positions = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
     return positionBuffer;
   }
@@ -464,11 +428,7 @@ export class SmoothFilterRenderer {
     sigmaColor: WritableAtom<number> = $sigmaColor,
     useGaussian: WritableAtom<boolean> = $useGaussian,
   ) {
-    this.glRenderer = new GLRenderer(
-      canvas,
-      vertexShaderSource,
-      smoothFragmentShaderSource,
-    );
+    this.glRenderer = new GLRenderer(canvas, vertexShaderSource, smoothFragmentShaderSource);
     this.sigmaStore = sigma;
     this.sigmaColorStore = sigmaColor;
     this.useGaussianStore = useGaussian;
@@ -477,24 +437,15 @@ export class SmoothFilterRenderer {
   public render(): void {
     const gl = this.glRenderer.gl;
     gl.useProgram(this.glRenderer.program);
-    const sigmaLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_sigma",
-    );
+    const sigmaLocation = gl.getUniformLocation(this.glRenderer.program, "u_sigma");
     if (sigmaLocation !== null) {
       gl.uniform1f(sigmaLocation, this.sigmaStore.get());
     }
-    const sigmaColorLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_sigmaColor",
-    );
+    const sigmaColorLocation = gl.getUniformLocation(this.glRenderer.program, "u_sigmaColor");
     if (sigmaColorLocation !== null) {
       gl.uniform1f(sigmaColorLocation, this.sigmaColorStore.get());
     }
-    const useGaussianLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_useGaussian",
-    );
+    const useGaussianLocation = gl.getUniformLocation(this.glRenderer.program, "u_useGaussian");
     if (useGaussianLocation !== null) {
       gl.uniform1i(useGaussianLocation, this.useGaussianStore.get() ? 1 : 0);
     }
@@ -510,25 +461,14 @@ export class DetailFilterRenderer {
   public glRenderer: GLRenderer;
   private smoothTexture: WebGLTexture;
 
-  constructor(
-    canvas: HTMLCanvasElement,
-    origImg: HTMLImageElement,
-    smoothImg: HTMLCanvasElement,
-  ) {
-    this.glRenderer = new GLRenderer(
-      canvas,
-      vertexShaderSource,
-      detailFragmentShaderSource,
-    );
+  constructor(canvas: HTMLCanvasElement, origImg: HTMLImageElement, smoothImg: HTMLCanvasElement) {
+    this.glRenderer = new GLRenderer(canvas, vertexShaderSource, detailFragmentShaderSource);
     this.glRenderer.resize(origImg);
     this.smoothTexture = this.glRenderer.createTexture();
     this.setImages(origImg, smoothImg);
   }
 
-  public setImages(
-    origImg: HTMLImageElement,
-    smoothImg: HTMLCanvasElement,
-  ): void {
+  public setImages(origImg: HTMLImageElement, smoothImg: HTMLCanvasElement): void {
     const gl = this.glRenderer.gl;
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.glRenderer.texture);
@@ -554,14 +494,8 @@ export class DetailFilterRenderer {
 
     gl.useProgram(this.glRenderer.program);
 
-    const origLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_orig",
-    );
-    const smoothLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_smooth",
-    );
+    const origLocation = gl.getUniformLocation(this.glRenderer.program, "u_orig");
+    const smoothLocation = gl.getUniformLocation(this.glRenderer.program, "u_smooth");
     if (origLocation !== null) {
       gl.uniform1i(origLocation, 0);
     }
@@ -581,10 +515,7 @@ export class DetailFilterRenderer {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.smoothTexture);
 
-    const detailOffsetLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_detailOffset",
-    );
+    const detailOffsetLocation = gl.getUniformLocation(this.glRenderer.program, "u_detailOffset");
 
     if (detailOffsetLocation !== null) {
       gl.uniform1f(detailOffsetLocation, $detailOffset.get());
@@ -604,25 +535,14 @@ export class EnhancedFilterRenderer {
   public glRenderer: GLRenderer;
   private detailTexture: WebGLTexture;
 
-  constructor(
-    canvas: HTMLCanvasElement,
-    origImg: HTMLImageElement,
-    detailImg: HTMLCanvasElement,
-  ) {
-    this.glRenderer = new GLRenderer(
-      canvas,
-      vertexShaderSource,
-      enhancedFragmentShaderSource,
-    );
+  constructor(canvas: HTMLCanvasElement, origImg: HTMLImageElement, detailImg: HTMLCanvasElement) {
+    this.glRenderer = new GLRenderer(canvas, vertexShaderSource, enhancedFragmentShaderSource);
     this.glRenderer.resize(origImg);
     this.detailTexture = this.glRenderer.createTexture();
     this.setImages(origImg, detailImg);
   }
 
-  public setImages(
-    origImg: HTMLImageElement,
-    detailImg: HTMLCanvasElement,
-  ): void {
+  public setImages(origImg: HTMLImageElement, detailImg: HTMLCanvasElement): void {
     const gl = this.glRenderer.gl;
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.glRenderer.texture);
@@ -648,14 +568,8 @@ export class EnhancedFilterRenderer {
 
     gl.useProgram(this.glRenderer.program);
 
-    const origLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_orig",
-    );
-    const detailLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_detail",
-    );
+    const origLocation = gl.getUniformLocation(this.glRenderer.program, "u_orig");
+    const detailLocation = gl.getUniformLocation(this.glRenderer.program, "u_detail");
     if (origLocation !== null) {
       gl.uniform1i(origLocation, 0);
     }
@@ -675,19 +589,13 @@ export class EnhancedFilterRenderer {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.detailTexture);
 
-    const detailScaleLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_detailScale",
-    );
+    const detailScaleLocation = gl.getUniformLocation(this.glRenderer.program, "u_detailScale");
 
     if (detailScaleLocation !== null) {
       gl.uniform1f(detailScaleLocation, $detailScale.get());
     }
 
-    const detailOffsetLocation = gl.getUniformLocation(
-      this.glRenderer.program,
-      "u_detailOffset",
-    );
+    const detailOffsetLocation = gl.getUniformLocation(this.glRenderer.program, "u_detailOffset");
 
     if (detailOffsetLocation !== null) {
       gl.uniform1f(detailOffsetLocation, $detailOffset.get());

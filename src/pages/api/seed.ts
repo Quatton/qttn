@@ -6,8 +6,7 @@ import { count } from "drizzle-orm";
 export const GET: APIRoute = async (ctx) => {
   if (
     !import.meta.env.DEV &&
-    ctx.request.headers.get("Authorization") !==
-      `Bearer ${import.meta.env.SEEDER_TOKEN}`
+    ctx.request.headers.get("Authorization") !== `Bearer ${import.meta.env.SEEDER_TOKEN}`
   ) {
     return new Response("Unauthorized", { status: 401 });
   }

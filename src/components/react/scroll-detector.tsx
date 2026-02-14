@@ -4,9 +4,7 @@ type ScrollElementCache = {
   [id: string]: number; // back to storing indices
 };
 
-export function useScrollDetector(
-  hook?: (scrollPassed: (id: string) => boolean) => void,
-) {
+export function useScrollDetector(hook?: (scrollPassed: (id: string) => boolean) => void) {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const intersectedElements = useRef<ScrollElementCache>({});
   const scrollIndexMax = useRef(-1);

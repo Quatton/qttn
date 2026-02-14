@@ -4,13 +4,8 @@ import dotenv from "dotenv";
 if (process.env.PROD) dotenv.config({ path: ".env.production" });
 else dotenv.config({ path: ".env.local" });
 
-if (
-  !process.env.TURSO_DATABASE_URL ||
-  (process.env.PROD && !process.env.TURSO_AUTH_TOKEN)
-) {
-  console.error(
-    "Please set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in your environment",
-  );
+if (!process.env.TURSO_DATABASE_URL || (process.env.PROD && !process.env.TURSO_AUTH_TOKEN)) {
+  console.error("Please set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in your environment");
   process.exit(1);
 }
 

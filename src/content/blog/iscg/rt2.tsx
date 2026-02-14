@@ -402,11 +402,9 @@ export function RayTracing() {
       state.angle += 0.1;
     }
 
-    const data =
-      rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
+    const data = rd.state.entityRegistry.entities.get(0)?.directComponentMap.Position;
 
-    const data1 =
-      rd.state.entityRegistry.entities.get(1)?.directComponentMap.Position;
+    const data1 = rd.state.entityRegistry.entities.get(1)?.directComponentMap.Position;
 
     if (!data || !data1) {
       return;
@@ -445,9 +443,7 @@ export function RayTracing() {
           loop();
         } catch (err) {
           console.error(err);
-          setError(
-            err instanceof Error ? err.message : "Failed to initialize WebGPU.",
-          );
+          setError(err instanceof Error ? err.message : "Failed to initialize WebGPU.");
           return;
         }
       }
@@ -740,17 +736,11 @@ class RayTracingRenderer {
     const dpr = window.devicePixelRatio || 1;
     const width = Math.max(
       1,
-      Math.min(
-        Math.floor(canvas.clientWidth * dpr),
-        this.device.limits.maxTextureDimension2D,
-      ),
+      Math.min(Math.floor(canvas.clientWidth * dpr), this.device.limits.maxTextureDimension2D),
     );
     const height = Math.max(
       1,
-      Math.min(
-        Math.floor(canvas.clientHeight * dpr),
-        this.device.limits.maxTextureDimension2D,
-      ),
+      Math.min(Math.floor(canvas.clientHeight * dpr), this.device.limits.maxTextureDimension2D),
     );
     canvas.width = width;
     canvas.height = height;
@@ -851,10 +841,7 @@ class RayTracingRenderer {
       alphaMode: "premultiplied",
     });
 
-    await Promise.all([
-      this.createRenderPipeline(),
-      this.createComputePipeline(),
-    ]);
+    await Promise.all([this.createRenderPipeline(), this.createComputePipeline()]);
 
     if (!this.isInitialized()) {
       throw Error("Renderer is not initialized.");
@@ -910,11 +897,7 @@ class RayTracingRenderer {
   }
 
   render() {
-    if (
-      !this.isInitialized() ||
-      !this.renderPipeline ||
-      !this.computePipeline
-    ) {
+    if (!this.isInitialized() || !this.renderPipeline || !this.computePipeline) {
       throw Error(
         "Renderer is not initialized. Please check if it's initialized before calling this method.",
       );
@@ -926,9 +909,7 @@ class RayTracingRenderer {
 
     this.state.entityRegistry.writeBuffer();
 
-    const computePass = commandEncoder.beginComputePass(
-      this.computePassDescriptor,
-    );
+    const computePass = commandEncoder.beginComputePass(this.computePassDescriptor);
 
     computePass.setPipeline(this.computePipeline);
     computePass.setBindGroup(0, this.computeBindGroup);
@@ -938,9 +919,7 @@ class RayTracingRenderer {
     );
     computePass.end();
 
-    const renderPass = commandEncoder.beginRenderPass(
-      this.renderPassDescriptor,
-    );
+    const renderPass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
     renderPass.setPipeline(this.renderPipeline);
     renderPass.setBindGroup(0, this.renderBindGroup);
@@ -1093,11 +1072,7 @@ const ComponentIds = {
   [MaterialComponent.name]: 2,
 } as const;
 
-const Components = [
-  PositionComponent,
-  SphereComponent,
-  MaterialComponent,
-] as const;
+const Components = [PositionComponent, SphereComponent, MaterialComponent] as const;
 
 type ComponentName = keyof typeof ComponentMap;
 type ComponentType = InstanceType<(typeof Components)[number]>;
@@ -1122,9 +1097,7 @@ class EntityRegistry {
     return this.componentSize * this.entityMaxSize;
   }
 
-  entityMetadata = new Uint32Array(
-    this.entityMaxSize * this.componentSize,
-  ).fill(0);
+  entityMetadata = new Uint32Array(this.entityMaxSize * this.componentSize).fill(0);
   entityMetadataBuffer: GPUBuffer;
 
   entities: Map<number, Entity> = new Map();
@@ -1133,9 +1106,9 @@ class EntityRegistry {
     this.device = device;
     this.storage = Components.reduce((acc, cur) => {
       acc[cur.name] = {
-        instances: Array.from<
-          InstanceType<(typeof ComponentMap)[ComponentName]>
-        >({ length: this.entityMaxSize }) as any,
+        instances: Array.from<InstanceType<(typeof ComponentMap)[ComponentName]>>({
+          length: this.entityMaxSize,
+        }) as any,
         data: new cur.dataclass(this.entityMaxSize * cur.size),
         buffer: this.device.createBuffer({
           label: `${cur.name} Buffer`,
@@ -1174,13 +1147,9 @@ class EntityRegistry {
       for (let i = 0; i < this.componentSize; i++) {
         this.entityMetadata[index * this.componentSize + i] = 0;
       }
-      for (const [ucomponentName, component] of Object.entries(
-        entity.directComponentMap,
-      )) {
+      for (const [ucomponentName, component] of Object.entries(entity.directComponentMap)) {
         const componentName = ucomponentName as ComponentName;
-        this.entityMetadata[
-          index * this.componentSize + ComponentIds[componentName]
-        ] = 1;
+        this.entityMetadata[index * this.componentSize + ComponentIds[componentName]] = 1;
         if (component.shouldUpdate) {
           const meta = ComponentMap[componentName];
           const storage = this.storage[componentName];
@@ -1197,11 +1166,7 @@ class EntityRegistry {
         const storage = this.storage[componentName];
         this.device.queue.writeBuffer(storage.buffer, 0, storage.data);
       }
-      this.device.queue.writeBuffer(
-        this.entityMetadataBuffer,
-        0,
-        this.entityMetadata,
-      );
+      this.device.queue.writeBuffer(this.entityMetadataBuffer, 0, this.entityMetadata);
     }
   }
 
@@ -1226,13 +1191,10 @@ class Entity {
   addComponent<T extends ComponentType>(component: T) {
     component.shouldUpdate = true;
     component.entityRef = this;
-    const componentName = component.constructor
-      .name as keyof typeof ComponentMap;
+    const componentName = component.constructor.name as keyof typeof ComponentMap;
 
     if (componentName in this.directComponentMap) {
-      throw new Error(
-        `Component ${componentName} is already added to this entity.`,
-      );
+      throw new Error(`Component ${componentName} is already added to this entity.`);
     }
 
     this.directComponentMap[componentName] = component as any;

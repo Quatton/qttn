@@ -1,12 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import {
-  index,
-  integer,
-  primaryKey,
-  real,
-  sqliteTable,
-  text,
-} from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type { InferSelectModel } from "drizzle-orm";
 import { generateRandomString, type RandomReader } from "@oslojs/crypto/random";
 
@@ -14,15 +7,11 @@ export const now = sql`(unixepoch())`;
 export const Words = sqliteTable("words", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").unique().notNull(),
-  created_at: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(now),
+  created_at: integer("created_at", { mode: "timestamp" }).notNull().default(now),
   sampled_count: integer("sampled_count").notNull().default(0),
   rejected_count: integer("rejected_count").notNull().default(0),
   success_count: integer("success_count").notNull().default(0),
-  likely_not_a_word_count: integer("likely_not_a_word_count")
-    .notNull()
-    .default(0),
+  likely_not_a_word_count: integer("likely_not_a_word_count").notNull().default(0),
   inappropriate_count: integer("inappropriate_count").notNull().default(0),
   rejected_rate: real("rejected_rate").notNull().default(0),
   success_rate: real("success_rate").notNull().default(0),
@@ -35,8 +24,7 @@ const random: RandomReader = {
   },
 };
 
-const ALPHABET =
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 export const generateRandomId = () => generateRandomString(random, ALPHABET, 5);
 
@@ -53,9 +41,7 @@ export const WordShortList = sqliteTable(
       })
       .primaryKey()
       .notNull(),
-    created_at: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(now),
+    created_at: integer("created_at", { mode: "timestamp" }).notNull().default(now),
     random: real("random")
       .notNull()
       .default(sql`(RANDOM())`),
@@ -65,12 +51,8 @@ export const WordShortList = sqliteTable(
 
 export const Games = sqliteTable("games", {
   id: text("id").primaryKey().$defaultFn(generateRandomId),
-  created_at: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(now),
-  updated_at: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(now),
+  created_at: integer("created_at", { mode: "timestamp" }).notNull().default(now),
+  updated_at: integer("updated_at", { mode: "timestamp" }).notNull().default(now),
   content: text("content").notNull().default(""),
   state: text("state", {
     mode: "text",
@@ -102,12 +84,8 @@ export const GameWords = sqliteTable(
       })
       .notNull(),
     index: integer("index").notNull(),
-    created_at: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(now),
-    updated_at: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(now),
+    created_at: integer("created_at", { mode: "timestamp" }).notNull().default(now),
+    updated_at: integer("updated_at", { mode: "timestamp" }).notNull().default(now),
     matched: integer("matched", { mode: "boolean" }).notNull().default(false),
   },
   (table) => [primaryKey({ columns: [table.word_id, table.game_id] })],

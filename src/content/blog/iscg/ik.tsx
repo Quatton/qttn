@@ -42,14 +42,9 @@ const MAX_ITERATIONS = 10;
 function RobotArm({ target }: { target?: Vector3 }) {
   const { scrollPassed } = useScrollDetectorState();
 
-  const [rotations, setRotations] = useState(
-    colors.map(() => new Quaternion()),
-  );
+  const [rotations, setRotations] = useState(colors.map(() => new Quaternion()));
 
-  const jointRefs = useRef([
-    ...colors.map(() => createRef<Mesh>()),
-    createRef<Mesh>(),
-  ]);
+  const jointRefs = useRef([...colors.map(() => createRef<Mesh>()), createRef<Mesh>()]);
 
   const updateRotations = useCallback(() => {
     if (!target) return;
@@ -88,9 +83,7 @@ function RobotArm({ target }: { target?: Vector3 }) {
               new Vector3(-Math.PI / i, -Math.PI / i, -Math.PI / i),
               new Vector3(Math.PI / i, Math.PI / i, Math.PI / i),
             );
-          newRotations[i].setFromEuler(
-            new Euler(clamped.x, clamped.y, clamped.z),
-          );
+          newRotations[i].setFromEuler(new Euler(clamped.x, clamped.y, clamped.z));
           joint.quaternion.copy(newRotations[i]);
         }
       }

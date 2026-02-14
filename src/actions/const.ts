@@ -3,15 +3,7 @@ import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro/zod";
 import { db } from "@/db/drizzle";
 import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
-import {
-  gameModes,
-  Games,
-  GameWords,
-  now,
-  Words,
-  WordShortList,
-  type GameMode,
-} from "@/db/schema";
+import { gameModes, Games, GameWords, now, Words, WordShortList, type GameMode } from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
 
 async function generateWords(
@@ -49,10 +41,7 @@ async function generateWords(
       const eighty = Math.floor(mode === "easy" ? limit * 0.8 : limit * 0.2);
       const twenty = limit - eighty;
 
-      const _t = [
-        ...words.slice(0, eighty),
-        ...words.slice(words.length - twenty),
-      ];
+      const _t = [...words.slice(0, eighty), ...words.slice(words.length - twenty)];
 
       const t = _t.map((word) => ({
         id: word.id,
@@ -235,9 +224,7 @@ export const game = {
 
         const [{ index }] = await tx
           .delete(GameWords)
-          .where(
-            and(eq(GameWords.game_id, id), eq(GameWords.word_id, input.wordId)),
-          )
+          .where(and(eq(GameWords.game_id, id), eq(GameWords.word_id, input.wordId)))
           .returning({
             index: GameWords.index,
           })
@@ -254,13 +241,9 @@ export const game = {
             rejected_count: sql`${Words.rejected_count} + 1`,
             rejected_rate: sql`CAST (${Words.rejected_count} as REAL) / ${Words.sampled_count}`,
             likely_not_a_word_count:
-              input.reason === "notAWord"
-                ? sql`${Words.likely_not_a_word_count} + 1`
-                : undefined,
+              input.reason === "notAWord" ? sql`${Words.likely_not_a_word_count} + 1` : undefined,
             inappropriate_count:
-              input.reason === "inappropriate"
-                ? sql`${Words.inappropriate_count} + 1`
-                : undefined,
+              input.reason === "inappropriate" ? sql`${Words.inappropriate_count} + 1` : undefined,
           })
           .where(eq(Words.id, input.wordId))
           .catch((e) => {

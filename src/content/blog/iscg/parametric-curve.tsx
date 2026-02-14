@@ -139,19 +139,13 @@ class Line {
     this?.invalidate();
   }
 
-  nearestSegmentIndex(
-    point: [number, number],
-    threshold: number,
-    vertexMap: VertexMap,
-  ): number {
+  nearestSegmentIndex(point: [number, number], threshold: number, vertexMap: VertexMap): number {
     // let minDistance = Math.in;
     let nearestIndex = -1;
 
     for (let i = 0; i < this.vertices.length; i++) {
       const start = vertexMap.get(this.vertices[i])?.coords;
-      const end = vertexMap.get(
-        this.vertices[(i + 1) % this.vertices.length],
-      )?.coords;
+      const end = vertexMap.get(this.vertices[(i + 1) % this.vertices.length])?.coords;
       if (start && end) {
         const distance = distanceFromLineAB(point, start, end);
         if (distance < threshold) {
@@ -165,11 +159,7 @@ class Line {
     return nearestIndex;
   }
 
-  isNear(
-    point: [number, number],
-    threshold: number,
-    vertexMap: VertexMap,
-  ): boolean {
+  isNear(point: [number, number], threshold: number, vertexMap: VertexMap): boolean {
     return this.nearestSegmentIndex(point, threshold, vertexMap) !== -1;
   }
 
@@ -417,16 +407,8 @@ export function SimpleCurve() {
     if (mouseState.current.intersectLine !== undefined) {
       const line = lines.current.get(mouseState.current.intersectLine);
       const segment = mouseState.current.intersectSegment;
-      if (
-        line &&
-        segment !== undefined &&
-        segment >= 0 &&
-        segment < line.vertices.length - 1
-      ) {
-        const id = vertices.current.add(
-          [mouseState.current.x, mouseState.current.y],
-          true,
-        );
+      if (line && segment !== undefined && segment >= 0 && segment < line.vertices.length - 1) {
+        const id = vertices.current.add([mouseState.current.x, mouseState.current.y], true);
         const vertex = vertices.current.get(id);
         vertex?.relatedLines.add(mouseState.current.intersectLine);
         line.addVertexAtIndex(id, segment + 1);
@@ -440,19 +422,13 @@ export function SimpleCurve() {
       return;
     }
 
-    if (
-      mouseState.current.picked === undefined &&
-      mouseState.current.intersect === undefined
-    ) {
+    if (mouseState.current.picked === undefined && mouseState.current.intersect === undefined) {
       if (mouseState.current.selected !== undefined) {
         mouseState.current.selected = undefined;
         return;
       }
       mouseState.current.ticks++;
-      const id = vertices.current.add([
-        mouseState.current.x,
-        mouseState.current.y,
-      ]);
+      const id = vertices.current.add([mouseState.current.x, mouseState.current.y]);
 
       mouseState.current.selected = id;
       return;
@@ -462,10 +438,7 @@ export function SimpleCurve() {
   function mouseUpHandler(_e: MouseEvent) {
     mouseState.current.isDown = false;
 
-    if (
-      mouseState.current.intersect !== undefined &&
-      !mouseState.current.isDragging
-    ) {
+    if (mouseState.current.intersect !== undefined && !mouseState.current.isDragging) {
       mouseState.current.selected = mouseState.current.intersect;
     }
 
@@ -481,12 +454,7 @@ export function SimpleCurve() {
 
   function mouseMoveHandler(e: MouseEvent) {
     if (!canvasRef.current) return;
-    const [worldX, worldY] = screenToWorld(
-      e.clientX,
-      e.clientY,
-      canvasRef.current,
-      PITCH,
-    );
+    const [worldX, worldY] = screenToWorld(e.clientX, e.clientY, canvasRef.current, PITCH);
 
     if (mouseState.current.shouldSnap) {
       const x = Math.round(worldX);
@@ -512,11 +480,7 @@ export function SimpleCurve() {
 
     if (mouseState.current.intersect === undefined) {
       for (const [idx, line] of lines.current.entries()) {
-        const segmentIndex = line.nearestSegmentIndex(
-          [worldX, worldY],
-          0.2,
-          vertices.current,
-        );
+        const segmentIndex = line.nearestSegmentIndex([worldX, worldY], 0.2, vertices.current);
 
         if (segmentIndex >= 0) {
           mouseState.current.intersectLine = idx;
@@ -576,9 +540,7 @@ export function SimpleCurve() {
     const gl = canvas.getContext("webgl2");
 
     if (gl === null) {
-      alert(
-        "Unable to initialize WebGL. Your browser or machine may not support it.",
-      );
+      alert("Unable to initialize WebGL. Your browser or machine may not support it.");
       return;
     }
 
@@ -590,21 +552,14 @@ export function SimpleCurve() {
       return;
     }
 
-    const curveProgram = createProgram(
-      gl,
-      curveVertexShader,
-      curveFragmentShader,
-    );
+    const curveProgram = createProgram(gl, curveVertexShader, curveFragmentShader);
     if (!curveProgram) {
       console.error("Failed to create curve program");
       return;
     }
 
     const uColorLoc_curve = gl.getUniformLocation(curveProgram, "u_color");
-    const uScaleMatrixLoc_curve = gl.getUniformLocation(
-      curveProgram,
-      "u_scaleMatrix",
-    );
+    const uScaleMatrixLoc_curve = gl.getUniformLocation(curveProgram, "u_scaleMatrix");
 
     const axisLines = [-1.0, 0, 1.0, 0, 0, -1.0, 0, 1.0];
     const circle = linspace(0, 2 * Math.PI, 100).flatMap((theta) => [
@@ -617,11 +572,7 @@ export function SimpleCurve() {
     gl.useProgram(curveProgram);
     const curveBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array(MAX_CURVE_VERTICES),
-      gl.STATIC_DRAW,
-    );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(MAX_CURVE_VERTICES), gl.STATIC_DRAW);
 
     const curvePosLocation = gl.getAttribLocation(curveProgram, "a_position");
     gl.enableVertexAttribArray(curvePosLocation);
@@ -657,11 +608,7 @@ export function SimpleCurve() {
     gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gridIndexBuffer);
-    gl.bufferData(
-      gl.ELEMENT_ARRAY_BUFFER,
-      new Uint16Array(indices),
-      gl.STATIC_DRAW,
-    );
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
     const pointVertexShader = compileShader(gl, gl.VERTEX_SHADER, pointVs);
     const pointFragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, pointFs);
@@ -669,21 +616,14 @@ export function SimpleCurve() {
       console.error("Failed to create point shaders");
       return;
     }
-    const pointProgram = createProgram(
-      gl,
-      pointVertexShader,
-      pointFragmentShader,
-    );
+    const pointProgram = createProgram(gl, pointVertexShader, pointFragmentShader);
     if (!pointProgram) {
       console.error("Failed to create point program");
       return;
     }
     const uColorLoc_point = gl.getUniformLocation(pointProgram, "u_color");
     const pointPosLocation = gl.getAttribLocation(pointProgram, "a_position");
-    const uScaleMatrixLoc_point = gl.getUniformLocation(
-      pointProgram,
-      "u_scaleMatrix",
-    );
+    const uScaleMatrixLoc_point = gl.getUniformLocation(pointProgram, "u_scaleMatrix");
 
     const MAX_POINTS = 1000;
     const pointBuffer = gl.createBuffer();
@@ -740,22 +680,14 @@ export function SimpleCurve() {
         gl.uniformMatrix4fv(uScaleMatrixLoc_curve, false, iden);
         gl.uniform4f(uColorLoc_curve, 0.4, 0.0, 0.0, 1.0);
 
-        gl.bufferData(
-          gl.ARRAY_BUFFER,
-          new Float32Array(axisLines),
-          gl.STATIC_DRAW,
-        );
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(axisLines), gl.STATIC_DRAW);
         gl.drawArrays(gl.LINES, 0, 4);
       }
 
       if (scrollPassed("show-circle") && !scrollPassed("show-points")) {
         gl.useProgram(curveProgram);
         gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
-        gl.bufferData(
-          gl.ARRAY_BUFFER,
-          new Float32Array(circle),
-          gl.STATIC_DRAW,
-        );
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circle), gl.STATIC_DRAW);
         gl.enableVertexAttribArray(curvePosLocation);
         gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
         gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
@@ -771,9 +703,10 @@ export function SimpleCurve() {
         gl.uniform4f(uColorLoc_point, 0.0, 0.0, 0.4, 1.0);
 
         if (vertices.current.size > 0) {
-          const vertexArray = Array.from(vertices.current.entries()).flatMap(
-            ([_, vertex]) => [vertex.coords[0], vertex.coords[1]],
-          );
+          const vertexArray = Array.from(vertices.current.entries()).flatMap(([_, vertex]) => [
+            vertex.coords[0],
+            vertex.coords[1],
+          ]);
           gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(vertexArray));
         }
 
@@ -781,49 +714,28 @@ export function SimpleCurve() {
         gl.drawArrays(gl.POINTS, 0, vertices.current.size);
 
         if (mouseState.current.intersect !== undefined) {
-          const pickedupVertex = vertices.current.get(
-            mouseState.current.intersect,
-          );
+          const pickedupVertex = vertices.current.get(mouseState.current.intersect);
           if (pickedupVertex) {
             gl.uniform4f(uColorLoc_point, 1.0, 0.0, 0.0, 1.0);
-            gl.bufferSubData(
-              gl.ARRAY_BUFFER,
-              0,
-              new Float32Array(pickedupVertex.coords),
-            );
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(pickedupVertex.coords));
             gl.drawArrays(gl.POINTS, 0, 1);
           }
         }
 
-        if (
-          mouseState.current.isDown &&
-          mouseState.current.intersect !== undefined
-        ) {
-          const selectedVertex = vertices.current.get(
-            mouseState.current.intersect,
-          );
+        if (mouseState.current.isDown && mouseState.current.intersect !== undefined) {
+          const selectedVertex = vertices.current.get(mouseState.current.intersect);
           if (selectedVertex) {
             gl.uniform4f(uColorLoc_point, 0.0, 0.7, 0.0, 1.0);
-            gl.bufferSubData(
-              gl.ARRAY_BUFFER,
-              0,
-              new Float32Array(selectedVertex.coords),
-            );
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(selectedVertex.coords));
             gl.drawArrays(gl.POINTS, 0, 1);
           }
         }
 
         if (mouseState.current.selected !== undefined) {
-          const selectedVertex = vertices.current.get(
-            mouseState.current.selected,
-          );
+          const selectedVertex = vertices.current.get(mouseState.current.selected);
           if (selectedVertex) {
             gl.uniform4f(uColorLoc_point, 0.7, 0.7, 0.0, 1.0);
-            gl.bufferSubData(
-              gl.ARRAY_BUFFER,
-              0,
-              new Float32Array(selectedVertex.coords),
-            );
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(selectedVertex.coords));
             gl.drawArrays(gl.POINTS, 0, 1);
           }
         }
@@ -852,25 +764,21 @@ export function SimpleCurve() {
 
         // Draw preview line for selected vertex
         if (mouseState.current.selected !== undefined) {
-          const selectedVertex = vertices.current.get(
-            mouseState.current.selected,
-          );
+          const selectedVertex = vertices.current.get(mouseState.current.selected);
           if (selectedVertex?.isControlPoint === false) {
             const lineVertices = [
               selectedVertex.coords[0],
               selectedVertex.coords[1],
               ...(mouseState.current.intersect !== undefined
-                ? (vertices.current.get(mouseState.current.intersect)
-                    ?.coords ?? [mouseState.current.x, mouseState.current.y])
+                ? (vertices.current.get(mouseState.current.intersect)?.coords ?? [
+                    mouseState.current.x,
+                    mouseState.current.y,
+                  ])
                 : [mouseState.current.x, mouseState.current.y]),
             ];
 
             gl.uniform4f(uColorLoc_curve, 0.0, 0.4, 0.0, 1.0);
-            gl.bufferSubData(
-              gl.ARRAY_BUFFER,
-              0,
-              new Float32Array(lineVertices),
-            );
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(lineVertices));
             gl.drawArrays(gl.LINES, 0, lineVertices.length / 2);
           }
         }
@@ -901,11 +809,7 @@ export function SimpleCurve() {
 
           if (mainLines.length > 0) {
             gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
-            gl.bufferData(
-              gl.ARRAY_BUFFER,
-              new Float32Array(mainLines),
-              gl.STATIC_DRAW,
-            );
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mainLines), gl.STATIC_DRAW);
             gl.enableVertexAttribArray(curvePosLocation);
             gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
             gl.uniform4f(uColorLoc_curve, 0.0, 0.0, 0.7, 1.0);
@@ -914,11 +818,7 @@ export function SimpleCurve() {
 
           if (segmentedLines.length > 0) {
             gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
-            gl.bufferData(
-              gl.ARRAY_BUFFER,
-              new Float32Array(segmentedLines),
-              gl.STATIC_DRAW,
-            );
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(segmentedLines), gl.STATIC_DRAW);
             gl.enableVertexAttribArray(curvePosLocation);
             gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
             gl.uniform4f(uColorLoc_curve, 0.0, 0.7, 0.7, 1.0);
@@ -935,18 +835,17 @@ export function SimpleCurve() {
                   : line.vertices.length - 1;
 
               if (segmentIndex >= 0 && segmentIndex < line.vertices.length) {
-                const startVertex = vertices.current.get(
-                  line.vertices[segmentIndex],
-                );
+                const startVertex = vertices.current.get(line.vertices[segmentIndex]);
 
                 const endVertex = vertices.current.get(
                   line.vertices[(segmentIndex + 1) % line.vertices.length],
                 );
 
                 if (startVertex && endVertex) {
-                  const highlightedSegment = [startVertex, endVertex].flatMap(
-                    (vertex) => [vertex.coords[0], vertex.coords[1]],
-                  );
+                  const highlightedSegment = [startVertex, endVertex].flatMap((vertex) => [
+                    vertex.coords[0],
+                    vertex.coords[1],
+                  ]);
 
                   gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
                   gl.bufferData(
@@ -955,14 +854,7 @@ export function SimpleCurve() {
                     gl.STATIC_DRAW,
                   );
                   gl.enableVertexAttribArray(curvePosLocation);
-                  gl.vertexAttribPointer(
-                    curvePosLocation,
-                    2,
-                    gl.FLOAT,
-                    false,
-                    0,
-                    0,
-                  );
+                  gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
                   gl.uniform4f(uColorLoc_curve, 1.0, 0.0, 0.0, 1.0);
                   gl.drawArrays(gl.LINES, 0, highlightedSegment.length / 2);
                 }
@@ -977,11 +869,7 @@ export function SimpleCurve() {
           const segments = line.getOrCompute();
 
           gl.bindBuffer(gl.ARRAY_BUFFER, curveBuffer);
-          gl.bufferData(
-            gl.ARRAY_BUFFER,
-            new Float32Array(segments.flat()),
-            gl.STATIC_DRAW,
-          );
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(segments.flat()), gl.STATIC_DRAW);
           gl.enableVertexAttribArray(curvePosLocation);
           gl.vertexAttribPointer(curvePosLocation, 2, gl.FLOAT, false, 0, 0);
           gl.uniform4f(uColorLoc_curve, 0.0, 0.0, 0.0, 1.0);
@@ -1007,18 +895,12 @@ export function SimpleCurve() {
 }
 
 function linspace(start: number, end: number, num: number) {
-  return Array.from(
-    { length: num },
-    (_, i) => start + (end - start) * (i / (num - 1)),
-  );
+  return Array.from({ length: num }, (_, i) => start + (end - start) * (i / (num - 1)));
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: <explanation>
 function arange(start: number, end: number, step: number) {
-  return Array.from(
-    { length: Math.ceil((end - start) / step) },
-    (_, i) => start + i * step,
-  );
+  return Array.from({ length: Math.ceil((end - start) / step) }, (_, i) => start + i * step);
 }
 
 function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
@@ -1027,8 +909,7 @@ function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
   const displayHeight = canvas.clientHeight;
 
   // Only resize if the canvas size is different from the display size
-  const needResize =
-    canvas.width !== displayWidth || canvas.height !== displayHeight;
+  const needResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
   if (needResize) {
     // Set canvas buffer size to match CSS display size
     canvas.width = displayWidth;
@@ -1039,11 +920,7 @@ function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
 
 // Most helper codes (or even some patterns in the main loop) in this file is adapted from https://webglfundamentals.org
 
-function compileShader(
-  gl: WebGLRenderingContext,
-  type: GLenum,
-  source: string,
-) {
+function compileShader(gl: WebGLRenderingContext, type: GLenum, source: string) {
   const shader = gl.createShader(type);
   if (!shader) {
     throw new Error("Unable to create shader");
@@ -1075,12 +952,7 @@ function createProgram(gl: WebGLRenderingContext, ...shaders: WebGLShader[]) {
   gl.deleteProgram(program);
 }
 
-function screenToWorld(
-  x: number,
-  y: number,
-  canvas: HTMLCanvasElement,
-  pitch: number,
-) {
+function screenToWorld(x: number, y: number, canvas: HTMLCanvasElement, pitch: number) {
   const rect = canvas.getBoundingClientRect();
   const glX = ((x - rect.left) / rect.width) * 2 - 1;
   const glY = -((y - rect.top) / rect.height) * 2 + 1;
@@ -1094,11 +966,7 @@ function screenToWorld(
   return [worldX, worldY];
 }
 
-function distanceFromLineAB(
-  p: [number, number],
-  a: [number, number],
-  b: [number, number],
-): number {
+function distanceFromLineAB(p: [number, number], a: [number, number], b: [number, number]): number {
   const ab = glm.vec2.create();
   glm.vec2.sub(ab, b, a);
   const ap = glm.vec2.create();

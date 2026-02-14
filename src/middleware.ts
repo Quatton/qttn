@@ -16,9 +16,7 @@ const subdomain: MiddlewareHandler = async (context, next) => {
   // okay, now check if the it's the subdomain in `subdomains` array
   // if it is, then we will rewrite to /app/[subdomain]
   const [subdomain, ...rest] = context.url.host.split(".");
-  const pathnames = context.url.pathname
-    .replace(`/app/${subdomain}`, "")
-    .split("/");
+  const pathnames = context.url.pathname.replace(`/app/${subdomain}`, "").split("/");
 
   if (subdomains.includes(subdomain)) {
     const pathname = pathnames.join("/").replace(/^\/+|\/$/, "");

@@ -8,7 +8,8 @@
     "build": "astro check && astro build",
     "postinstall": "astro sync",
     "preview": "wrangler dev",
-    "format": "prettier --write .",
+    "format": "oxfmt --write .",
+    "lint": "oxlint .",
     "deploy": "wrangler deploy",
     "astro": "astro",
     "db:generate": "drizzle-kit generate",
@@ -24,7 +25,6 @@
     "@astrojs/react": "4.2.7",
     "@astrojs/solid-js": "5.0.10",
     "@astrojs/vue": "5.0.13",
-    "@cloudflare/pages-plugin-vercel-og": "^0.1.2",
     "@fontsource-variable/inter-tight": "^5.2.5",
     "@fontsource/ibm-plex-mono": "^5.2.5",
     "@fontsource/merriweather": "^5.2.6",
@@ -72,8 +72,6 @@
     "xstate": "^5.20.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@cloudflare/workers-types": "^4.20250421.0",
     "@iconify-json/hugeicons": "^1.2.5",
     "@iconify/vue": "^4.3.0",
     "@shikijs/monaco": "^3.2.2",
@@ -85,17 +83,9 @@
     "daisyui": "^5.0.27",
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.30.6",
-    "prettier": "^3.5.3",
-    "prettier-plugin-astro": "^0.14.1",
-    "prettier-plugin-tailwindcss": "^0.6.11",
+    "oxfmt": "^0.32.0",
+    "oxlint": "^1.47.0",
     "tailwindcss-animated": "^2.0.0",
     "wrangler": "^4.12.0"
-  },
-  "trustedDependencies": [
-    "@biomejs/biome",
-    "esbuild",
-    "sharp",
-    "vue-demi",
-    "workerd"
-  ]
+  }
 }

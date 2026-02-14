@@ -5,8 +5,7 @@ export function useConstCode(id: string, defaultValue = "") {
   const key = `const:code:${id}`;
   const code = useLocalStorage(key, defaultValue, {
     mergeDefaults(storageValue, defaults) {
-      if (storageValue === undefined || storageValue.trim().length === 0)
-        return defaults;
+      if (storageValue === undefined || storageValue.trim().length === 0) return defaults;
       return storageValue;
     },
   });
