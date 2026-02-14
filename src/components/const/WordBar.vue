@@ -26,13 +26,19 @@ const isLoading = ref<number | false>(false);
 
 const swapOutWord = async (idx: number, reason: "difficult" | "notAWord" | "inappropriate") => {
   isLoading.value = idx;
-  const { data } = await actions.constAction.swapOut({
-    gameId: $props.game.id,
-    wordId: wordStore.value[idx].id,
-    reason,
-  });
-  if (data) {
-    updateWord(idx, data);
+  try {
+    const { data } = await actions.constAction.swapOut({
+      gameId: $props.game.id,
+      wordId: wordStore.value[idx].id,
+      reason,
+    });
+
+    if (data) {
+      updateWord(idx, data);
+    }
+  } catch (e) {
+    console.error(e);
+  } finally {
     isLoading.value = false;
   }
 };
