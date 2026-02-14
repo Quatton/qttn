@@ -2,6 +2,7 @@ import { db } from "@/db/drizzle";
 import { gameModes, Games, GameWords, now, Words, WordShortList, type GameMode } from "@/db/schema";
 import type { Definition } from "@/lib/const/dictionary";
 import { keys } from "@/lib/const/rules";
+import { refreshWordShortList, SHORT_LIST_LIMIT } from "@/lib/const/short-list";
 import { z } from "astro/zod";
 import { ActionError, defineAction } from "astro:actions";
 import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
@@ -32,6 +33,7 @@ async function generateWords(
     .select({
       id: sq.words.id,
       name: sq.words.name,
+      shortListCreatedAt: sq.word_short_list.created_at,
     })
     .from(sq)
     .orderBy(asc(sq.words.rejected_rate));
@@ -59,6 +61,16 @@ async function generateWords(
         t.map((word) => word.id),
       ),
     );
+
+  const latestShortListCreatedAt = words[0]?.shortListCreatedAt;
+
+  const isShortListStale = !latestShortListCreatedAt
+    ? true
+    : Date.now() - new Date(latestShortListCreatedAt).getTime() > 1000 * 60 * 60 * 24;
+
+  if (isShortListStale) {
+    await refreshWordShortList(tx, SHORT_LIST_LIMIT);
+  }
 
   return t;
 }
