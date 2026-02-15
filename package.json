@@ -5,12 +5,14 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "deploy": "wrangler deploy",
     "preview": "astro preview",
     "astro": "astro",
     "format": "oxfmt .",
     "lint": "oxlint ."
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^12.6.12",
     "@fontsource-variable/geist": "^5.2.8",
     "@fontsource-variable/merriweather": "^5.2.6",
     "@fontsource/lilex": "^5.2.1",
@@ -22,6 +24,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "daisyui": "^5.5.18",
     "oxfmt": "^0.32.0",
-    "oxlint": "^1.47.0"
+    "oxlint": "^1.47.0",
+    "wrangler": "^4.65.0"
   }
 }
