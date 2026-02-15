@@ -14,6 +14,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate-prod": "PROD=true drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:studio-prod": "PROD=true drizzle-kit studio",
     "db:dev": "turso dev --db-file local.db"
   },
   "dependencies": {

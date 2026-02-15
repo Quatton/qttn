@@ -1,11 +1,12 @@
 import { createClient } from "@libsql/client";
+import { getSecret } from "astro:env/server";
 import { DefaultLogger, NoopLogger } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 
 const libsql = createClient({
-  url: import.meta.env.TURSO_DATABASE_URL,
-  authToken: import.meta.env.TURSO_AUTH_TOKEN
+  url: getSecret("TURSO_DATABASE_URL")!,
+  authToken: getSecret("TURSO_AUTH_TOKEN")!
 });
 
 export const db = drizzle(libsql, {
