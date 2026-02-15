@@ -25,6 +25,7 @@ export const server = {
         .onConflictDoNothing()
         .catch((error) => {
           console.error("Error tracking story view:", error);
+          throw new Error("Failed to track story view");
         });
 
       return { ok: true };
