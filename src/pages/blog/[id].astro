@@ -30,11 +30,15 @@ const { Content } = await render(post);
 ---
 
 <Layout title={post.data.title}>
-  <article class="prose mx-auto px-4 pt-16">
+  <article class="prose mx-auto px-8 py-16">
     <h1>{post.data.title}</h1>
+    <p>
+      {post.data.description}
+    </p>
     <p class="text-sm text-gray-500">
       {formatDate(post.data.createdAt)}
     </p>
+    <hr />
     <Content />
   </article>
 </Layout>
