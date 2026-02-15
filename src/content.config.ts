@@ -9,8 +9,8 @@ const stories = defineCollection({
     title: z.string(),
     createdAt: z.coerce.date(),
     publishedAt: z.coerce.date().optional(),
-    total: z.number()
-  })
+    total: z.number(),
+  }),
 });
 
 export const collections = { stories };

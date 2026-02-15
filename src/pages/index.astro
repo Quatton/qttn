@@ -1,19 +1,21 @@
 ---
-import HomeLayout from "@/layouts/HomeLayout.astro";
+import Header from "@/layouts/Header.astro";
+import Layout from "@/layouts/Layout.astro";
 import { getCollection } from "astro:content";
-import { formatDate } from "../lib/utils";
+import { formatDate, formatDateShort } from "../lib/utils";
 
 const posts = await getCollection("stories");
 
 const publishedPosts = posts.filter((post) => !!post.data.publishedAt);
 ---
 
-<HomeLayout title="Home">
-  <div class="overflow-x-auto max-w-3xl">
+<Layout title="Home">
+  <Header class="max-w-3xl mx-auto" />
+  <div class="overflow-x-auto max-w-3xl mx-auto">
     <table class="table table-zebra">
       <thead>
         <tr>
-          <th class="w-48">Date</th>
+          <th class="sm:w-48 max-sm:w-24">Date</th>
           <th>Title</th>
         </tr>
       </thead>
@@ -21,7 +23,10 @@ const publishedPosts = posts.filter((post) => !!post.data.publishedAt);
         {
           publishedPosts.map((post) => (
             <tr>
-              <td>{formatDate(post.data.createdAt)}</td>
+              <td>
+                <p class="max-sm:hidden">{formatDate(post.data.createdAt)}</p>
+                <p class="sm:hidden">{formatDateShort(post.data.createdAt)}</p>
+              </td>
               <td>
                 <a href={`/stories/${post.id}`} class="link link-hover">
                   {post.data.title}
@@ -33,4 +38,4 @@ const publishedPosts = posts.filter((post) => !!post.data.publishedAt);
       </tbody>
     </table>
   </div>
-</HomeLayout>
+</Layout>

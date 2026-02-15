@@ -18,7 +18,7 @@ export default defineConfig({
     },
   },
   adapter: cloudflare({
-    imageService: "compile"
+    imageService: "compile",
   }),
   integrations: [
     mdx({

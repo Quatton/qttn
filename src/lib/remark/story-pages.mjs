@@ -15,7 +15,7 @@ export function remarkStoryPages() {
     const children = tree.children;
 
     let firstBodyIndex = children.findIndex(
-      (node) => node.type !== "yaml" && node.type !== "mdxjsEsm"
+      (node) => node.type !== "yaml" && node.type !== "mdxjsEsm",
     );
 
     if (firstBodyIndex === -1) {
