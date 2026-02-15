@@ -1,15 +1,5 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-    "strictNullChecks": true,
-    "allowJs": true,
-    "jsx": "preserve",
-    "jsxImportSource": "react",
-    "types": ["@cloudflare/workers-types", "@webgpu/types", "@types/node"]
-  },
-  "exclude": ["node_modules", "dist", "**/solid/**/*"]
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"]
 }

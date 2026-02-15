@@ -1,1 +1,0 @@
-ALTER TABLE `games` ADD `mode` text DEFAULT 'easy' NOT NULL;

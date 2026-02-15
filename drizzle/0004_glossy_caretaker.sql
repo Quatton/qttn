@@ -1,1 +1,0 @@
-ALTER TABLE `games` ADD `state` text DEFAULT 'in_progress' NOT NULL;
