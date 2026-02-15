@@ -1,3 +1,3 @@
 export const site = {
-  title: 'Quatton',
-}
+  title: "Quatton",
+};

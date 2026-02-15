@@ -6,7 +6,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "format": "oxfmt .",
+    "lint": "oxlint ."
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
@@ -14,6 +16,8 @@
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
-    "daisyui": "^5.5.18"
+    "daisyui": "^5.5.18",
+    "oxfmt": "^0.32.0",
+    "oxlint": "^1.47.0"
   }
 }
