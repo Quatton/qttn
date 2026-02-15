@@ -1,0 +1,40 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { formatDate } from "@/lib/utils";
+import type { GetStaticPaths } from "astro";
+import { getCollection, getEntry, render } from "astro:content";
+
+export const getStaticPaths = (async () => {
+  const entries = await getCollection("blog");
+
+  return entries.map((post) => ({
+    params: { id: post.id },
+  }));
+}) satisfies GetStaticPaths;
+
+const id = Astro.params.id;
+
+if (!id) {
+  Astro.redirect("/");
+  return;
+}
+
+const post = await getEntry("blog", id);
+
+if (!post) {
+  Astro.redirect("/");
+  return;
+}
+
+const { Content } = await render(post);
+---
+
+<Layout title={post.data.title}>
+  <article class="prose mx-auto px-4 pt-16">
+    <h1>{post.data.title}</h1>
+    <p class="text-sm text-gray-500">
+      {formatDate(post.data.createdAt)}
+    </p>
+    <Content />
+  </article>
+</Layout>
