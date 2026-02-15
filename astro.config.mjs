@@ -4,6 +4,9 @@ import { defineConfig } from "astro/config";
 
 import cloudflare from "@astrojs/cloudflare";
 
+import mdx from "@astrojs/mdx";
+import { remarkStoryPages } from "./src/lib/remark/story-pages.mjs";
+
 // https://astro.build/config
 export default defineConfig({
   vite: {
@@ -14,6 +17,12 @@ export default defineConfig({
       },
     },
   },
-
-  adapter: cloudflare(),
+  adapter: cloudflare({
+    imageService: "compile"
+  }),
+  integrations: [
+    mdx({
+      remarkPlugins: [remarkStoryPages],
+    }),
+  ],
 });

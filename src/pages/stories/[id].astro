@@ -1,0 +1,44 @@
+---
+import StoryLayout from "@/layouts/StoryLayout.astro";
+import type { GetStaticPaths } from "astro";
+import { getCollection, getEntry, render } from "astro:content";
+
+export const getStaticPaths = (async () => {
+  const entries = await getCollection("stories");
+
+  return entries.map((post) => ({
+    params: { id: post.id }
+  }));
+}) satisfies GetStaticPaths;
+
+const id = Astro.params.id;
+
+if (!id) {
+  Astro.redirect("/");
+  return;
+}
+
+const post = await getEntry("stories", id);
+
+if (!post) {
+  Astro.redirect("/");
+  return;
+}
+
+const { Content } = await render(post);
+---
+
+<StoryLayout title={post.data.title}>
+  <main class="h-full w-full flex flex-col">
+    <header class="text-sm py-2 border-b border-base-300">
+      <div class="flex items-center gap-4 justify-between mx-auto px-4 w-sm">
+        <a href="/" class="link link-hover text-lg"> ❮ </a>
+        <a href="#page1">{post.data.title}</a>
+        <div></div>
+      </div>
+    </header>
+    <article class="flex-1 w-full max-w-sm aspect-9/16 mx-auto carousel">
+      <Content />
+    </article>
+  </main>
+</StoryLayout>

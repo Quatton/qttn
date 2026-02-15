@@ -1,14 +1,14 @@
 ---
+import HomeLayout from "@/layouts/HomeLayout.astro";
 import { getCollection } from "astro:content";
-import Layout from "../layouts/Layout.astro";
 import { formatDate } from "../lib/utils";
 
-const posts = await getCollection("blog");
+const posts = await getCollection("stories");
 
 const publishedPosts = posts.filter((post) => !!post.data.publishedAt);
 ---
 
-<Layout>
+<HomeLayout title="Home">
   <div class="overflow-x-auto max-w-3xl">
     <table class="table table-zebra">
       <thead>
@@ -23,7 +23,7 @@ const publishedPosts = posts.filter((post) => !!post.data.publishedAt);
             <tr>
               <td>{formatDate(post.data.createdAt)}</td>
               <td>
-                <a href={`/blog/${post.id}`} class="link link-hover">
+                <a href={`/stories/${post.id}`} class="link link-hover">
                   {post.data.title}
                 </a>
               </td>
@@ -33,4 +33,4 @@ const publishedPosts = posts.filter((post) => !!post.data.publishedAt);
       </tbody>
     </table>
   </div>
-</Layout>
+</HomeLayout>
