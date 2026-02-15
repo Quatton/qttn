@@ -1,0 +1,1 @@
+ALTER TABLE `words` ADD `is_phrase` integer DEFAULT false NOT NULL;

@@ -29,7 +29,7 @@ const { Content } = await render(post);
 ---
 
 <Layout title={post.data.title}>
-  <main class="h-full w-full flex flex-col">
+  <main class="h-full w-full flex flex-col" data-story-id={post.id}>
     <header class="text-sm py-2 border-b border-base-300">
       <div
         class="flex items-center gap-4 justify-between mx-auto px-4 w-full max-w-md"
@@ -47,6 +47,26 @@ const { Content } = await render(post);
     </div>
   </main>
 </Layout>
+
+<script>
+  import { actions } from "astro:actions";
+
+  const root = document.querySelector("main[data-story-id]");
+  const storyId = root?.getAttribute("data-story-id");
+
+  if (storyId) {
+    const utmSource = new URLSearchParams(window.location.search).get(
+      "utm_source"
+    );
+
+    actions
+      .trackStoryView({
+        storyId,
+        utmSource: utmSource ?? undefined
+      })
+      .catch(() => {});
+  }
+</script>
 
 <style>
   main {

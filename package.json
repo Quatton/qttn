@@ -9,7 +9,12 @@
     "preview": "astro preview",
     "astro": "astro",
     "format": "oxfmt .",
-    "lint": "oxlint ."
+    "lint": "oxlint .",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:migrate-prod": "PROD=true drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:dev": "turso dev --db-file local.db"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",
@@ -17,8 +22,11 @@
     "@fontsource-variable/geist": "^5.2.8",
     "@fontsource-variable/merriweather": "^5.2.6",
     "@fontsource/lilex": "^5.2.1",
+    "@libsql/client": "^0.17.0",
+    "@oslojs/crypto": "^1.0.1",
     "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.17.1",
+    "drizzle-orm": "^0.45.1",
     "tailwind-merge": "^3.4.1",
     "tailwindcss": "^4.1.18"
   },
@@ -26,6 +34,8 @@
     "@tailwindcss/typography": "^0.5.19",
     "@types/mdast": "^4.0.4",
     "daisyui": "^5.5.18",
+    "dotenv": "^17.3.1",
+    "drizzle-kit": "^0.31.9",
     "oxfmt": "^0.32.0",
     "oxlint": "^1.47.0",
     "wrangler": "^4.65.0"
