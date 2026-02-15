@@ -1,41 +1,37 @@
 ---
 import Header from "@/layouts/Header.astro";
 import Layout from "@/layouts/Layout.astro";
+import { formatDate } from "@/lib/utils";
 import { getCollection } from "astro:content";
-import { formatDate, formatDateShort } from "../lib/utils";
 
 const posts = await getCollection("stories");
 
-const publishedPosts = posts.filter((post) => !!post.data.publishedAt);
+const publishedPosts = posts.filter((post) => !!post.data.publishedAt) as Array<
+  (typeof posts)[number] & { data: { publishedAt: Date } }
+>;
 ---
 
 <Layout title="Home">
   <Header class="max-w-3xl mx-auto" />
-  <div class="overflow-x-auto max-w-3xl mx-auto">
-    <table class="table table-zebra">
-      <thead>
-        <tr>
-          <th class="sm:w-48 max-sm:w-24">Date</th>
-          <th>Title</th>
-        </tr>
-      </thead>
-      <tbody>
-        {
-          publishedPosts.map((post) => (
-            <tr>
-              <td>
-                <p class="max-sm:hidden">{formatDate(post.data.createdAt)}</p>
-                <p class="sm:hidden">{formatDateShort(post.data.createdAt)}</p>
-              </td>
-              <td>
-                <a href={`/stories/${post.id}`} class="link link-hover">
-                  {post.data.title}
-                </a>
-              </td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
+  <div class="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto px-4">
+    {
+      publishedPosts.map((post) => (
+        <a
+          href={`/stories/${post.id}`}
+          class="card card-border bg-base-100 hover:bg-base-200 hover:-translate-y-1
+          transition-transform duration-200 ease-in-out cursor-pointer p-1"
+        >
+          <div class="flex items-center justify-between">
+            <div class="text-xs badge">{formatDate(post.data.publishedAt)}</div>
+
+            <div class="text-xs badge">{post.data.total}</div>
+          </div>
+          <div class="card-body prose flex flex-col items-center text-center">
+            <h2 class="font-serif">{post.data.title}</h2>
+            <p class="text-xs">{post.data.description}</p>
+          </div>
+        </a>
+      ))
+    }
   </div>
 </Layout>
