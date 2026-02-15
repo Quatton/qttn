@@ -4,7 +4,7 @@ import { defineAction } from "astro:actions";
 import { z } from "astro:schema";
 
 export const server = {
-  a: defineAction({
+  analytics: defineAction({
     input: z.object({
       storyId: z.string().min(1),
       utmSource: z.string().trim().min(1).max(128).optional()
