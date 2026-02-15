@@ -3,3 +3,9 @@
 @plugin "daisyui" {
   themes: silk --default;
 }
+
+@theme {
+  --font-sans: "Geist Variable";
+  --font-mono: "Lilex";
+  --font-serif: "Merriweather Variable";
+}
