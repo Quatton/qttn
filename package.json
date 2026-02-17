@@ -29,12 +29,16 @@
     "@tailwindcss/vite": "^4.1.18",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@xstate/react": "^6.0.0",
+    "@xstate/store-react": "^1.0.1",
     "astro": "^5.17.1",
     "drizzle-orm": "^0.45.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "recharts": "^3.7.0",
     "tailwind-merge": "^3.4.1",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "xstate": "^5.28.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",

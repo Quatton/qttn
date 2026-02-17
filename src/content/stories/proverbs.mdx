@@ -6,7 +6,10 @@ issue: 2
 total: 5
 ---
 
-import { GuessBox } from "@/components/stories/proverbs/guess-box.tsx";
+import {
+  GuessBox,
+  StatChart
+} from "@/components/stories/proverbs/guess-box.tsx";
 
 # Proverbs Are Lossy Compression
 
@@ -84,7 +87,7 @@ First-mover advantage is real.
 
 > The second mouse gets the cheese.
 
-Or... wait, maybe we should wait and see how the first mouse got eaten by the cat, and then learn from its mistakes.
+Or... maybe we should wait and see how the first mouse got eaten by the cat, and then learn from its mistakes.
 
 ---
 
@@ -114,11 +117,38 @@ The point is:
 
 ---
 
-Let's say we have a box right here. Guess where the ball is!
+Let's play a simple game! Try to guess where the hidden ball is.
+Try as many times as you want, but please try at least 10-20 times!
 
 <div class="relative z-30">
   <GuessBox client:only="react" />
 </div>
+
+---
+
+See how well you did.
+
+<StatChart client:only="react" />
+
+---
+
+Isn't it weird?
+
+I didn't say how I chose the hidden ball's position.
+
+But you can still guess it correctly more often than theoretical random guessing which is 11% for 9 boxes.
+
+(Or you didn't. I wouldn't know.)
+
+---
+
+Might be an overkill to build an entire game to state the obvious, but the point is, we naturally have pattern seeking tendencies.
+
+We don't like when the odds are against us, so we try to gain the edge by looking for patterns.
+
+---
+
+> Hey every time I put all eggs in one basket, I break the basket and lose all my eggs. Maybe I should stop doing that.
 
 ---
 
