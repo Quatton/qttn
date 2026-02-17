@@ -59,12 +59,8 @@
           "name": "game_words_game_id_games_id_fk",
           "tableFrom": "game_words",
           "tableTo": "games",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -72,22 +68,15 @@
           "name": "game_words_word_id_words_id_fk",
           "tableFrom": "game_words",
           "tableTo": "words",
-          "columnsFrom": [
-            "word_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["word_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {
         "game_words_word_id_game_id_pk": {
-          "columns": [
-            "word_id",
-            "game_id"
-          ],
+          "columns": ["word_id", "game_id"],
           "name": "game_words_word_id_game_id_pk"
         }
       },
@@ -181,9 +170,7 @@
       "indexes": {
         "random_index": {
           "name": "random_index",
-          "columns": [
-            "random"
-          ],
+          "columns": ["random"],
           "isUnique": false
         }
       },
@@ -192,12 +179,8 @@
           "name": "word_short_list_id_words_id_fk",
           "tableFrom": "word_short_list",
           "tableTo": "words",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -299,9 +282,7 @@
       "indexes": {
         "words_name_unique": {
           "name": "words_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         }
       },

@@ -1,6 +1,6 @@
 /**
  * Convert MDX content separated by `----` into:
- * <Story page={n}><Full><Text>...</Text></Full></Story>
+ * <Story page={n}></Story>
  *
  * Notes:
  * - Frontmatter and ESM import/export nodes are preserved at the top.
@@ -75,21 +75,7 @@ export function remarkStoryPages() {
               ]
             : []),
         ],
-        children: [
-          {
-            type: "mdxJsxFlowElement",
-            name: "Full",
-            attributes: [],
-            children: [
-              {
-                type: "mdxJsxFlowElement",
-                name: "Text",
-                attributes: [],
-                children: pageChildren,
-              },
-            ],
-          },
-        ],
+        children: pageChildren,
       };
     });
 

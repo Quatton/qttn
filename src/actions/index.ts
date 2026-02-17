@@ -7,9 +7,13 @@ export const server = {
   analytics: defineAction({
     input: z.object({
       storyId: z.string().min(1),
-      utmSource: z.string().trim().min(1).max(128).optional()
+      utmSource: z.string().trim().min(1).max(128).optional(),
     }),
     handler: async ({ storyId, utmSource }, context) => {
+      if (import.meta.env.ANALYTICS_DISABLED === "true") {
+        return { ok: true };
+      }
+
       const ipAddress = context.clientAddress;
       const source = utmSource ?? "direct";
       const viewDate = new Date().toISOString().slice(0, 10);
@@ -20,7 +24,7 @@ export const server = {
           story_id: storyId,
           ip_address: ipAddress,
           utm_source: source,
-          view_date: viewDate
+          view_date: viewDate,
         })
         .onConflictDoNothing()
         .catch((error) => {
@@ -29,6 +33,6 @@ export const server = {
         });
 
       return { ok: true };
-    }
-  })
+    },
+  }),
 };

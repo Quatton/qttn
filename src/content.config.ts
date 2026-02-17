@@ -10,8 +10,9 @@ const stories = defineCollection({
     description: z.string().optional(),
     createdAt: z.coerce.date(),
     publishedAt: z.coerce.date().optional(),
-    total: z.number()
-  })
+    total: z.number(),
+    issue: z.number().optional().default(1),
+  }),
 });
 
 export const collections = { stories };

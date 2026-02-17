@@ -1,0 +1,133 @@
+---
+title: "Proverbs Are Lossy Compression"
+description: "Don't judge a book by its cover, but also, how you do one thing is how you do everything"
+createdAt: 2026-02-15
+publishedAt: 2026-02-16
+issue: 2
+total: 5
+---
+
+import { GuessBox } from "@/components/stories/proverbs/guess-box.tsx";
+
+# Proverbs Are Lossy Compression
+
+Don't judge a book by its cover, but also, how you do one thing is how you do everything. <br /> Alright, so what's the point of a proverb if there is always an "anti-proverb" that contradicts it?
+
+---
+
+You might have heard it before:
+
+> Don't judge a book by its cover.
+
+---
+
+Of course, it makes sense. You can't know what's the content of a book just by looking at its cover.
+
+---
+
+But then, which of these two books would you pick?
+
+import Book1 from "./f.jpg";
+import Book2 from "./real.png";
+
+<div class="flex gap-4 w-full justify-center">
+  <div class="h-64 overflow-hidden rounded-box bg-base-200">
+    <Image src={Book1} alt="Book 1" class="w-full h-full object-contain" />
+  </div>
+  <div class="h-64 overflow-hidden rounded-box bg-base-200">
+    <Image src={Book2} alt="Book 2" class="w-full h-full object-contain" />
+  </div>
+</div>
+
+---
+
+There is no correct answer there, because judging from my viewership, you guys are nuts.
+
+But at least you have one in mind, right?
+
+---
+
+There is also a saying that how you do one thing is how you do everything.
+
+> Dress for the job you want not for the job you have.
+
+Would you hire someone who dresses like a slob? This guy doesn't even care about his appearance, how can he care about his work?
+
+---
+
+Every proverb seems to always have an "anti-proverb" that contradicts it.
+
+---
+
+> Done is better than perfect.
+
+Yeah, you should just start and get things done!
+
+> A house built on sand cannot stand
+
+Or... you should take the time to plan big, build a strong foundation, and do things right the first time.
+
+---
+
+> Many hands make light work.
+
+Let's parallelize the algorithm and make every thread share the memory.
+
+> Too many cooks spoil the broth.
+
+Cool. Deadlocks. Race conditions. Starvation. Let's not do that.
+
+---
+
+> The early bird catches the worm.
+
+First-mover advantage is real.
+
+> The second mouse gets the cheese.
+
+Or... wait, maybe we should wait and see how the first mouse got eaten by the cat, and then learn from its mistakes.
+
+---
+
+So on and so forth. What is the point? Do we not learn anything from these proverbs?
+
+---
+
+Are these some cool speech patterns just to make **those who say them sound smart**? Why do millionaires in an interview always say these lessons as if it wasn't just a [hindsight bias](https://en.wikipedia.org/wiki/Hindsight_bias)?
+
+---
+
+Sure _"WhAt I wIsH I kNeW wHeN I wAs 20"_
+
+Had you done those things differently, the "canon event" might not have happened, and you wouldn't stand where you are today.
+
+---
+
+Or... maybe it doesn't matter at all, and you would have inherited the same amount of money from your parents. Sorry if that sounds cynical, but I'm just playing devil's advocate here.
+
+---
+
+The point is:
+
+### Should we just ignore these proverbs?
+
+### But then, why does it work sometimes?
+
+---
+
+Let's say we have a box right here. Guess where the ball is!
+
+<div class="relative z-30">
+  <GuessBox client:only="react" />
+</div>
+
+---
+
+Thank you for reading! If you have any feedback or suggestions for future topics,
+please let me know in the comments or reach out to me on social media.
+
+<div class="relative flex justify-center mt-8 w-full">
+  <a href="/" class="btn z-20 absolute">
+    Back to Home
+  </a>
+</div>

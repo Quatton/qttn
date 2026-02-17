@@ -9,6 +9,12 @@ const posts = await getCollection("stories");
 const publishedPosts = posts.filter((post) => !!post.data.publishedAt) as Array<
   (typeof posts)[number] & { data: { publishedAt: Date } }
 >;
+
+publishedPosts.sort((a, b) =>
+  a.data.publishedAt == b.data.publishedAt
+    ? a.data.issue - b.data.issue
+    : b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
+);
 ---
 
 <Layout title="Home">

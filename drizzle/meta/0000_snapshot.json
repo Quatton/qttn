@@ -81,9 +81,7 @@
       "indexes": {
         "words_name_unique": {
           "name": "words_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         }
       },

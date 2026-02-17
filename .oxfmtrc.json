@@ -10,7 +10,6 @@
   "experimentalTailwindcss": {
     "stylesheet": "./src/styles/global.css",
     "attributes": ["class", "className"],
-    "functions": ["clsx", "cn"],
-    "preserveWhitespace": true
+    "functions": ["clsx", "cn"]
   }
 }

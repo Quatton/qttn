@@ -8,21 +8,22 @@ const page = Number(Astro.props.page);
 const isLast = Astro.props.isLast || false;
 ---
 
-<div
-  class="flex flex-col h-full carousel-item w-full relative"
-  id={`page${page}`}
->
-  <div class="absolute flex inset-0 z-10">
-    <a href={`#page${page - 1}`} class="h-full flex-1">
-      <span class="sr-only">Previous</span>
-    </a>
-    {
-      !isLast && (
-        <a href={`#page${page + 1}`} class="h-full flex-1">
-          <span class="sr-only">Next</span>
-        </a>
-      )
-    }
+<div class="carousel-item w-full h-full shrink-0" id={`page${page}`}>
+  <div
+    class="w-full flex flex-col relative text-center prose prose-lg prose-silk prose-h1:font-serif py-16 prose-blockquote:[&_p:first-child]:mt-0 prose-blockquote:[&_p:first-child]:mb-0 text-pretty prose-blockquote:text-left prose-a:z-20 prose-a:relative"
+  >
+    <div class="absolute flex inset-0">
+      <a href={`#page${page - 1}`} class="h-full flex-1 z-10 not-prose">
+        <span class="sr-only">Previous</span>
+      </a>
+      {
+        !isLast && (
+          <a href={`#page${page + 1}`} class="h-full flex-1 z-10 not-prose">
+            <span class="sr-only">Next</span>
+          </a>
+        )
+      }
+    </div>
+    <slot />
   </div>
-  <slot />
 </div>

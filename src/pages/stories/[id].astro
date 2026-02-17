@@ -2,6 +2,9 @@
 import Layout from "@/layouts/Layout.astro";
 import type { GetStaticPaths } from "astro";
 import { getCollection, getEntry, render } from "astro:content";
+import Story from "@/components/stories/Story.astro";
+import Full from "@/components/stories/Full.astro";
+import { Image } from "astro:assets";
 
 export const getStaticPaths = (async () => {
   const entries = await getCollection("stories");
@@ -39,10 +42,12 @@ const { Content } = await render(post);
         <div></div>
       </div>
     </header>
-    <div class="w-full max-w-md sm:aspect-9/16 flex-1 mx-auto flex flex-col">
+    <div
+      class="w-full max-w-md sm:aspect-9/16 flex-1 mx-auto flex flex-col min-h-0"
+    >
       <div class="progress w-sm"></div>
       <article class="carousel scroll min-h-0 flex-1">
-        <Content />
+        <Content components={{ Story, Full, Image }} />
       </article>
     </div>
   </main>
@@ -54,18 +59,24 @@ const { Content } = await render(post);
   const root = document.querySelector("main[data-story-id]");
   const storyId = root?.getAttribute("data-story-id");
 
-  if (storyId) {
-    const utmSource = new URLSearchParams(window.location.search).get(
-      "utm_source"
-    );
+  (() => {
+    if (import.meta.env.ANALYTICS_DISABLED === "true") {
+      return;
+    }
 
-    actions
-      .analytics({
-        storyId,
-        utmSource: utmSource ?? undefined
-      })
-      .catch(() => {});
-  }
+    if (storyId) {
+      const utmSource = new URLSearchParams(window.location.search).get(
+        "utm_source"
+      );
+
+      actions
+        .analytics({
+          storyId,
+          utmSource: utmSource ?? undefined
+        })
+        .catch(() => {});
+    }
+  })();
 </script>
 
 <style>

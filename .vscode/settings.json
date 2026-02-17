@@ -4,5 +4,8 @@
   "editor.codeActionsOnSave": {
     "source.unusedImports": "explicit",
     "source.organizeImports": "explicit"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   }
 }

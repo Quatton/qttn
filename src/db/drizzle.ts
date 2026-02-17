@@ -6,10 +6,10 @@ import * as schema from "./schema";
 
 const libsql = createClient({
   url: getSecret("TURSO_DATABASE_URL")!,
-  authToken: getSecret("TURSO_AUTH_TOKEN")!
+  authToken: getSecret("TURSO_AUTH_TOKEN")!,
 });
 
 export const db = drizzle(libsql, {
   schema,
-  logger: import.meta.env.DEV ? new DefaultLogger() : new NoopLogger()
+  logger: import.meta.env.DEV ? new DefaultLogger() : new NoopLogger(),
 });
