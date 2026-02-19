@@ -28,10 +28,30 @@ if (!post) {
   return;
 }
 
-const { Content } = await render(post);
+const { Content, headings } = await render(post);
 ---
 
 <Layout title={post.data.title}>
+  <ul
+    class="dropdown menu w-52 rounded-box bg-base-100 shadow-sm"
+    popover
+    id="tableofcontent"
+    style="position-anchor:--hamburget-menu"
+  >
+    {
+      headings.map((heading) => (
+        <li>
+          <a
+            href={`#${heading.slug}`}
+            class="text-sm"
+            style={`padding-left: ${heading.depth * 8}px;`}
+          >
+            {heading.text}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
   <main class="h-full w-full flex flex-col" data-story-id={post.id}>
     <header class="text-sm py-2 border-b border-base-300">
       <div
@@ -39,7 +59,25 @@ const { Content } = await render(post);
       >
         <a href="/" class="link link-hover text-lg"> ❮ </a>
         <a href="#page1">{post.data.title}</a>
-        <div></div>
+        <button
+          class="btn btn-ghost"
+          popovertarget="tableofcontent"
+          style="anchor-name:--hamburget-menu"
+        >
+          <span class="sr-only">Menu</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            class="inline-block w-5 h-5 stroke-current"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
       </div>
     </header>
     <div
