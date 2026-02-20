@@ -2,9 +2,11 @@
 interface Props {
   page: number | string;
   isLast?: boolean;
+  total?: number | string;
 }
 
 const page = Number(Astro.props.page);
+const total = Number(Astro.props.total) || page;
 const isLast = Astro.props.isLast || false;
 ---
 
@@ -23,6 +25,10 @@ const isLast = Astro.props.isLast || false;
           </a>
         )
       }
+      <!-- Page number / total (top right) -->
+      <div class="absolute top-4 right-4 badge badge-sm z-20 not-prose">
+        {page} / {total}
+      </div>
     </div>
     <slot />
   </div>

@@ -74,6 +74,11 @@ export function remarkStoryPages() {
                 },
               ]
             : []),
+          {
+            type: "mdxJsxAttribute",
+            name: "total",
+            value: String(pages.length),
+          },
         ],
         children: pageChildren,
       };
