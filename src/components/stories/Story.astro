@@ -1,4 +1,6 @@
 ---
+import BookmarkButton from "./BookmarkButton";
+
 interface Props {
   page: number | string;
   isLast?: boolean;
@@ -31,28 +33,7 @@ const isLast = Astro.props.isLast || false;
       </div>
 
       <!-- bookmark copy the current page URL to clipboard (top left) -->
-      <button
-        class="absolute top-4 left-4 btn btn-square z-20 not-prose"
-        title="Copy page URL"
-        id={`copy-page-url-${page}`}
-      >
-        <span class="sr-only">Copy page URL</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          class="size-6"
-          ><path
-            fill="none"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"
-          ></path></svg
-        >
-      </button>
+      <BookmarkButton page={page} client:load />
     </div>
     <slot />
   </div>
@@ -67,15 +48,4 @@ const isLast = Astro.props.isLast || false;
       el.scrollIntoView({ behavior: "smooth" });
     }
   }
-
-  function copyPageURL() {
-    const url = `${location.origin}${location.pathname}#page${Astro.props.page}`;
-    navigator.clipboard.writeText(url).then(() => {
-      alert("Page URL copied to clipboard!");
-    });
-  }
-
-  document
-    .getElementById(`copy-page-url-${Astro.props.page}`)
-    ?.addEventListener("click", copyPageURL);
 </script>
