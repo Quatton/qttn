@@ -51,7 +51,7 @@ So what is remembering?
 
 ---
 
-In a strict sense, can we say remembering is the ability to recall a piece of information after having experience it once?
+In a strict sense, can we say remembering is the ability to recall a piece of information after having experienced it once?
 
 ---
 
@@ -61,7 +61,7 @@ But first, what is **information**?
 
 ---
 
-Given two coins, each coin has two sides: Head (H) or Tail (T).
+Given two coins, each coin has two sides: Head $(H)$ or Tail $(T)$, so the sample space is $\{H, T\}$.
 
 ---
 
@@ -111,13 +111,13 @@ It used to be uncertain. Now it's certain. So you must **know** something. You c
 
 ---
 
-The result of a coin toss is $T$ out of $H, T$? Then we collapsed the probability from 1/2 to 1.
+The result of a coin toss is $T$ out of $\{H, T\}$? Then we collapsed the probability from $\frac{1}{2}$ to $1$.
 
 This is the ratio of 2.
 
 ---
 
-The result of two coin tosses was $TH$ out of four possibilities HH, HT, TH, TT? Then we collapsed the probability from 1/4 to 1.
+The result of two coin tosses was $TH$ out of $\{HH, HT, TH, TT\}$? Then we collapsed the probability from $\frac{1}{4}$ to $1$.
 
 This is the ratio of 4.
 
@@ -135,7 +135,7 @@ This is why we use logarithmic function, whose additions equal the result when i
 
 This gives
 
-$$I = \log_2 1/P(x)$$
+$$I = \log_2 \frac{1}{P(x)}$$
 
 which is essentially
 
@@ -149,11 +149,13 @@ The only thing you need to know is that **information means the capability to co
 
 ---
 
-Entropy is the measurement of uncertainty. If an event with a probability p(x) happens, you would know -log(p(x)) bits of information. Summing that up for all events, weighed by how rare each event is, you have entropy.
+Entropy is the measurement of uncertainty. If an event with a probability $P(x)$ happens, you would know $-\log_2 P(x)$ bits of information. Summing that up for all events, weighted by how rare each event is, you have entropy:
+
+$$H = \sum_{x} P(x) \log_2 \frac{1}{P(x)}$$
 
 ---
 
-For a coin toss, information you gain is 2 bits for 4 possibilities each with a probability of 1/4.
+For a coin toss, information you gain is 2 bits for 4 possibilities each with a probability of $\frac{1}{4}$.
 
 So the entropy of this system is 2 bits! To collapse the entropy to be 0, you would need to know exactly 2 bits. The math checks out!
 
@@ -219,12 +221,12 @@ Yes! with a truth table.
 
 ---
 
-```
-0 0 0
-0 1 0
-1 0 0
-1 1 1
-```
+| A   | B   | A AND B |
+| --- | --- | ------- |
+| 0   | 0   | 0       |
+| 0   | 1   | 0       |
+| 1   | 0   | 0       |
+| 1   | 1   | 1       |
 
 ---
 
@@ -449,7 +451,7 @@ So grounding on our foundations, "memory" can't really physically exist, the sam
 
 ---
 
-Knowing or not knowing the result of a coin toss, it doesn't affect the actual coin. It'd not simply goes back to spinning just because you didn't know it.
+Knowing or not knowing the result of a coin toss, it doesn't affect the actual coin. It doesn't simply go back to spinning just because you didn't know it.
 
 ---
 
@@ -479,7 +481,7 @@ Do you know that pairing game where the images are flipped down and you have to 
 
 That is also testing your ability to collapse the uncertainty!
 
-Picking 2 out of 16 cards **out of random** and it's a match means a 1/15 chance and you collapse that to 1.
+Picking 2 out of 16 cards **at random** and it's a match means a $\frac{1}{15}$ chance and you collapse that to $1$.
 
 ---
 
@@ -493,7 +495,7 @@ Hey, what was it?
 
 ---
 
-So now the possibility of 1 exploded back to 1/4.
+So now the possibility of $1$ exploded back to $\frac{1}{4}$.
 
 Forgetting recreates surprise!
 
@@ -559,7 +561,7 @@ And in general,
 
 ---
 
-Because knowledge doesn't directly equate behavioral patterns, it simply passes information to the next "layer" to decides.
+Because knowledge doesn't directly equate behavioral patterns, it simply passes information to the next "layer" to decide.
 
 ---
 
@@ -699,7 +701,7 @@ Because those who can generalize years of experience will make prediction errors
 
 ---
 
-## Take you time.
+## Take your time.
 
 ---
 
