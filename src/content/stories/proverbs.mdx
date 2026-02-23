@@ -8,10 +8,7 @@ total: 147
 ---
 
 import { ChessBoard, TicTacToe } from "@/components/stories/proverbs/boardgame";
-import {
-  GuessBox,
-  StatChart
-} from "@/components/stories/proverbs/guess-box.tsx";
+import { GuessBox, StatChart } from "@/components/stories/proverbs/guess-box.tsx";
 
 # Proverbs Are Lossy Compression
 
@@ -170,10 +167,7 @@ Isn't it strange? If there are two sides to the coin every time, does it even ma
 
 In a tic-tac-toe game, you can easily predict your opponent's best move that responds to your move, that responds to your opponent's move, and so on.
 
-<TicTacToe
-  client:visible
-  state={["X", "O", "X", "O", "X", null, "X", null, "O"]}
-/>
+<TicTacToe client:visible state={["X", "O", "X", "O", "X", null, "X", null, "O"]} />
 
 ---
 
@@ -181,19 +175,13 @@ The best move is very obvious, there is no proverb like:
 
 > Block your opponent's move when you see two in a row.
 
-<TicTacToe
-  client:visible
-  state={["X", "O", "X", "O", "X", null, "X", null, "O"]}
-/>
+<TicTacToe client:visible state={["X", "O", "X", "O", "X", null, "X", null, "O"]} />
 
 ---
 
 Chess, on the other hand, is far more complex. Just two moves ahead, the combinations already explode exponentially.
 
-<ChessBoard
-  client:visible
-  fen={"rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2"}
-/>
+<ChessBoard client:visible fen={"rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2"} />
 
 ---
 
@@ -378,8 +366,8 @@ It's not time either.
 Why is it an integral--a sum--of the Lagrangian over time?
 
 <span class="text-xs">
-  (at least in Lagrangian mechanics, there are a few different _religions_ of
-  physics that have different definitions of action)
+  (at least in Lagrangian mechanics, there are a few different _religions_ of physics that have
+  different definitions of action)
 </span>
 
 ---
@@ -491,8 +479,7 @@ import Refract1 from "@/assets/refract-1.png";
 <Image src={Refract1} alt="Marching band" class="w-4/5 mx-auto" />
 
 <span class="text-xs">
-  (Yeah, typical rookie mistake to go in a mud. They are just not very good at
-  marching)
+  (Yeah, typical rookie mistake to go in a mud. They are just not very good at marching)
 </span>
 
 ---
@@ -500,8 +487,8 @@ import Refract1 from "@/assets/refract-1.png";
 The band practices countless times. It doesn't have to care about the time, so it simply tries marching at every possible angle.
 
 <span class="text-xs">
-  In reality, this is not what superposition means, but this is the limit of
-  analogy too, so just go with it.
+  In reality, this is not what superposition means, but this is the limit of analogy too, so just go
+  with it.
 </span>
 
 Intuitively, it tries to go in a straight line.

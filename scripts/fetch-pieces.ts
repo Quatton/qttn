@@ -11,9 +11,7 @@ async function fetchSvgs() {
 
   const fetchPromises = pieces.flatMap((piece) =>
     colors.map(async (color) => {
-      const key = `${
-        color === "white" ? piece.toUpperCase() : piece.toLowerCase()
-      }-${color}`;
+      const key = `${color === "white" ? piece.toUpperCase() : piece.toLowerCase()}-${color}`;
       const url = `${baseUrl}${key}.svg`;
       try {
         const response = await fetch(url);
@@ -26,7 +24,7 @@ async function fetchSvgs() {
         console.error(error);
         return null;
       }
-    })
+    }),
   );
 
   const results = await Promise.allSettled(fetchPromises);

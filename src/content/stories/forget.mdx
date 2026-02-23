@@ -7,7 +7,7 @@ total: 0
 
 # The Cost of Forgetting
 
-Why is it hard to forget something? Why is it easier to hold on to the weight than to let it go?
+Why is it hard to forget something? Why is it easier to hold on to the weight than to let go?
 
 ---
 
@@ -19,7 +19,7 @@ Honestly, if we are so smart, why don't we just _forget_ about all these things?
 
 We learned in science that physical pain makes us avoid certain things that are harmful to us.
 
-But emotional pain is only as harmful as we imagine it to be. So why do we make our lives harder.
+But emotional pain is only as harmful as we imagine it to be. So why do we make our lives harder?
 
 ---
 
@@ -31,21 +31,256 @@ Just cheer up?
 
 It just... doesn't make any sense.
 
-Why can't we just **not** suffer from negative emotions?
+Why can't we just not suffer from negative emotions?
+
+---
+
+Why can't we only remember what we want to remember?
 
 ---
 
 I'll do you one better.
 
-Why are negative emotions... "negative"?
+---
+
+## What is remember?
 
 ---
 
-## Predictive Coding and "Surprise"
+So what is remembering?
+
+---
+
+In a strict sense, can we say remembering is the ability to recall a piece of information after having experience it once?
+
+---
+
+And now we made it even more complicated... what is **experience**, and what is **recall**?
+
+But first, what is **information**?
+
+---
+
+Given two coins, each coin has two sides: Head (H) or Tail (T).
+
+---
+
+The coins were tossed up 30 cm, dropping on the table with volume 80dB, spinning around for 8.8 seconds before lying flat on the table, 3 and 5 cm away from the contact point.
+
+What is the result of this coin toss?
+
+---
+
+We don't know lol.
+
+---
+
+Sorry to disappoint, but this example is to demonstrate what happens when you don't know something.
+
+There is an **uncertainty**.
+
+---
+
+We have a measurement of **how much we don't know** about the system.
+
+This is called **entropy**. It describes how messy the system is.
+
+---
+
+I could give it away to you and say that information function is defined as
+
+$$I = -\log_2 P(x)$$
+
+where $P$ is the probability function that describes how likely an event would happen.
+
+---
+
+But then... why log? why base 2? why negative?
+
+Sure, so this function is merely a "model" of what it means to be information.
+
+---
+
+First, information describes how much it collapses the probability by knowing the event **certainly** happened.
+
+Certainty means it has a probability of 1.
+
+---
+
+It used to be uncertain. Now it's certain. So you must **know** something. You collapsed the probability!
+
+---
+
+The result of a coin toss is $T$ out of $H, T$? Then we collapsed the probability from 1/2 to 1.
+
+This is the ratio of 2.
+
+---
+
+The result of two coin tosses was $TH$ out of four possibilities HH, HT, TH, TT? Then we collapsed the probability from 1/4 to 1.
+
+This is the ratio of 4.
+
+---
+
+Next, because our computers process information in **bits**--0s and 1s--we want the unit of information when we confirmed 2 uniform possibilities **maybe 0 or 1** to be **1 bit** of information.
+
+---
+
+Knowing one more bit of information means we collapsed an event rarer by half the probability.
+
+This is why we use logarithmic function, whose additions equal the result when inputs are multiplied.
+
+---
+
+This gives
+
+$$I = \log_2 1/P(x)$$
+
+which is essentially
+
+$$I = -\log_2 P(x)$$
+
+---
+
+The math is there for people who want to see math so you can forget it now :) poof.
+
+The only thing you need to know is that **information means the capability to collapse uncertainty**.
+
+---
+
+Entropy is the measurement of uncertainty. If an event with a probability p(x) happens, you would know -log(p(x)) bits of information. Summing that up for all events, weighed by how rare each event is, you have entropy.
+
+---
+
+For a coin toss, information you gain is 2 bits for 4 possibilities each with a probability of 1/4.
+
+So the entropy of this system is 2 bits! To collapse the entropy to be 0, you would need to know exactly 2 bits. The math checks out!
+
+---
+
+Cool! but what does it mean to **know** that information? Where do you store it?
+
+---
+
+## You don't store information.
+
+---
+
+Do you know what you ate yesterday?
+
+---
+
+Oh?
+
+---
+
+Hmm...
+
+---
+
+How do you know that?
+
+---
+
+Let's throw you a more abstract question.
+
+---
+
+Do you know an AND gate?
+
+---
+
+An AND gate receives two inputs of 0 or 1 and determines "are both inputs 1?"
+
+---
+
+0, 0 -> are both inputs 1? No! so it returns 0.
+
+---
+
+0, 1 -> are both inputs 1? No! so it returns 0.
+
+---
+
+1, 1 -> are both inputs 1? Yes! so it returns 1.
+
+---
+
+Ok you kind of understand the idea.
+
+How would you describe the rule?
+
+Recall your first class on Logics...
+
+---
+
+Yes! with a truth table.
+
+---
+
+```
+0 0 0
+0 1 0
+1 0 1
+1 1 1
+```
+
+---
+
+Nice, so you _store_ this cheat sheet and bring it to the exam.
+
+Knowing an AND gate, only costs you 12 bits... right?
+
+---
+
+> 000010100111...?
+
+> What is this gibberish lmao
+
+Ohh to read a cheatsheet, you need to know how to read it!
+
+---
+
+Here's how to read this cheat sheet:
+
+1. Take the first number-
+
+> what is first
+
+---
+
+1. To understand first, first is-
+
+> What is understand? How do I know I'm reading in the right order? Wait, what are these texts? Do I understand English?
+
+---
+
+This is an example of **Lewis Carroll Paradox** or the infinite regression of logical foundation. For every **rule-processing device**, there must be a foundation that exists beyond that rule.
+
+---
+
+Therefore, we can hypothesize that you must already have a foundation of how you **process your sensory input**.
+
+(The extent to how true this is, is really hard to prove rigorously. We will present this as "why does it make sense to say this is true" not "this is the absolute truth")
+
+---
+
+Well, yeah obviously, otherwise what you see, hear, smell, feel, or taste would mean nothing to you.
+
+But the paradox was important to bring up too! Right?
+
+---
+
+Please just let me say I didn't yap random facts for nothing...
+
+---
+
+### Predictive Coding and "Surprise"
 
 <span class="text-sm">
-  I'm not gonna cite any paper here so just google "predictive coding" if you
-  want scientific references lol
+  I'm not gonna cite any paper so we'll just have one wikipedia page here: [Predictive
+  coding](https://en.wikipedia.org/wiki/Predictive_coding)
 </span>
 
 ---
@@ -54,10 +289,442 @@ In neural networks, we have this concept of "backpropagation".
 
 ---
 
-To keep you on the same page, neural networks are a type of machine learning model that are inspired by the structure and function of the human brain.
+To keep you on the same page, neural networks are a type of machine learning model, inspired by the structure and function of the human brain.
 
-<span class="text-sm">
-  And because we don't really understand how the brain works, a more accurate
-  description is that neural networks are a type of machine learning model that
-  are inspired by our best guess of how the human brain works
-</span>
+---
+
+And... because we don't fully understand how the brain works, a more accurate description is that they are inspired by **our best guess** of how the human brains work, then generalized it to make it versatile and computationally tractable.
+
+---
+
+A **node** in neural networks consists of a function that takes an **input**, and yields an **output**.
+
+---
+
+Another node then takes that output as its input, performs another computation, and sends it down the line.
+
+---
+
+Eventually, it reaches an observable layer or the result of the prediction.
+
+---
+
+For example, detecting a number 3 would be a series of nodes that ask questions such as: "Does it have a top curve?", "Does it have a bottom curve?", "Is it open on the side", so on and so forth.
+
+---
+
+But instead of hard-coding questions to answer to, we just say:
+
+> You are responsible for detecting features that will help your subordinates pick the right answers
+
+---
+
+So if I see my junior being confused between "3" and "8", my work is to measure the openness of the left side.
+
+---
+
+Your junior might be confused of "1" and "7", so your work is a length and angle detection.
+
+---
+
+Together we comprise the neural network. We don't assign ourselves with restricted sets of tasks; we see the problems at hand and ask what we can do.
+
+---
+
+> You said you were going to explain what backpropagation is
+
+Right, right. Please be patient!
+
+---
+
+Let's say we have a unit of a job: "predict what this number is: 9"
+
+The image is broken down into pixels, each layer detects a feature, sends it down the line, and eventually we have...
+
+---
+
+> 8
+
+---
+
+> Oh that's wrong.
+
+---
+
+How do you know who's responsible for this????
+
+Someone has to be responsible for this.
+
+---
+
+First we would have a measurement of how far off our prediction is.
+
+This is called a **loss** function.
+
+---
+
+Hehe. Again, let's assume my audience knows calculus.
+
+Plugging in our goal, we can see the curve of what path we can take to minimize the loss.
+
+---
+
+It might not be zero. It might not be the absolute minimum. But we're finding the location along the loss curve where we can't optimize further.
+
+---
+
+We choose the next goal. Then, every department asks themselves
+
+> How would I change my contribution in order to reach that goal.
+
+---
+
+We then send this OKR (objective key results) back to upper and upper management. Readjust our system, and then move on to the next job.
+
+This is backpropagation!
+
+---
+
+In neurology, we can't say this is the same with 100% certainty, because the brain is literally studying itself.
+
+---
+
+But here's the thing. Scientists claimed that human brains are unlikely to behave that way.
+
+We don't do back-propagation in a traditional sense.
+
+---
+
+Backpropagation means there is a department governing the switch: "forward! backward! forward! backward!". But there is no evidence that our brain pauses to reflect, then predict, then reflect again.
+
+---
+
+And, again, your brain doesn't have an arbitrary loss function to compute error, and it cannot compute the derivative chain rules. The brain signals are all-or-nothing and not precise floating points.
+
+...at least by evidence.
+
+---
+
+In reality, my boss doesn't wait until we see the final user interface to say that there is a bug in the server implementation.
+
+---
+
+We have CI/CD. We have unit tests. All "performance reviews" are done continuously, in a tighter loop.
+
+---
+
+> Did I accidentally expose secrets into the version control history?
+
+Of course, I'm going to screw this up. And my boss doesn't have to wait and see the final result.
+
+---
+
+This is called "predictive coding"; there is no hard boundary or switch between predicting and learning. The signals are asynchronous and local. Each layer predicts what the next layer is going to do, and then readjusts as it predicts.
+
+---
+
+As a matter of fact, in recent years, [scientists have tried to remodel deep learning with this concept](https://arxiv.org/abs/2202.09467).
+
+---
+
+We learn as we predict. We learn as we make errors.
+
+And that's when we remember not to make mistakes again.
+
+---
+
+### Your memory is your best guess of the reality
+
+---
+
+From previous sections, we have our hypotheses that
+
+1. Information is the ability to collapse the uncertainty.
+2. There is a foundational rule processing device that makes sense of the reality.
+3. It's a complex series of minimizing sensory surprises by adjusting the rules.
+
+---
+
+So grounding on our foundations, "memory" can't really physically exist, the same way information doesn't physically exist.
+
+---
+
+Knowing or not knowing the result of a coin toss, it doesn't affect the actual coin. It'd not simply goes back to spinning just because you didn't know it.
+
+---
+
+It can only be your own ability to collapse the countless possibilities of a **query**.
+
+Memory is your learned set of rules!
+
+---
+
+Of all the countless possibilities, there is a coffee mug on the table.
+
+You predict: "there is still going to be a coffee mug on the table if I reach my hand out for it"
+
+---
+
+You grab the coffee mug. Your tactile sensory confirmed your prediction was accurate.
+
+---
+
+How about a memory test game?
+
+---
+
+Do you know that pairing game where the images are flipped down and you have to pick two cards to match them?
+
+---
+
+That is also testing your ability to collapse the uncertainty!
+
+Picking 2 out of 16 cards **out of random** and it's a match means a 1/15 chance and you collapse that to 1.
+
+---
+
+Okay! So before this I told you the result of two coin tosses.
+
+What was it?
+
+---
+
+Hey, what was it?
+
+---
+
+So now the possibility of 1 exploded back to 1/4.
+
+Forgetting recreates surprise!
+
+---
+
+### Humans subconsciously don't like surprises.
+
+---
+
+Some people say what? speak for yourself! I do like surprises.
+
+---
+
+But that's just because linguistically surprises have more positive nuances than negatives.
+
+Doctors don't tell you "surprise! you have 3 months to live." That'd be cruel.
+
+---
+
+You just like the positive elements of surprise which usually outweigh the unexpectedness of it.
+
+---
+
+You like change of pace and refreshment because it gets you out of stressful situations. You didn't like or hate that changing part. Or more opinionatedly, I believe you can't really have preferences in the **change** component at all.
+
+---
+
+Subversion is still a big enemy to something that makes prediction all the time.
+
+---
+
+Another example is when you have the wildest dream ever. Your sensory perception is completely blacked out, because you can't feel the ground while you're running. Your _memory_ is wacky because you're trying to make sense of the reality.
+
+---
+
+That's why you always have the thought of "yeah of course that should happen. it happened the last time" but you wake up completely confused because that shouldn't have happened.
+
+---
+
+The changes of neural activity in your brain are subconsciously minimizing the error of your prediction. Good or bad, it makes our expectations match reality.
+
+---
+
+## The actual cost of forgetting
+
+---
+
+We've spent a long time discussing of what it means to remember: to adjust your rule processing device and make sense of the reality.
+
+---
+
+From the dream example, getting facts wrong is just a pretty goofy and funny moment. It doesn't hurt you?
+
+---
+
+Well, it does. Dream has to also keep you asleep and not too excited in order to properly get you on maintenance mode.
+
+---
+
+And in general,
+
+### Forgetting pointlessly is even more dangerous.
+
+---
+
+Because knowledge doesn't directly equate behavioral patterns, it simply passes information to the next "layer" to decides.
+
+---
+
+Suppose there is a mushroom which can be poisonous or not. The probability of eating this species of mushroom and inflicting negative damage to your body is 50%.
+
+---
+
+Would you eat it?
+
+---
+
+Your body would want to actively avoid the damage. It doesn't see that dying with a coin toss probability is a good rate.
+
+---
+
+However, good news (to some of you) the mushroom is brown!
+
+Suppose you know, brown mushrooms are only 10% poisonous!
+
+---
+
+Would you still eat it?
+
+---
+
+Hey, what if it gives you jump boost for 10 minutes?
+
+Would you eat it?
+
+---
+
+As you can see, knowledge doesn't directly control behavior. If you saw my proverbs book, you would still judge a book by its cover, and say "147 f\*\*king pages, I'm not gonna read it"
+
+---
+
+Some say, 10% is not worth the risk, regardless of whatever positive effects you're going to throw at me.
+
+---
+
+According to your experience, you might consider the risk of dying to be $\infty$ so as long as the probability is non-zero, there is no way you're eating it.
+
+---
+
+To evaluate if an event is beneficial to you or not, your brain would listen to the sensory and chemical signals release by your body.
+
+The "two" systems work in tandem.
+
+(Saying two is very oversimplification but eh, anyway)
+
+---
+
+You can trace your chain of thoughts, but not why you had that first thought in the first place. It was sent from your subconscious, knowledge layer.
+
+---
+
+So... according to this model, we can't really _actively_ forgetting things. It would mean carelessly maximizing your prediction error, and lowering your chance of surviving.
+
+---
+
+(Again, not saying that this is true. It's just hypothesis built on top of another hypothesis that is _likely_ true... Half of science is like that anyway, and the other half is empirically proving or disproving it.
+
+The same way when we believed our brain should be about to "back-propagate", we did correctly predict different phenomena even though there are new evidences disproving back-propagation in human brain.
+
+So just have fun hehe.)
+
+---
+
+Knowledge in the past is adjusted through new _surviving_ events. If it means you will have better chances of surviving through this rewritten knowledge, then it would be happy to forget or hallucinate new pieces of information.
+
+---
+
+### What does it mean when we "want" to forget things?
+
+---
+
+The _system glitch_ is that when you're put in a high stress environment: a toxic relationship, overwhelming workload, or failed social interaction, you can over-prioritize getting a behavior _fixed_.
+
+---
+
+You re-predicted the memory over and over to prioritize fixing your behavior. Your body then reacts to the replayed memory. So your conscious behavior can be readjusted.
+
+---
+
+But again, it's your conscious behavior. You know you're replaying this memory just to inflict pain. What is this non-sense! Some part of you is gonna say
+
+> I want to forget it...
+
+---
+
+Forgetting here doesn't mean erasing your memory.
+
+It doesn't mean overriding it with a new knowledge.
+
+Your brain doesn't allow invasive rewrites like that.
+
+---
+
+It's to just be indifferent to the thoughts, and stop your overcorrection.
+
+---
+
+Consciously calming your nerves down that you are safe.
+
+---
+
+It's not easy because that's what you predicted, and maximizing error is not the goal.
+
+It's not easy because it saves your lives from danger, and maximizing the risk of not surviving is not the goal.
+
+---
+
+So the life hack (kinda?) is to replay those memory while you're safe to say that "hey that rule is not important anymore. Now it's even causing you emotional pain so let's lose it alright?"
+
+---
+
+### Can we forget faster?
+
+---
+
+So until now, we have found one other thing:
+
+Forgetting is just relearning that a rule is wrong. Emotional pain is to synthetically create a comparison that "not knowing this, is way better"
+
+---
+
+Asking "can we forget faster?" is the same as "can we learn faster?" or at least as hard as.
+
+---
+
+The same way you can't learn faster, it's to stop you from generalizing the rule from too little amount of data.
+
+---
+
+Saying just cheer up is basically your Chinese grandmother telling you "here physiology textbook. here money. why u no doctor yet"
+
+Because those who can generalize years of experience will make prediction errors, yeah just like her.
+
+---
+
+## Take you time.
+
+---
+
+It's the only way to revert your prediction of danger.
+
+---
+
+Go create that false danger and subvert that expectations by saying you're safe.
+
+---
+
+At one point, you will stop reacting to it. That's when we forget.
+
+---
+
+And who knows, that knowledge might be rewritten entirely when you don't need it to predict the danger anymore.
+
+---
+
+Sometimes, an event is only worth "a result of coin toss". It's just one bit of information that doesn't make your life easier.
+
+---
+
+Remembering or forgetting it doesn't _inject back_ the uncertainty into the coin.
+
+---
+
+The world revolves around you, but also around something else when you're not there.
