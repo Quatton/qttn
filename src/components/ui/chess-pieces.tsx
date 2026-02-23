@@ -1,16 +1,4 @@
-export type PieceSymbol =
-  | "K"
-  | "Q"
-  | "R"
-  | "B"
-  | "N"
-  | "P"
-  | "k"
-  | "q"
-  | "r"
-  | "b"
-  | "n"
-  | "p";
+export type PieceSymbol = "K" | "Q" | "R" | "B" | "N" | "P" | "k" | "q" | "r" | "b" | "n" | "p";
 
 interface Props {
   piece: PieceSymbol;
@@ -18,11 +6,7 @@ interface Props {
   className?: string;
 }
 
-export const ChessPiece: React.FC<Props> = ({
-  piece,
-  size = 45,
-  className = ""
-}) => {
+export const ChessPiece: React.FC<Props> = ({ piece, size = 45, className = "" }) => {
   return (
     <svg
       viewBox="0 0 45 45"
@@ -63,17 +47,9 @@ export const PIECE_MAP: Record<PieceSymbol, React.ReactNode> = {
         stroke="#000000"
       />
       <path d="M 11.5,30 C 17,27 27,27 32.5,30" fill="none" stroke="#000000" />
-      <path
-        d="M 11.5,33.5 C 17,30.5 27,30.5 32.5,33.5"
-        fill="none"
-        stroke="#000000"
-      />
+      <path d="M 11.5,33.5 C 17,30.5 27,30.5 32.5,33.5" fill="none" stroke="#000000" />
       <path d="M 11.5,37 C 17,34 27,34 32.5,37" fill="none" stroke="#000000" />
-      <path
-        d="M 25 8 A 2.5 2.5 0 1 1 20,8 A 2.5 2.5 0 1 1 25 8 z"
-        fill="none"
-        stroke="#000000"
-      />
+      <path d="M 25 8 A 2.5 2.5 0 1 1 20,8 A 2.5 2.5 0 1 1 25 8 z" fill="none" stroke="#000000" />
     </g>
   ),
 
@@ -90,26 +66,11 @@ export const PIECE_MAP: Record<PieceSymbol, React.ReactNode> = {
       strokeDasharray="none"
       strokeOpacity={1}
     >
-      <path
-        d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z"
-        transform="translate(-1,-1)"
-      />
-      <path
-        d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z"
-        transform="translate(15.5,-5.5)"
-      />
-      <path
-        d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z"
-        transform="translate(32,-1)"
-      />
-      <path
-        d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z"
-        transform="translate(7,-4.5)"
-      />
-      <path
-        d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z"
-        transform="translate(24,-4)"
-      />
+      <path d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z" transform="translate(-1,-1)" />
+      <path d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z" transform="translate(15.5,-5.5)" />
+      <path d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z" transform="translate(32,-1)" />
+      <path d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z" transform="translate(7,-4.5)" />
+      <path d="M 9 13 A 2 2 0 1 1 5,13 A 2 2 0 1 1 9 13 z" transform="translate(24,-4)" />
       <path
         d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 31,11 L 25.5,24.5 L 22.5,9.5 L 19.5,24.5 L 14,10.5 L 14,25 L 7,14 L 9,26 z"
         strokeLinecap="butt"
@@ -137,27 +98,15 @@ export const PIECE_MAP: Record<PieceSymbol, React.ReactNode> = {
       strokeOpacity={1}
     >
       <path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z" strokeLinecap="butt" />
-      <path
-        d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z"
-        strokeLinecap="butt"
-      />
+      <path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z" strokeLinecap="butt" />
       <path
         d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14"
         strokeLinecap="butt"
       />
       <path d="M 34,14 L 31,17 L 14,17 L 11,14" />
-      <path
-        d="M 31,17 L 31,29.5 L 14,29.5 L 14,17"
-        strokeLinecap="butt"
-        strokeLinejoin="miter"
-      />
+      <path d="M 31,17 L 31,29.5 L 14,29.5 L 14,17" strokeLinecap="butt" strokeLinejoin="miter" />
       <path d="M 31,29.5 L 32.5,32 L 12.5,32 L 14,29.5" />
-      <path
-        d="M 11,14 L 34,14"
-        fill="none"
-        stroke="#000000"
-        strokeLinejoin="miter"
-      />
+      <path d="M 11,14 L 34,14" fill="none" stroke="#000000" strokeLinejoin="miter" />
     </g>
   ),
 
@@ -314,24 +263,11 @@ export const PIECE_MAP: Record<PieceSymbol, React.ReactNode> = {
         d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 10.5,36 10.5,36 C 9,37.5 11,38.5 11,38.5 C 17.5,39.5 27.5,39.5 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z"
         strokeLinecap="butt"
       />
-      <path
-        d="M 11,38.5 A 35,35 1 0 0 34,38.5"
-        fill="none"
-        stroke="#000000"
-        strokeLinecap="butt"
-      />
+      <path d="M 11,38.5 A 35,35 1 0 0 34,38.5" fill="none" stroke="#000000" strokeLinecap="butt" />
       <path d="M 11,29 A 35,35 1 0 1 34,29" fill="none" stroke="#ffffff" />
       <path d="M 12.5,31.5 L 32.5,31.5" fill="none" stroke="#ffffff" />
-      <path
-        d="M 11.5,34.5 A 35,35 1 0 0 33.5,34.5"
-        fill="none"
-        stroke="#ffffff"
-      />
-      <path
-        d="M 10.5,37.5 A 35,35 1 0 0 34.5,37.5"
-        fill="none"
-        stroke="#ffffff"
-      />
+      <path d="M 11.5,34.5 A 35,35 1 0 0 33.5,34.5" fill="none" stroke="#ffffff" />
+      <path d="M 10.5,37.5 A 35,35 1 0 0 34.5,37.5" fill="none" stroke="#ffffff" />
     </g>
   ),
 
@@ -349,23 +285,14 @@ export const PIECE_MAP: Record<PieceSymbol, React.ReactNode> = {
       strokeOpacity={1}
     >
       <path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z" strokeLinecap="butt" />
-      <path
-        d="M 12.5,32 L 14,29.5 L 31,29.5 L 32.5,32 L 12.5,32 z"
-        strokeLinecap="butt"
-      />
-      <path
-        d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z"
-        strokeLinecap="butt"
-      />
+      <path d="M 12.5,32 L 14,29.5 L 31,29.5 L 32.5,32 L 12.5,32 z" strokeLinecap="butt" />
+      <path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z" strokeLinecap="butt" />
       <path
         d="M 14,29.5 L 14,16.5 L 31,16.5 L 31,29.5 L 14,29.5 z"
         strokeLinecap="butt"
         strokeLinejoin="miter"
       />
-      <path
-        d="M 14,16.5 L 11,14 L 34,14 L 31,16.5 L 14,16.5 z"
-        strokeLinecap="butt"
-      />
+      <path d="M 14,16.5 L 11,14 L 34,14 L 31,16.5 L 14,16.5 z" strokeLinecap="butt" />
       <path
         d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 L 11,14 z"
         strokeLinecap="butt"
@@ -493,5 +420,5 @@ export const PIECE_MAP: Record<PieceSymbol, React.ReactNode> = {
         strokeOpacity={1}
       />
     </g>
-  )
+  ),
 };
