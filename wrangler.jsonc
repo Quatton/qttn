@@ -5,19 +5,20 @@
   "compatibility_date": "2026-02-15",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
-    "directory": "./dist",
+    "binding": "ASSETS",
+    "directory": "./dist"
   },
   "observability": {
-    "enabled": true,
+    "enabled": true
   },
   "routes": [
     {
       "pattern": "qttn.dev",
-      "custom_domain": true,
+      "custom_domain": true
     },
     {
       "pattern": "www.qttn.dev",
-      "custom_domain": true,
-    },
-  ],
+      "custom_domain": true
+    }
+  ]
 }
