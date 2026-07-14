@@ -1,11 +1,10 @@
 // @ts-check
 import cloudflare from "@astrojs/cloudflare";
+import { satteri } from "@astrojs/markdown-satteri";
 import mdx from "@astrojs/mdx";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, fontProviders } from "astro/config";
-import rehypeKatex from "rehype-katex";
-import remarkMath from "remark-math";
-import { remarkStoryPages } from "./src/lib/remark/story-pages.mjs";
+import { satteriStoryPages } from "./src/lib/satteri/story-pages.ts";
 
 import react from "@astrojs/react";
 
@@ -20,8 +19,20 @@ export default defineConfig({
     },
   },
   markdown: {
+    processor: satteri({
+      features: {
+        math: true,
+      },
+      mdastPlugins: [satteriStoryPages()],
+    }),
     syntaxHighlight: {
       excludeLangs: ["math"],
+    },
+  },
+  image: {
+    endpoint: {
+      route: "/_image",
+      entrypoint: "@astrojs/cloudflare/image-endpoint",
     },
   },
   adapter: cloudflare(),
@@ -47,11 +58,5 @@ export default defineConfig({
       provider: fontProviders.fontsource(),
     },
   ],
-  integrations: [
-    mdx({
-      remarkPlugins: [remarkMath, remarkStoryPages],
-      rehypePlugins: [rehypeKatex],
-    }),
-    react(),
-  ],
+  integrations: [mdx(), react()],
 });
