@@ -16,7 +16,7 @@
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.2.3",
         "@xstate/react": "^6.1.0",
-        "@xstate/store-react": "^1.0.1",
+        "@xstate/store-react": "^2.0.0",
         "astro": "7.0.9",
         "drizzle-orm": "^0.45.2",
         "react": "^19.2.7",
@@ -619,9 +619,9 @@
 
     "@xstate/react": ["@xstate/react@6.1.0", "", { "dependencies": { "use-isomorphic-layout-effect": "^1.1.2", "use-sync-external-store": "^1.2.0" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "xstate": "^5.28.0" }, "optionalPeers": ["xstate"] }, "sha512-ep9F0jGTI63B/jE8GHdMpUqtuz7yRebNaKv8EMUaiSi29NOglywc2X2YSOV/ygbIK+LtmgZ0q9anoEA2iBSEOw=="],
 
-    "@xstate/store": ["@xstate/store@3.15.0", "", { "peerDependencies": { "react": "^18.2.0 || ^19.0.0", "solid-js": "^1.7.6" }, "optionalPeers": ["react", "solid-js"] }, "sha512-1V4/5D55zvJz3inEbAH+pqrAy2xhb2d8OKC1fZcBwWmr51VpxTOCNgf9ma4fa/seUfpQPjRf9wxBSyfcTKtUbQ=="],
+    "@xstate/store": ["@xstate/store@4.2.1", "", {}, "sha512-dX7g9bYFOK/YvyFJVCsdHk3o/g1eC+eJcX8mHPWmitAXH6O58xSk1V91lUj67/cn27c2+uMKl98N7nRz+IyHoA=="],
 
-    "@xstate/store-react": ["@xstate/store-react@1.0.1", "", { "dependencies": { "@xstate/store": "^3.15.0" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-J/pShjtAXYNZDLVGdx1W0OSH8kon1/pFjaQYpXEJpqsG4jAdptO0YjguqAIHK+3UvMSBf5HYlO+gMS0rRhkz8A=="],
+    "@xstate/store-react": ["@xstate/store-react@2.0.0", "", { "dependencies": { "@xstate/store": "^4.0.0" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-i8rXkUHfZqHUijgA/IORXDESAuHwO939jHIsEtf3nitJkOy1AcZ73DMaAlLqH03nVS082PJkUZFRAu5nwb9Fxg=="],
 
     "acorn": ["acorn@8.16.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw=="],
 
