@@ -1,24 +1,23 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "qttn",
-  "main": "./dist/_worker.js/index.js",
   "compatibility_date": "2026-02-15",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "binding": "ASSETS",
-    "directory": "./dist"
+    "directory": "./dist",
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "routes": [
     {
       "pattern": "qttn.dev",
-      "custom_domain": true
+      "custom_domain": true,
     },
     {
       "pattern": "www.qttn.dev",
-      "custom_domain": true
-    }
-  ]
+      "custom_domain": true,
+    },
+  ],
 }

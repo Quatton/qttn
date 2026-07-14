@@ -113,7 +113,7 @@ const { Content, headings } = await render(post);
   const storyId = root?.getAttribute("data-story-id");
 
   (() => {
-    if (import.meta.env.ANALYTICS_DISABLED === "true") {
+    if (import.meta.env.PUBLIC_ANALYTICS_DISABLED === "true") {
       return;
     }
 

@@ -1,7 +1,7 @@
-import { db } from "@/db/drizzle";
+import { getDb } from "@/db/drizzle";
 import { storyViews } from "@/db/schema";
+import { z } from "astro/zod";
 import { defineAction } from "astro:actions";
-import { z } from "astro:schema";
 
 export const server = {
   analytics: defineAction({
@@ -10,7 +10,7 @@ export const server = {
       utmSource: z.string().trim().min(1).max(128).optional(),
     }),
     handler: async ({ storyId, utmSource }, context) => {
-      if (import.meta.env.ANALYTICS_DISABLED === "true") {
+      if (import.meta.env.PUBLIC_ANALYTICS_DISABLED === "true") {
         return { ok: true };
       }
 
@@ -18,6 +18,7 @@ export const server = {
       const source = utmSource ?? "direct";
       const viewDate = new Date().toISOString().slice(0, 10);
 
+      const db = getDb();
       await db
         .insert(storyViews)
         .values({
