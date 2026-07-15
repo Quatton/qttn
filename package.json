@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "deploy": "wrangler deploy",
-    "preview": "astro preview",
+    "preview": "wrangler dev",
     "astro": "astro",
     "format": "oxfmt .",
     "lint": "oxlint .",
