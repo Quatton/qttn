@@ -33,7 +33,7 @@ const isLast = Astro.props.isLast || false;
       </div>
 
       <!-- bookmark copy the current page URL to clipboard (top left) -->
-      <BookmarkButton page={page} client:load />
+      <BookmarkButton page={page} client:only="react" />
     </div>
     <slot />
   </div>

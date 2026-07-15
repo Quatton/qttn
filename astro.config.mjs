@@ -4,7 +4,10 @@ import { satteri } from "@astrojs/markdown-satteri";
 import mdx from "@astrojs/mdx";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, fontProviders } from "astro/config";
-import { satteriStoryPages } from "./src/lib/satteri/story-pages.ts";
+import {
+  satteriStoryPagesFootnotesHast,
+  satteriStoryPagesMdast,
+} from "./src/lib/satteri/story-pages.ts";
 
 import react from "@astrojs/react";
 
@@ -22,8 +25,12 @@ export default defineConfig({
     processor: satteri({
       features: {
         math: true,
+        gfm: {
+          footnotes: true,
+        },
       },
-      mdastPlugins: [satteriStoryPages()],
+      mdastPlugins: [satteriStoryPagesMdast()],
+      hastPlugins: [satteriStoryPagesFootnotesHast()],
     }),
     syntaxHighlight: {
       excludeLangs: ["math"],

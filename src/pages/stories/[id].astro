@@ -99,7 +99,7 @@ const { Content, headings } = await render(post);
       class="w-full max-w-md sm:aspect-9/16 flex-1 mx-auto flex flex-col min-h-0"
     >
       <div class="progress w-sm"></div>
-      <article class="carousel scroll min-h-0 flex-1">
+      <article class="story-content carousel scroll min-h-0 flex-1">
         <Content components={{ Story, Full, Image }} />
       </article>
     </div>
@@ -113,7 +113,8 @@ const { Content, headings } = await render(post);
   const storyId = root?.getAttribute("data-story-id");
 
   (() => {
-    if (import.meta.env.PUBLIC_ANALYTICS_DISABLED === "true") {
+    const isAnalyticsDisabled = import.meta.env.PUBLIC_ANALYTICS_DISABLED
+    if (["true", "1", "yes"].includes(isAnalyticsDisabled)) {
       return;
     }
 
@@ -130,6 +131,29 @@ const { Content, headings } = await render(post);
         .catch(() => {});
     }
   })();
+
+  const storyContent = document.querySelector(".story-content");
+
+  if (storyContent) {
+    const syncFootnoteVisibility = () => {
+      const hasActiveRef = Boolean(
+        storyContent.querySelector(
+          "[data-footnote-ref]:hover, [data-footnote-ref]:focus-visible"
+        )
+      );
+
+      storyContent.classList.toggle("is-footnote-active", hasActiveRef);
+    };
+
+    storyContent.addEventListener("pointerover", syncFootnoteVisibility);
+    storyContent.addEventListener("pointerout", () => {
+      requestAnimationFrame(syncFootnoteVisibility);
+    });
+    storyContent.addEventListener("focusin", syncFootnoteVisibility);
+    storyContent.addEventListener("focusout", () => {
+      requestAnimationFrame(syncFootnoteVisibility);
+    });
+  }
 </script>
 
 <style>
@@ -160,5 +184,35 @@ const { Content, headings } = await render(post);
     100% {
       transform: scaleX(1);
     }
+  }
+
+  .story-content {
+    position: relative;
+  }
+
+  :global(.story-content .footnotes) {
+    position: absolute;
+    right: 0;
+    bottom: 6rem;
+    left: 0;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(0.25rem);
+    transition:
+      opacity 150ms ease,
+      transform 150ms ease,
+      visibility 0s linear 150ms;
+  }
+
+  :global(.story-content:has([data-footnote-ref]:is(:hover, :focus-visible)) .footnotes),
+  :global(.story-content.is-footnote-active .footnotes) {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition-delay: 0s;
   }
 </style>
