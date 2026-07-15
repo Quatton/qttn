@@ -7,7 +7,6 @@ import { getCollection } from "astro:content";
 const posts = await getCollection("stories");
 
 const publishedPosts = posts.filter((post) => 
-import.meta.env.DEV ||
 !!post.data.publishedAt) as Array<
   (typeof posts)[number] & { data: { publishedAt: Date } }
 >;
