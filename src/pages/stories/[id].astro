@@ -113,7 +113,7 @@ const { Content, headings } = await render(post);
   const storyId = root?.getAttribute("data-story-id");
 
   (() => {
-    const isAnalyticsDisabled = import.meta.env.PUBLIC_ANALYTICS_DISABLED
+    const isAnalyticsDisabled = import.meta.env.PUBLIC_ANALYTICS_DISABLED;
     if (["true", "1", "yes"].includes(isAnalyticsDisabled)) {
       return;
     }
@@ -200,6 +200,7 @@ const { Content, headings } = await render(post);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
+    z-index: 30;
     transform: translateY(0.25rem);
     transition:
       opacity 150ms ease,
@@ -207,7 +208,41 @@ const { Content, headings } = await render(post);
       visibility 0s linear 150ms;
   }
 
-  :global(.story-content:has([data-footnote-ref]:is(:hover, :focus-visible)) .footnotes),
+  :global(.story-content .footnotes-list) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  :global(.story-content .footnotes-list > li) {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 0.35rem;
+    align-items: start;
+    margin: 0.35rem 0 0;
+  }
+
+  :global(.story-content .footnote-label) {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  :global(.story-content .footnote-body) {
+    min-width: 0;
+  }
+
+  :global(.story-content .footnote-body > :first-child) {
+    margin-top: 0;
+  }
+
+  :global(.story-content .footnote-body > :last-child) {
+    margin-bottom: 0;
+  }
+
+  :global(
+    .story-content:has([data-footnote-ref]:is(:hover, :focus-visible))
+      .footnotes
+  ),
   :global(.story-content.is-footnote-active .footnotes) {
     opacity: 1;
     visibility: visible;

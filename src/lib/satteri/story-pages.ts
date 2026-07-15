@@ -266,13 +266,13 @@ function buildPageFootnotesSection(
   pageNumber: string,
 ): Element | undefined {
   const section = clone(globalSection);
-  const ol = findFirstElement(section.children, "ol");
+  const list = findFirstElement(section.children, "ol");
 
-  if (!ol) return undefined;
+  if (!list) return undefined;
 
   const pageSuffix = `__page_${pageNumber}`;
 
-  const filteredOlChildren = ol.children.filter((child) => {
+  const filteredListChildren = list.children.filter((child) => {
     if (child.type === "text") return true;
     if (child.type !== "element") return false;
     if (child.tagName !== "li") return true;
@@ -281,15 +281,64 @@ function buildPageFootnotesSection(
     return id.endsWith(pageSuffix);
   });
 
-  const hasFootnotesForPage = filteredOlChildren.some(
+  const hasFootnotesForPage = filteredListChildren.some(
     (child) => child.type === "element" && child.tagName === "li",
   );
 
   if (!hasFootnotesForPage) return undefined;
 
-  ol.children = filteredOlChildren;
+  list.tagName = "ul";
+  list.properties = {
+    ...(list.properties ?? {}),
+    className: [...toClassList(list.properties?.className), "footnotes-list"],
+  };
+
+  list.children = filteredListChildren.map((child) => {
+    if (child.type !== "element" || child.tagName !== "li") return child;
+
+    const id = String(child.properties?.id ?? "");
+    const label = getFootnoteHandleFromId(id) ?? id;
+
+    child.properties = {
+      ...(child.properties ?? {}),
+      dataFootnoteLabel: label,
+    };
+
+    const bodyChildren = child.children;
+    child.children = [createFootnoteLabelNode(label), createFootnoteBodyNode(bodyChildren)];
+
+    return child;
+  });
 
   return section;
+}
+
+function createFootnoteLabelNode(label: string): Element {
+  return {
+    type: "element",
+    tagName: "span",
+    properties: {
+      className: ["footnote-label"],
+    },
+    children: [{ type: "text", value: label }],
+  };
+}
+
+function createFootnoteBodyNode(children: ElementContent[]): Element {
+  return {
+    type: "element",
+    tagName: "div",
+    properties: {
+      className: ["footnote-body"],
+    },
+    children,
+  };
+}
+
+function getFootnoteHandleFromId(id: string): string | undefined {
+  const match = /^user-content-fn-(.+?)(?:__page_\d+)?$/.exec(id);
+
+  return match?.[1];
 }
 
 function findFirstElement(
@@ -323,6 +372,13 @@ function hasClassName(value: unknown, className: string): boolean {
   if (Array.isArray(value)) return value.includes(className);
   if (typeof value === "string") return value.split(/\s+/).includes(className);
   return false;
+}
+
+function toClassList(value: unknown): string[] {
+  if (Array.isArray(value))
+    return value.filter((entry): entry is string => typeof entry === "string");
+  if (typeof value === "string") return value.split(/\s+/).filter(Boolean);
+  return [];
 }
 
 /* -------------------------------------------------------------------------- */
