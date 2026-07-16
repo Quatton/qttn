@@ -45,7 +45,9 @@ const isLast = Astro.props.isLast || false;
   if (location.hash) {
     const el = document.querySelector(location.hash);
     if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
+      el.scrollIntoView({
+        behavior: import.meta.env.DEV ? "instant" : "smooth"
+      });
     }
   }
 </script>
