@@ -131,29 +131,6 @@ const { Content, headings } = await render(post);
         .catch(() => {});
     }
   })();
-
-  const storyContent = document.querySelector(".story-content");
-
-  if (storyContent) {
-    const syncFootnoteVisibility = () => {
-      const hasActiveRef = Boolean(
-        storyContent.querySelector(
-          "[data-footnote-ref]:hover, [data-footnote-ref]:focus-visible"
-        )
-      );
-
-      storyContent.classList.toggle("is-footnote-active", hasActiveRef);
-    };
-
-    storyContent.addEventListener("pointerover", syncFootnoteVisibility);
-    storyContent.addEventListener("pointerout", () => {
-      requestAnimationFrame(syncFootnoteVisibility);
-    });
-    storyContent.addEventListener("focusin", syncFootnoteVisibility);
-    storyContent.addEventListener("focusout", () => {
-      requestAnimationFrame(syncFootnoteVisibility);
-    });
-  }
 </script>
 
 <style>
@@ -206,6 +183,16 @@ const { Content, headings } = await render(post);
       opacity 150ms ease,
       transform 150ms ease,
       visibility 0s linear 150ms;
+    background-color: color-mix(
+      in oklab,
+      var(--color-base-100) 78%,
+      transparent
+    );
+    border: 1px solid var(--color-base-300);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
   }
 
   :global(.story-content .footnotes-list) {
@@ -222,6 +209,24 @@ const { Content, headings } = await render(post);
     margin: 0.35rem 0 0;
   }
 
+  :global(.story-content iframe) {
+    position: relative;
+    z-index: 12;
+  }
+
+  :global(.story-content .footnote-backdrop) {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    display: none;
+    background: transparent;
+    pointer-events: auto;
+  }
+
+  :global(.story-content:has(.footnotes li:target) .footnote-backdrop) {
+    display: block;
+  }
+
   :global(.story-content .footnote-label) {
     font-weight: 600;
     white-space: nowrap;
@@ -229,6 +234,32 @@ const { Content, headings } = await render(post);
 
   :global(.story-content .footnote-body) {
     min-width: 0;
+    position: relative;
+    padding-right: 1.25rem;
+  }
+
+  :global(.story-content .footnote-dismiss) {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-grid;
+    place-items: center;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 9999px;
+    color: var(--color-base-content);
+    text-decoration: none;
+    opacity: 0.5;
+    line-height: 1;
+  }
+
+  :global(.story-content .footnote-dismiss:is(:hover, :focus-visible)) {
+    opacity: 1;
+    background-color: color-mix(
+      in oklab,
+      var(--color-base-content) 12%,
+      transparent
+    );
   }
 
   :global(.story-content .footnote-body > :first-child) {
@@ -240,11 +271,11 @@ const { Content, headings } = await render(post);
   }
 
   :global(
-    .story-content:has([data-footnote-ref]:is(:hover, :focus-visible))
+    .story-content:has([data-footnote-ref]:is(:hover, :focus, :focus-visible))
       .footnotes
   ),
-  :global(.story-content.is-footnote-active .footnotes) {
-    opacity: 1;
+  :global(.story-content:has(.footnotes li:target) .footnotes) {
+    opacity: 0.9;
     visibility: visible;
     pointer-events: auto;
     transform: translateY(0);
