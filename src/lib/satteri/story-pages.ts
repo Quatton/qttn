@@ -289,7 +289,7 @@ function buildPageFootnotesSection(
 
   list.tagName = "ul";
   list.properties = {
-    ...(list.properties ?? {}),
+    ...list.properties,
     className: [...toClassList(list.properties?.className), "footnotes-list"],
   };
 
@@ -300,7 +300,7 @@ function buildPageFootnotesSection(
     const label = getFootnoteHandleFromId(id) ?? id;
 
     child.properties = {
-      ...(child.properties ?? {}),
+      ...child.properties,
       dataFootnoteLabel: label,
     };
 
