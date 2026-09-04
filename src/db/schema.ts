@@ -1,4 +1,3 @@
-import { generateRandomString, type RandomReader } from "@oslojs/crypto/random";
 import type { InferSelectModel } from "drizzle-orm";
 import { relations, sql } from "drizzle-orm";
 import {
@@ -28,15 +27,17 @@ export const Words = sqliteTable("words", {
   is_phrase: integer("is_phrase", { mode: "boolean" }).notNull().default(false),
 });
 
-const random: RandomReader = {
-  read(bytes) {
-    crypto.getRandomValues(bytes);
-  },
-};
-
 const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-export const generateRandomId = () => generateRandomString(random, ALPHABET, 5);
+export const generateRandomId = () => {
+  let result = "";
+  const bytes = new Uint8Array(5);
+  crypto.getRandomValues(bytes);
+  for (let i = 0; i < bytes.length; i++) {
+    result += ALPHABET[bytes[i] % ALPHABET.length];
+  }
+  return result;
+};
 
 export const gameModes = ["easy", "hard"] as const;
 export type GameMode = (typeof gameModes)[number];
