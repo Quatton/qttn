@@ -1,4 +1,5 @@
 // @ts-check
+import reactCompiler from "@acusti/vite-plugin-react-compiler";
 import cloudflare from "@astrojs/cloudflare";
 import { satteri } from "@astrojs/markdown-satteri";
 import mdx from "@astrojs/mdx";
@@ -14,7 +15,7 @@ import react from "@astrojs/react";
 // https://astro.build/config
 export default defineConfig({
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), reactCompiler()],
     resolve: {
       alias: {
         "@": "/src",

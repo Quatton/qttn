@@ -2,7 +2,7 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
+  type ChartConfig
 } from "@/components/ui/charts";
 import { cn } from "@/lib/utils";
 import { createAtom, useAtom } from "@xstate/store-react";
@@ -27,7 +27,7 @@ const POSSIBLE_ANSWERS: [number, number][] = [
   [1, 1],
   [1, 2],
   [0, 2],
-  [0, 1],
+  [0, 1]
 ];
 
 const prevAnswerIndexAtom = createAtom(POSSIBLE_ANSWERS.length - 1);
@@ -58,51 +58,63 @@ type State =
 const STATE_FACTORY = {
   GUESSING: (answerKey: [number, number]): State => ({
     type: "GUESSING",
-    answerKey,
+    answerKey
   }),
-  CORRECT: (answered: [number, number], answerKey: [number, number]): State => ({
+  CORRECT: (
+    answered: [number, number],
+    answerKey: [number, number]
+  ): State => ({
     type: "CORRECT",
     answered,
-    answerKey,
+    answerKey
   }),
-  INCORRECT: (answered: [number, number], answerKey: [number, number]): State => ({
+  INCORRECT: (
+    answered: [number, number],
+    answerKey: [number, number]
+  ): State => ({
     type: "INCORRECT",
     answered,
-    answerKey,
-  }),
+    answerKey
+  })
 };
 
 const triesAtom = createAtom(0);
 const numberOfCorrectAtom = createAtom(0);
 const numberOfCorrectPerTriesAtom = createAtom<number[]>([]);
 export function GuessBox() {
-  const [state, setState] = useState<State>(() => STATE_FACTORY.GUESSING(sampleAnswerKey()));
+  const [state, setState] = useState<State>(() =>
+    STATE_FACTORY.GUESSING(sampleAnswerKey())
+  );
 
   const tries = useAtom(triesAtom);
   const numberOfCorrect = useAtom(numberOfCorrectAtom);
 
-  function setTries(newTries: number | ((prev: number) => number)) {
-    triesAtom.set((prev) => {
-      const nextTries = typeof newTries === "number" ? newTries : newTries(prev);
+  const setTries = useCallback(
+    (newTries: number | ((prev: number) => number)) => {
+      triesAtom.set((prev) => {
+        const nextTries =
+          typeof newTries === "number" ? newTries : newTries(prev);
 
-      if (state.type === "CORRECT") {
-        numberOfCorrectAtom.set((prev) => prev + 1);
-      }
-
-      numberOfCorrectPerTriesAtom.set((prev) => {
-        const next = [...prev];
-        if (nextTries >= next.length) {
-          next.push(prev[prev.length - 1] || 0);
-        }
         if (state.type === "CORRECT") {
-          next[nextTries] = (next[nextTries] || 0) + 1;
+          numberOfCorrectAtom.set((prev) => prev + 1);
         }
-        return next;
-      });
 
-      return nextTries;
-    });
-  }
+        numberOfCorrectPerTriesAtom.set((prev) => {
+          const next = [...prev];
+          if (nextTries >= next.length) {
+            next.push(prev[prev.length - 1] || 0);
+          }
+          if (state.type === "CORRECT") {
+            next[nextTries] = (next[nextTries] || 0) + 1;
+          }
+          return next;
+        });
+
+        return nextTries;
+      });
+    },
+    [state.type]
+  );
 
   const handleGuess = useCallback(
     (row: number, col: number) => {
@@ -124,7 +136,7 @@ export function GuessBox() {
         setState(STATE_FACTORY.INCORRECT(answered, answerKey));
       }
     },
-    [state],
+    [state, setState, setTries]
   );
 
   return (
@@ -133,14 +145,16 @@ export function GuessBox() {
         {Array.from({ length: GRID_SIZE }).map((_, row) =>
           Array.from({ length: GRID_SIZE }).map((_, col) => {
             const isAnswered =
-              state.type !== "GUESSING" && state.answered[0] === row && state.answered[1] === col;
+              state.type !== "GUESSING" &&
+              state.answered[0] === row &&
+              state.answered[1] === col;
             return (
               <button
                 key={`${row}-${col}`}
                 className={cn(
                   "btn h-24 w-24 text-3xl",
                   isAnswered && state.type === "CORRECT" && "btn-success",
-                  isAnswered && state.type === "INCORRECT" && "btn-error",
+                  isAnswered && state.type === "INCORRECT" && "btn-error"
                 )}
                 onClick={() => handleGuess(row, col)}
               >
@@ -151,12 +165,13 @@ export function GuessBox() {
                   : null}
               </button>
             );
-          }),
+          })
         )}
       </div>
       <div>
         <div className="text-3xl font-bold">
-          {numberOfCorrect} / {tries} ({tries > 0 ? Math.round((numberOfCorrect / tries) * 100) : 0}
+          {numberOfCorrect} / {tries} (
+          {tries > 0 ? Math.round((numberOfCorrect / tries) * 100) : 0}
           %)
         </div>
       </div>
@@ -170,26 +185,47 @@ export function StatChart() {
   const chartData = numberOfCorrectPerTries.map((correct, tries) => ({
     tries: String(tries),
     rate: tries > 0 ? Math.round((correct / tries) * 100) : 0,
-    baseline: Math.floor((1 / (GRID_SIZE * GRID_SIZE)) * 100),
+    baseline: Math.floor((1 / (GRID_SIZE * GRID_SIZE)) * 100)
   }));
 
   const chartConfig = {
     rate: {
-      color: "var(--color-primary)",
+      color: "var(--color-primary)"
     },
     baseline: {
-      color: "var(--color-error)",
-    },
+      color: "var(--color-error)"
+    }
   } satisfies ChartConfig;
 
   return (
     <div className="flex flex-col gap-2">
-      <ChartContainer config={chartConfig} className="z-30 mx-auto h-64 w-full max-w-sm">
-        <LineChart width="100%" height="100%" accessibilityLayer data={chartData}>
+      <ChartContainer
+        config={chartConfig}
+        className="z-30 mx-auto h-64 w-full max-w-sm"
+      >
+        <LineChart
+          width="100%"
+          height="100%"
+          accessibilityLayer
+          data={chartData}
+        >
           <CartesianGrid vertical={false} />
-          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-          <YAxis tickLine={false} axisLine={false} tickMargin={8} domain={[0, 100]} />
-          <XAxis dataKey="tries" tickLine={false} axisLine={false} tickMargin={8} />
+          <ChartTooltip
+            cursor={false}
+            content={<ChartTooltipContent hideLabel />}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            domain={[0, 100]}
+          />
+          <XAxis
+            dataKey="tries"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+          />
           <Line
             dataKey="rate"
             type="linear"
