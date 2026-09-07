@@ -7,17 +7,17 @@ import { getCollection } from "astro:content";
 const posts = await getCollection("stories");
 
 const publishedPosts = posts.filter(
-  (post) => import.meta.env.DEV || !!post.data.publishedAt
+	(post) => import.meta.env.DEV || !!post.data.publishedAt,
 ) as Array<(typeof posts)[number] & { data: { publishedAt: Date } }>;
 
 publishedPosts.forEach((post) => {
-  post.data.publishedAt ??= new Date();
+	post.data.publishedAt ??= new Date();
 });
 
 publishedPosts.sort((a, b) =>
-  a.data.publishedAt === b.data.publishedAt
-    ? a.data.issue - b.data.issue
-    : b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
+	a.data.publishedAt === b.data.publishedAt
+		? a.data.issue - b.data.issue
+		: b.data.publishedAt.getTime() - a.data.publishedAt.getTime(),
 );
 ---
 

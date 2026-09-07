@@ -355,7 +355,11 @@ function findFirstElement(
 }
 
 function getMdxAttributeValue(
-  attributes: ReadonlyArray<{ type: string; name?: string | null; value?: unknown }>,
+  attributes: ReadonlyArray<{
+    type: string;
+    name?: string | null;
+    value?: unknown;
+  }>,
   name: string,
 ): string | undefined {
   const attr = attributes.find(

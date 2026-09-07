@@ -1,15 +1,15 @@
 {
-  "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": [
-    "**/node_modules/**",
-    "**/dist/**",
-    "**/build/**",
-    "**/.oxfmtrc.json",
-    "**/package.json"
-  ],
-  "experimentalTailwindcss": {
-    "stylesheet": "./src/styles/global.css",
-    "attributes": ["class", "className"],
-    "functions": ["clsx", "cn"]
-  }
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"ignorePatterns": [
+		"**/node_modules/**",
+		"**/dist/**",
+		"**/build/**",
+		"**/.oxfmtrc.json",
+		"**/package.json"
+	],
+	"experimentalTailwindcss": {
+		"stylesheet": "./src/styles/global.css",
+		"attributes": ["class", "className"],
+		"functions": ["clsx", "cn"]
+	}
 }

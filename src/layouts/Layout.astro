@@ -4,12 +4,12 @@ import { ClientRouter } from "astro:transitions";
 import { site } from "../consts/config";
 import "../styles/global.css";
 interface Props {
-  title?: string;
+	title?: string;
 }
 
 const title = Astro.props.title
-  ? `${Astro.props.title} | ${site.title}`
-  : site.title;
+	? `${Astro.props.title} | ${site.title}`
+	: site.title;
 ---
 
 <html lang="en" data-theme="silk">

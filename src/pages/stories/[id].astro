@@ -9,9 +9,11 @@ import { Image } from "astro:assets";
 export const getStaticPaths = (async () => {
   const entries = await getCollection("stories");
 
-  return entries.map((post) => ({
-    params: { id: post.id }
-  }));
+  return entries
+    .filter((post) => import.meta.env.DEV || !!post.data.publishedAt)
+    .map((post) => ({
+      params: { id: post.id }
+    }));
 }) satisfies GetStaticPaths;
 
 const id = Astro.params.id;
