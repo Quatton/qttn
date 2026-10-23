@@ -5,6 +5,7 @@ import { getCollection, getEntry, render } from "astro:content";
 import Story from "@/components/stories/Story.astro";
 import Full from "@/components/stories/Full.astro";
 import { Image } from "astro:assets";
+import { cn } from "@/lib/utils";
 
 export const getStaticPaths = (async () => {
   const entries = await getCollection("stories");
@@ -55,7 +56,9 @@ const { Content, headings } = await render(post);
     }
   </ul>
   <main class="h-full w-full flex flex-col" data-story-id={post.id}>
-    <header class="text-sm py-2 border-b border-base-300">
+    <header
+      class="text-sm py-2 border-b border-base-300 sticky top-0 z-30 bg-base-100"
+    >
       <div
         class="flex items-center gap-4 justify-between mx-auto px-4 w-full max-w-md"
       >
@@ -101,7 +104,12 @@ const { Content, headings } = await render(post);
       class="w-full max-w-md sm:aspect-9/16 flex-1 mx-auto flex flex-col min-h-0"
     >
       <div class="progress w-sm"></div>
-      <article class="story-content carousel scroll min-h-0 flex-1">
+      <article
+        class={cn(
+          post.data.direction === "vertical" ? "" : "carousel",
+          "story-content scroll min-h-0 flex-1"
+        )}
+      >
         <Content components={{ Story, Full, Image }} />
       </article>
     </div>

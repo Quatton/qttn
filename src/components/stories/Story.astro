@@ -1,20 +1,26 @@
 ---
+import { cn } from "@/lib/utils";
 import BookmarkButton from "./BookmarkButton";
 
 interface Props {
-	page: number | string;
-	isLast?: boolean;
-	total?: number | string;
+  page: number | string;
+  isLast?: boolean;
+  total?: number | string;
+  direction: "horizontal" | "vertical";
 }
 
 const page = Number(Astro.props.page);
 const total = Number(Astro.props.total) || page;
 const isLast = Astro.props.isLast || false;
+const direction = Astro.props.direction;
 ---
 
 <div class="carousel-item w-full h-full shrink-0" id={`page${page}`}>
   <div
-    class="w-full flex flex-col justify-center items-center relative text-center prose prose-lg prose-silk prose-h1:font-serif prose-h1:leading-tight prose-h2:font-serif prose-h3:font-serif prose-h4:font-serif prose-h5:font-serif prose-h6:font-serif py-16 px-4 prose-blockquote:[&_p:first-child]:mt-0 prose-blockquote:[&_p:first-child]:mb-0 text-pretty prose-blockquote:text-left prose-a:z-20 prose-a:relative"
+    class={cn(
+      direction === "vertical" ? "" : "justify-center",
+      "w-full flex flex-col items-center relative text-center prose prose-lg prose-silk prose-h1:font-serif prose-h1:leading-tight prose-h2:font-serif prose-h3:font-serif prose-h4:font-serif prose-h5:font-serif prose-h6:font-serif py-16 px-4 prose-blockquote:[&_p:first-child]:mt-0 prose-blockquote:[&_p:first-child]:mb-0 text-pretty prose-blockquote:text-left prose-a:z-20 prose-a:relative"
+    )}
   >
     <a
       href={`#page${page}`}
@@ -22,21 +28,25 @@ const isLast = Astro.props.isLast || false;
       aria-hidden="true"
       tabindex="-1"></a>
     <div class="absolute flex inset-0">
-      <a href={`#page${page - 1}`} class="h-full flex-1 z-10 not-prose">
-        <span class="sr-only">Previous</span>
-      </a>
-      <a
-        href={`#page${isLast ? page : page + 1}`}
-        class="h-full flex-1 z-10 not-prose"
-      >
-        <span class="sr-only">Next</span>
-      </a>
-      <!-- Page number / total (top right) -->
+      {
+        direction == "horizontal" && (
+          <>
+            <a href={`#page${page - 1}`} class="h-full flex-1 z-10 not-prose">
+              <span class="sr-only">Previous</span>
+            </a>
+            <a
+              href={`#page${isLast ? page : page + 1}`}
+              class="h-full flex-1 z-10 not-prose"
+            >
+              <span class="sr-only">Next</span>
+            </a>
+          </>
+        )
+      }
+
       <div class="absolute top-4 right-4 badge badge-sm z-20 not-prose">
         {page} / {total}
       </div>
-
-      <!-- bookmark copy the current page URL to clipboard (top left) -->
       <BookmarkButton page={page} client:only="react" />
     </div>
     <slot />
