@@ -1,10 +1,11 @@
+import { formatBookmarkStorageKey } from "@/lib/utils";
 import { useState } from "react";
 
 interface Props {
   page: number;
 }
 
-export default function BookmarkButton({ page }: Props) {
+export function BookmarkButton({ page }: Props) {
   const [copied, setCopied] = useState(false);
 
   function handleClick() {
@@ -13,11 +14,14 @@ export default function BookmarkButton({ page }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+    const hash = `page${page}`;
+    window.history.replaceState(null, "", `#${hash}`);
+    localStorage.setItem(formatBookmarkStorageKey(location.pathname), hash);
   }
 
   return (
     <button
-      className="not-prose btn absolute top-4 left-4 z-20 btn-square"
+      className="screenshot-hidden not-prose btn absolute top-4 left-4 z-20 btn-square"
       title="Copy page URL"
       onClick={handleClick}
     >

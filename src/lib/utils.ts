@@ -20,3 +20,5 @@ export function formatDateShort(date: Date): string {
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export const formatBookmarkStorageKey = (slug: string) => `bookmark:${slug}`;

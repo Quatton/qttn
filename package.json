@@ -29,6 +29,7 @@
     "@xstate/store-react": "^2.0.0",
     "astro": "^7.3.1",
     "drizzle-orm": "^0.45.2",
+    "html2canvas-pro": "^2.5.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "recharts": "^3.10.1",

@@ -1,3 +1,4 @@
+import type { CollectionEntry } from "astro:content";
 import type { Element, ElementContent, RootContent as HastRootContent } from "hast";
 import type { FootnoteDefinition, FootnoteReference, RootContent } from "mdast";
 import { defineHastPlugin, defineMdastPlugin } from "satteri";
@@ -10,19 +11,13 @@ import { defineHastPlugin, defineMdastPlugin } from "satteri";
  */
 
 export const satteriStoryPagesMdast = () => {
-  const done = new WeakSet<object>();
-
   return defineMdastPlugin({
     name: "story-pages-mdast",
 
-    thematicBreak(node, ctx) {
-      const root = ctx.parent(node);
-
-      if (!root || !("children" in root) || done.has(root)) return;
-      done.add(root);
-
-      const children = root.children as unknown as RootContent[];
-
+    before(node, ctx) {
+      if (!ctx.data.astro?.frontmatter) return;
+      const frontmatter = ctx.data.astro.frontmatter as CollectionEntry<"stories">["data"];
+      const children = node.children;
       const firstBodyIndex = children.findIndex((n) => n.type !== "yaml" && n.type !== "mdxjsEsm");
 
       if (firstBodyIndex === -1) return;
@@ -37,14 +32,15 @@ export const satteriStoryPagesMdast = () => {
 
       if (pages.length === 0) return;
 
-      const pageNodes: RootContent[] = pages.map((pageChildren, index) => {
+      const pageNodes: RootContent[] = pages.flatMap((originalPageChildren, index) => {
         const pageNumber = index + 1;
         const isLast = index === pages.length - 1;
 
-        const clonedPageChildren = clone(pageChildren);
-        const usedFootnoteIds = collectFootnoteReferences(clonedPageChildren);
+        const pageChildren = clone(originalPageChildren);
 
-        scopeFootnoteReferences(clonedPageChildren, pageNumber);
+        const usedFootnoteIds = collectFootnoteReferences(pageChildren);
+
+        scopeFootnoteReferences(pageChildren, pageNumber);
 
         const pageFootnoteDefinitions = createPageFootnoteDefinitions({
           pageNumber,
@@ -75,12 +71,17 @@ export const satteriStoryPagesMdast = () => {
               name: "total",
               value: String(pages.length),
             },
+            {
+              type: "mdxJsxAttribute" as const,
+              name: "direction",
+              value: frontmatter.direction,
+            },
           ],
-          children: [...clonedPageChildren, ...pageFootnoteDefinitions],
+          children: [...pageChildren, ...pageFootnoteDefinitions],
         } as RootContent;
       });
 
-      ctx.setProperty(root, "children", [...headerNodes, ...pageNodes]);
+      ctx.setProperty(node, "children", [...clone(headerNodes), ...pageNodes]);
     },
   });
 };
@@ -119,7 +120,21 @@ export const satteriStoryPagesFootnotesHast = () => {
       filter: ["Story"],
       visit(node, ctx) {
         const pageNumber = getMdxAttributeValue(node.attributes, "page");
-        if (!pageNumber || !globalFootnotesSection) return;
+        if (!pageNumber) return;
+
+        walk(node, (child) => {
+          if (child.type !== "element" || child.tagName !== "a") return;
+
+          const href = child.properties?.href;
+          if (typeof href !== "string" || !href.startsWith("#")) return;
+
+          const handle = getFootnoteHandleFromId(href.slice(1));
+          if (!handle || /^\d+$/.test(handle)) return;
+
+          ctx.setProperty(child, "children", [{ type: "text", value: handle }]);
+        });
+
+        if (!globalFootnotesSection) return;
 
         const pageSection = buildPageFootnotesSection(globalFootnotesSection, pageNumber);
         if (!pageSection) return;
@@ -266,9 +281,14 @@ function buildPageFootnotesSection(
   pageNumber: string,
 ): Element | undefined {
   const section = clone(globalSection);
+  const label = findFirstElement(section.children, "h2");
   const list = findFirstElement(section.children, "ol");
 
   if (!list) return undefined;
+
+  if (label?.properties?.id === "footnote-label") {
+    label.tagName = "span";
+  }
 
   const pageSuffix = `__page_${pageNumber}`;
 
@@ -293,11 +313,14 @@ function buildPageFootnotesSection(
     className: [...toClassList(list.properties?.className), "footnotes-list"],
   };
 
+  let nextNumericLabel = 1;
+
   list.children = filteredListChildren.map((child) => {
     if (child.type !== "element" || child.tagName !== "li") return child;
 
     const id = String(child.properties?.id ?? "");
-    const label = getFootnoteHandleFromId(id) ?? id;
+    const handle = getFootnoteHandleFromId(id);
+    const label = handle && /^\d+$/.test(handle) ? String(nextNumericLabel++) : (handle ?? id);
 
     child.properties = {
       ...child.properties,
@@ -402,5 +425,5 @@ function walk(node: unknown, visitor: (node: any) => void) {
 }
 
 function clone<T>(value: T): T {
-  return structuredClone(value);
+  return JSON.parse(JSON.stringify(value)) as T;
 }

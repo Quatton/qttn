@@ -106,9 +106,12 @@ const { Content, headings } = await render(post);
       <div class="progress w-sm"></div>
       <article
         class={cn(
-          post.data.direction === "vertical" ? "" : "carousel",
+          post.data.direction === "vertical" ? "overflow-y-auto" : "carousel",
           "story-content scroll min-h-0 flex-1"
         )}
+        style={post.data.direction === "vertical"
+          ? { "scroll-timeline": "--scale-progress block" }
+          : undefined}
       >
         <Content components={{ Story, Full, Image }} />
       </article>
@@ -117,6 +120,7 @@ const { Content, headings } = await render(post);
 </Layout>
 
 <script>
+  import { formatBookmarkStorageKey } from "@/lib/utils";
   import { actions } from "astro:actions";
 
   const root = document.querySelector("main[data-story-id]");
@@ -124,21 +128,39 @@ const { Content, headings } = await render(post);
 
   (() => {
     const isAnalyticsDisabled = import.meta.env.PUBLIC_ANALYTICS_DISABLED;
-    if (["true", "1", "yes"].includes(isAnalyticsDisabled)) {
-      return;
+    if (!["true", "1", "yes"].includes(isAnalyticsDisabled)) {
+      if (storyId) {
+        const utmSource = new URLSearchParams(window.location.search).get(
+          "utm_source"
+        );
+
+        actions
+          .analytics({
+            storyId,
+            utmSource: utmSource ?? undefined
+          })
+          .catch(() => {});
+      }
     }
 
-    if (storyId) {
-      const utmSource = new URLSearchParams(window.location.search).get(
-        "utm_source"
+    // if no hash, get bookmark from localStorage and scroll to it
+    if (!location.hash) {
+      const pathname = location.pathname;
+      const bookmarkKey = formatBookmarkStorageKey(pathname);
+      const bookmark = localStorage.getItem(bookmarkKey);
+      window.history.replaceState(
+        null,
+        "",
+        bookmark ? `#${bookmark}` : pathname
       );
-
-      actions
-        .analytics({
-          storyId,
-          utmSource: utmSource ?? undefined
-        })
-        .catch(() => {});
+      if (bookmark) {
+        const el = document.querySelector(`#${bookmark}`);
+        if (el) {
+          el.scrollIntoView({
+            behavior: import.meta.env.DEV ? "instant" : "smooth"
+          });
+        }
+      }
     }
   })();
 </script>
