@@ -60,7 +60,7 @@ const { Content, headings } = await render(post);
       class="text-sm py-2 border-b border-base-300 sticky top-0 z-30 bg-base-100"
     >
       <div
-        class="flex items-center gap-4 justify-between mx-auto px-4 w-full max-w-md"
+        class="flex items-center gap-4 justify-between mx-auto px-4 w-full max-w-md lg:max-w-2xl"
       >
         <a href="/" class="btn btn-ghost btn-square" aria-label="Back to home"
           ><svg
@@ -101,7 +101,7 @@ const { Content, headings } = await render(post);
       </div>
     </header>
     <div
-      class="w-full max-w-md sm:aspect-9/16 flex-1 mx-auto flex flex-col min-h-0"
+      class="w-full max-w-md sm:aspect-9/16 lg:max-w-2xl lg:aspect-auto flex-1 mx-auto flex flex-col min-h-0"
     >
       <div class="progress w-sm"></div>
       <article
@@ -121,7 +121,7 @@ const { Content, headings } = await render(post);
 
 <script>
   import { formatBookmarkStorageKey } from "@/lib/utils";
-  import { actions } from "astro:actions";
+import { actions } from "astro:actions";
 
   const root = document.querySelector("main[data-story-id]");
   const storyId = root?.getAttribute("data-story-id");
@@ -161,6 +161,46 @@ const { Content, headings } = await render(post);
           });
         }
       }
+    }
+
+    // auto update hash on scroll
+    const article = document.querySelector<HTMLElement>(".story-content");
+    if (article?.classList.contains("overflow-y-auto")) {
+      const pages = Array.from(
+        article.querySelectorAll<HTMLElement>(".carousel-item[id^='page']")
+      );
+      let updateScheduled = false;
+
+      const updatePageHash = () => {
+        updateScheduled = false;
+
+        const readingLine =
+          article.getBoundingClientRect().top + article.clientHeight * 0.25;
+        const activePage = pages.find((page) => {
+          const bounds = page.getBoundingClientRect();
+          return bounds.top <= readingLine && bounds.bottom > readingLine;
+        });
+
+        if (activePage && location.hash !== `#${activePage.id}`) {
+          window.history.replaceState(
+            window.history.state,
+            "",
+            `#${activePage.id}`
+          );
+        }
+      };
+
+      article.addEventListener(
+        "scroll",
+        () => {
+          if (updateScheduled) return;
+          updateScheduled = true;
+          requestAnimationFrame(updatePageHash);
+        },
+        { passive: true }
+      );
+
+      if (!location.hash) updatePageHash();
     }
   })();
 </script>
