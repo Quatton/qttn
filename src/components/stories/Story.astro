@@ -16,36 +16,32 @@ const isLast = Astro.props.isLast || false;
 const direction = Astro.props.direction;
 ---
 
-<div class="carousel-item w-full h-full shrink-0" id={`page${page}`}>
+<div class="carousel-item h-full max-h-288 w-full shrink-0" id={`page${page}`}>
   <div
     class={cn(
       direction === "vertical" ? "justify-center" : "justify-center",
-      "w-full flex flex-col items-center relative text-center prose prose-lg prose-silk prose-h1:font-serif prose-h1:leading-tight prose-h2:font-serif prose-h3:font-serif prose-h4:font-serif prose-h5:font-serif prose-h6:font-serif py-16 px-4 prose-blockquote:[&_p:first-child]:mt-0 prose-blockquote:[&_p:first-child]:mb-0 [&_li.task-list-item]:list-none [&_.contains-task-list]:w-full [&_.contains-task-list]:text-left text-pretty prose-blockquote:text-left prose-a:z-20 prose-a:relative prose-li:text-left prose-p:my-2 prose-headings:my-2 prose-blockquote:my-2 prose-ul:my-2 prose-ol:my-2 prose-hr:my-2 prose-table:my-2 prose-pre:my-2 prose-figure:my-2"
+      "prose-silk relative prose prose-lg flex w-full flex-col items-center px-4 py-16 text-center text-pretty prose-headings:my-2 prose-h1:font-serif prose-h1:leading-tight prose-h2:font-serif prose-h3:font-serif prose-h4:font-serif prose-h5:font-serif prose-h6:font-serif prose-p:my-2 prose-a:relative prose-a:z-20 prose-blockquote:my-2 prose-blockquote:text-left prose-figure:my-2 prose-pre:my-2 prose-ol:my-2 prose-ul:my-2 prose-li:text-left prose-table:my-2 prose-hr:my-2 [&_.contains-task-list]:w-full [&_.contains-task-list]:text-left [&_li.task-list-item]:list-none prose-blockquote:[&_p:first-child]:mt-0 prose-blockquote:[&_p:first-child]:mb-0",
     )}
   >
     <a
       href={`#page${page}`}
       class="footnote-backdrop not-prose"
       aria-hidden="true"
-      tabindex="-1"></a>
-    <div class="absolute flex top-0 left-0 w-full h-16">
-      {
-        direction == "horizontal" && (
-          <div class="flex w-full h-full">
-            <a href={`#page${page - 1}`} class="h-full flex-1 z-10 not-prose">
-              <span class="sr-only">Previous</span>
-            </a>
-            <a
-              href={`#page${isLast ? page : page + 1}`}
-              class="h-full flex-1 z-10 not-prose"
-            >
-              <span class="sr-only">Next</span>
-            </a>
-          </div>
-        )
-      }
+      tabindex="-1"
+    ></a>
+    <div class="absolute top-0 left-0 flex h-16 w-full">
+      {direction == "horizontal" && (
+        <div class="flex h-full w-full">
+          <a href={`#page${page - 1}`} class="not-prose z-10 h-full flex-1">
+            <span class="sr-only">Previous</span>
+          </a>
+          <a href={`#page${isLast ? page : page + 1}`} class="not-prose z-10 h-full flex-1">
+            <span class="sr-only">Next</span>
+          </a>
+        </div>
+      )}
 
-      <div class="absolute top-4 right-4 badge badge-sm z-20 not-prose">
+      <div class="not-prose absolute top-4 right-4 z-20 badge badge-sm">
         {page} / {total}
       </div>
       <BookmarkButton page={page} client:only="react" />
@@ -62,7 +58,7 @@ const direction = Astro.props.direction;
     const el = document.querySelector(location.hash);
     if (el) {
       el.scrollIntoView({
-        behavior: import.meta.env.DEV ? "instant" : "smooth"
+        behavior: import.meta.env.DEV ? "instant" : "smooth",
       });
     }
   }

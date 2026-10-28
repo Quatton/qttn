@@ -13,7 +13,7 @@ export const getStaticPaths = (async () => {
   return entries
     .filter((post) => import.meta.env.DEV || !!post.data.publishedAt)
     .map((post) => ({
-      params: { id: post.id }
+      params: { id: post.id },
     }));
 }) satisfies GetStaticPaths;
 
@@ -36,82 +36,70 @@ const { Content, headings } = await render(post);
 
 <Layout title={post.data.title}>
   <ul
-    class="dropdown menu w-52 rounded-box bg-base-100 shadow-sm"
+    class="menu dropdown w-52 rounded-box bg-base-100 shadow-sm"
     popover
     id="tableofcontent"
     style="position-anchor:--hamburger-menu"
   >
-    {
-      headings.map((heading) => (
-        <li>
-          <a
-            href={`#${heading.slug}`}
-            class="text-sm"
-            style={`padding-left: ${heading.depth * 8}px;`}
-          >
-            {heading.text}
-          </a>
-        </li>
-      ))
-    }
+    {headings.map((heading) => (
+      <li>
+        <a
+          href={`#${heading.slug}`}
+          class="text-sm"
+          style={`padding-left: ${heading.depth * 8}px;`}
+        >
+          {heading.text}
+        </a>
+      </li>
+    ))}
   </ul>
-  <main class="h-full w-full flex flex-col" data-story-id={post.id}>
-    <header
-      class="text-sm py-2 border-b border-base-300 sticky top-0 z-30 bg-base-100"
-    >
-      <div
-        class="flex items-center gap-4 justify-between mx-auto px-4 w-full max-w-md lg:max-w-2xl"
-      >
-        <a href="/" class="btn btn-ghost btn-square" aria-label="Back to home"
-          ><svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            ><path
+  <main class="flex h-full w-full flex-col" data-story-id={post.id}>
+    <header class="sticky top-0 z-30 border-b border-base-300 bg-base-100 py-2 text-sm">
+      <div class="mx-auto flex w-full max-w-md items-center justify-between gap-4 px-4 lg:max-w-2xl">
+        <a href="/" class="btn btn-square btn-ghost" aria-label="Back to home">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path
               fill="none"
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="m15 18l-6-6l6-6"></path></svg
-          >
+              d="m15 18l-6-6l6-6"
+            ></path>
+          </svg>
         </a>
         <a href="#page1">{post.data.title}</a>
         <button
-          class="btn btn-ghost btn-square"
+          class="btn btn-square btn-ghost"
           popovertarget="tableofcontent"
           style="anchor-name:--hamburger-menu"
         >
           <span class="sr-only">Menu</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            ><path
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path
               fill="none"
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M4 5h16M4 12h16M4 19h16"></path></svg
-          >
+              d="M4 5h16M4 12h16M4 19h16"
+            ></path>
+          </svg>
         </button>
       </div>
     </header>
-    <div
-      class="w-full max-w-md sm:aspect-9/16 lg:max-w-2xl lg:aspect-auto flex-1 mx-auto flex flex-col min-h-0"
-    >
+    <div class="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col sm:aspect-9/16 lg:aspect-auto lg:max-w-2xl">
       <div class="progress w-sm"></div>
       <article
         class={cn(
           post.data.direction === "vertical" ? "overflow-y-auto" : "carousel",
-          "story-content scroll min-h-0 flex-1"
+          "story-content scroll min-h-0 flex-1",
         )}
-        style={post.data.direction === "vertical"
-          ? { "scroll-timeline": "--scale-progress block" }
-          : undefined}
+        style={
+          post.data.direction === "vertical"
+            ? { "scroll-timeline": "--scale-progress block" }
+            : undefined
+        }
       >
         <Content components={{ Story, Full, Image }} />
       </article>
@@ -121,7 +109,7 @@ const { Content, headings } = await render(post);
 
 <script>
   import { formatBookmarkStorageKey } from "@/lib/utils";
-import { actions } from "astro:actions";
+  import { actions } from "astro:actions";
 
   const root = document.querySelector("main[data-story-id]");
   const storyId = root?.getAttribute("data-story-id");
@@ -130,14 +118,12 @@ import { actions } from "astro:actions";
     const isAnalyticsDisabled = import.meta.env.PUBLIC_ANALYTICS_DISABLED;
     if (!["true", "1", "yes"].includes(isAnalyticsDisabled)) {
       if (storyId) {
-        const utmSource = new URLSearchParams(window.location.search).get(
-          "utm_source"
-        );
+        const utmSource = new URLSearchParams(window.location.search).get("utm_source");
 
         actions
           .analytics({
             storyId,
-            utmSource: utmSource ?? undefined
+            utmSource: utmSource ?? undefined,
           })
           .catch(() => {});
       }
@@ -148,16 +134,12 @@ import { actions } from "astro:actions";
       const pathname = location.pathname;
       const bookmarkKey = formatBookmarkStorageKey(pathname);
       const bookmark = localStorage.getItem(bookmarkKey);
-      window.history.replaceState(
-        null,
-        "",
-        bookmark ? `#${bookmark}` : pathname
-      );
+      window.history.replaceState(null, "", bookmark ? `#${bookmark}` : pathname);
       if (bookmark) {
         const el = document.querySelector(`#${bookmark}`);
         if (el) {
           el.scrollIntoView({
-            behavior: import.meta.env.DEV ? "instant" : "smooth"
+            behavior: import.meta.env.DEV ? "instant" : "smooth",
           });
         }
       }
@@ -166,27 +148,20 @@ import { actions } from "astro:actions";
     // auto update hash on scroll
     const article = document.querySelector<HTMLElement>(".story-content");
     if (article?.classList.contains("overflow-y-auto")) {
-      const pages = Array.from(
-        article.querySelectorAll<HTMLElement>(".carousel-item[id^='page']")
-      );
+      const pages = Array.from(article.querySelectorAll<HTMLElement>(".carousel-item[id^='page']"));
       let updateScheduled = false;
 
       const updatePageHash = () => {
         updateScheduled = false;
 
-        const readingLine =
-          article.getBoundingClientRect().top + article.clientHeight * 0.25;
+        const readingLine = article.getBoundingClientRect().top + article.clientHeight * 0.25;
         const activePage = pages.find((page) => {
           const bounds = page.getBoundingClientRect();
           return bounds.top <= readingLine && bounds.bottom > readingLine;
         });
 
         if (activePage && location.hash !== `#${activePage.id}`) {
-          window.history.replaceState(
-            window.history.state,
-            "",
-            `#${activePage.id}`
-          );
+          window.history.replaceState(window.history.state, "", `#${activePage.id}`);
         }
       };
 
@@ -197,7 +172,7 @@ import { actions } from "astro:actions";
           updateScheduled = true;
           requestAnimationFrame(updatePageHash);
         },
-        { passive: true }
+        { passive: true },
       );
 
       if (!location.hash) updatePageHash();
@@ -255,11 +230,7 @@ import { actions } from "astro:actions";
       opacity 150ms ease,
       transform 150ms ease,
       visibility 0s linear 150ms;
-    background-color: color-mix(
-      in oklab,
-      var(--color-base-100) 78%,
-      transparent
-    );
+    background-color: color-mix(in oklab, var(--color-base-100) 78%, transparent);
     border: 1px solid var(--color-base-300);
     border-radius: 0.5rem;
     padding: 0.5rem 0.75rem;
@@ -327,11 +298,7 @@ import { actions } from "astro:actions";
 
   :global(.story-content .footnote-dismiss:is(:hover, :focus-visible)) {
     opacity: 1;
-    background-color: color-mix(
-      in oklab,
-      var(--color-base-content) 12%,
-      transparent
-    );
+    background-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
   }
 
   :global(.story-content .footnote-body > :first-child) {
@@ -342,10 +309,7 @@ import { actions } from "astro:actions";
     margin-bottom: 0;
   }
 
-  :global(
-    .story-content:has([data-footnote-ref]:is(:hover, :focus, :focus-visible))
-      .footnotes
-  ),
+  :global(.story-content:has([data-footnote-ref]:is(:hover, :focus, :focus-visible)) .footnotes),
   :global(.story-content:has(.footnotes li:target) .footnotes) {
     opacity: 0.9;
     visibility: visible;
