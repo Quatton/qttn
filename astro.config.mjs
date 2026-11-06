@@ -3,14 +3,14 @@ import reactCompiler from "@acusti/vite-plugin-react-compiler";
 import cloudflare from "@astrojs/cloudflare";
 import { satteri } from "@astrojs/markdown-satteri";
 import mdx from "@astrojs/mdx";
+import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, fontProviders } from "astro/config";
+import { satteriKatex } from "./src/lib/satteri/katex.ts";
 import {
   satteriStoryPagesFootnotesHast,
   satteriStoryPagesMdast,
 } from "./src/lib/satteri/story-pages.ts";
-
-import react from "@astrojs/react";
 
 // https://astro.build/config
 export default defineConfig({
@@ -25,12 +25,14 @@ export default defineConfig({
   markdown: {
     processor: satteri({
       features: {
-        math: true,
+        math: {
+          singleDollarTextMath: true,
+        },
         gfm: {
           footnotes: true,
         },
       },
-      mdastPlugins: [satteriStoryPagesMdast()],
+      mdastPlugins: [satteriStoryPagesMdast(), satteriKatex()],
       hastPlugins: [satteriStoryPagesFootnotesHast()],
     }),
     syntaxHighlight: {

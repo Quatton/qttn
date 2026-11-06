@@ -147,6 +147,11 @@ const { Content, headings } = await render(post);
 
     // auto update hash on scroll
     const article = document.querySelector<HTMLElement>(".story-content");
+    article?.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) return;
+      if (event.target.closest("[data-footnote-ref='true']")) event.preventDefault();
+    });
+
     if (article?.classList.contains("overflow-y-auto")) {
       const pages = Array.from(article.querySelectorAll<HTMLElement>(".carousel-item[id^='page']"));
       let updateScheduled = false;
