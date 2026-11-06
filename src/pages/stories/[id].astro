@@ -147,12 +147,21 @@ const { Content, headings } = await render(post);
 
     // auto update hash on scroll
     const article = document.querySelector<HTMLElement>(".story-content");
-    article?.addEventListener("click", (event) => {
-      if (!(event.target instanceof Element)) return;
-      if (event.target.closest("[data-footnote-ref='true']")) event.preventDefault();
-    });
 
-    if (article?.classList.contains("overflow-y-auto")) {
+    if (!article) return;
+
+    const as = article.querySelectorAll("a");
+
+    for (const a of as) {
+      if (new URL(a.href).origin !== location.origin) a.target = "_blank";
+      if (a.dataset.footnoteRef === "true") {
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+        });
+      }
+    }
+
+    if (article.classList.contains("overflow-y-auto")) {
       const pages = Array.from(article.querySelectorAll<HTMLElement>(".carousel-item[id^='page']"));
       let updateScheduled = false;
 
@@ -228,13 +237,12 @@ const { Content, headings } = await render(post);
     line-height: 1rem;
     opacity: 0;
     visibility: hidden;
-    pointer-events: none;
     z-index: 30;
     transform: translateY(0.25rem);
     transition:
-      opacity 150ms ease,
-      transform 150ms ease,
-      visibility 0s linear 150ms;
+      opacity 150ms 300ms,
+      transform 150ms 300ms,
+      visibility 0s linear 450ms;
     background-color: color-mix(in oklab, var(--color-base-100) 78%, transparent);
     border: 1px solid var(--color-base-300);
     border-radius: 0.5rem;
@@ -315,6 +323,7 @@ const { Content, headings } = await render(post);
   }
 
   :global(.story-content:has([data-footnote-ref]:is(:hover, :focus, :focus-visible)) .footnotes),
+  :global(.story-content .footnotes:is(:hover, :focus-within)),
   :global(.story-content:has(.footnotes li:target) .footnotes) {
     opacity: 0.9;
     visibility: visible;
