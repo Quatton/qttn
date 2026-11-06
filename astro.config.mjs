@@ -8,7 +8,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, fontProviders } from "astro/config";
 import { satteriKatex } from "./src/lib/satteri/katex.ts";
 import {
-  satteriStoryPagesFootnotesHast,
+  satteriStoryPagesFootnotesHastPluginGroups,
   satteriStoryPagesMdast,
 } from "./src/lib/satteri/story-pages.ts";
 
@@ -33,7 +33,7 @@ export default defineConfig({
         },
       },
       mdastPlugins: [satteriStoryPagesMdast(), satteriKatex()],
-      hastPlugins: [satteriStoryPagesFootnotesHast()],
+      hastPlugins: [satteriStoryPagesFootnotesHastPluginGroups()],
     }),
     syntaxHighlight: {
       excludeLangs: ["math"],

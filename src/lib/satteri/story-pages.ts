@@ -86,63 +86,67 @@ export const satteriStoryPagesMdast = () => {
   });
 };
 
-export const satteriStoryPagesFootnotesHast = () => {
+export const satteriStoryPagesFootnotesHastPluginGroups = () => {
   let globalFootnotesSection: Element | undefined;
 
-  return defineHastPlugin({
-    name: "story-pages-footnotes-hast",
+  return [
+    defineHastPlugin({
+      name: "story-pages-footnotes-remove-hast",
 
-    element: [
-      {
-        filter: ["section"],
+      element: [
+        {
+          filter: ["section"],
+          visit(node, ctx) {
+            if (!isFootnotesSection(node)) return;
+
+            globalFootnotesSection = clone(node);
+            ctx.removeNode(node);
+          },
+        },
+        {
+          filter: ["li"],
+          // oxlint-disable-next-line no-unused-vars
+          visit(node, ctx) {
+            /**
+             * Defensive cleanup:
+             * If Sätteri walks into the generated footnote section before the
+             * section removal is applied, don't mutate here. We only need the
+             * cloned section captured above.
+             */
+          },
+        },
+      ],
+    }),
+    defineHastPlugin({
+      name: "story-pages-footnotes-add-hast",
+      mdxJsxFlowElement: {
+        filter: ["Story"],
         visit(node, ctx) {
-          if (!isFootnotesSection(node)) return;
+          const pageNumber = getMdxAttributeValue(node.attributes, "page");
+          if (!pageNumber) return;
 
-          globalFootnotesSection = clone(node);
-          ctx.removeNode(node);
+          walk(node, (child) => {
+            if (child.type !== "element" || child.tagName !== "a") return;
+
+            const href = child.properties?.href;
+            if (typeof href !== "string" || !href.startsWith("#")) return;
+
+            const handle = getFootnoteHandleFromId(href.slice(1));
+            if (!handle || /^\d+$/.test(handle)) return;
+
+            ctx.setProperty(child, "children", [{ type: "text", value: handle }]);
+          });
+
+          if (!globalFootnotesSection) return;
+
+          const pageSection = buildPageFootnotesSection(globalFootnotesSection, pageNumber);
+          if (!pageSection) return;
+
+          ctx.appendChild(node, pageSection);
         },
       },
-      {
-        filter: ["li"],
-        // oxlint-disable-next-line no-unused-vars
-        visit(node, ctx) {
-          /**
-           * Defensive cleanup:
-           * If Sätteri walks into the generated footnote section before the
-           * section removal is applied, don't mutate here. We only need the
-           * cloned section captured above.
-           */
-        },
-      },
-    ],
-
-    mdxJsxFlowElement: {
-      filter: ["Story"],
-      visit(node, ctx) {
-        const pageNumber = getMdxAttributeValue(node.attributes, "page");
-        if (!pageNumber) return;
-
-        walk(node, (child) => {
-          if (child.type !== "element" || child.tagName !== "a") return;
-
-          const href = child.properties?.href;
-          if (typeof href !== "string" || !href.startsWith("#")) return;
-
-          const handle = getFootnoteHandleFromId(href.slice(1));
-          if (!handle || /^\d+$/.test(handle)) return;
-
-          ctx.setProperty(child, "children", [{ type: "text", value: handle }]);
-        });
-
-        if (!globalFootnotesSection) return;
-
-        const pageSection = buildPageFootnotesSection(globalFootnotesSection, pageNumber);
-        if (!pageSection) return;
-
-        ctx.appendChild(node, pageSection);
-      },
-    },
-  });
+    }),
+  ];
 };
 
 /* -------------------------------------------------------------------------- */
