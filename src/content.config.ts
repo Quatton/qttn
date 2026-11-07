@@ -8,6 +8,7 @@ const stories = defineCollection({
   schema: z.object({
     title: z.string(),
     description: z.string().optional(),
+    lang: z.enum(["en", "th", "ja"]).optional().default("en"),
     createdAt: z.coerce.date(),
     publishedAt: z.coerce.date().optional(),
     total: z.number().optional().default(0),

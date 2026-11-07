@@ -6,7 +6,15 @@
 }
 
 @theme {
-  --font-sans: var(--font-geist);
+  --font-sans: var(--font-geist)
   --font-mono: var(--font-plex-mono);
   --font-serif: var(--font-merriweather);
+}
+
+html:lang(th) {
+  --font-sans: var(--font-plex-sans-thai), var(--font-geist);
+}
+
+html:lang(ja) {
+  --font-sans: var(--font-noto-sans-jp), var(--font-geist);
 }

@@ -12,7 +12,7 @@ export const getStaticPaths = (async () => {
   return entries
     .filter((post) => import.meta.env.DEV || !!post.data.publishedAt)
     .map((post) => ({
-      params: { id: post.id }
+      params: { id: post.id },
     }));
 }) satisfies GetStaticPaths;
 
@@ -33,50 +33,38 @@ if (!post) {
 const { Content, headings } = await render(post);
 ---
 
-<Layout title={post.data.title}>
+<Layout title={post.data.title} lang={post.data.lang}>
   <ul
     class="menu dropdown w-52 rounded-box bg-base-100 shadow-sm"
     popover
     id="tableofcontent"
     style="position-anchor:--hamburger-menu"
   >
-    {
-      headings.map((heading) => (
-        <li>
-          <a
-            href={`#${heading.slug}`}
-            class="text-sm"
-            style={`padding-left: ${heading.depth * 8}px;`}
-          >
-            {heading.text}
-          </a>
-        </li>
-      ))
-    }
+    {headings.map((heading) => (
+      <li>
+        <a
+          href={`#${heading.slug}`}
+          class="text-sm"
+          style={`padding-left: ${heading.depth * 8}px;`}
+        >
+          {heading.text}
+        </a>
+      </li>
+    ))}
   </ul>
-  <div
-    class="flex h-dvh flex-col [timeline-scope:--story-progress] items-center"
-  >
-    <header
-      class="shrink-0 border-b border-base-300 bg-base-100 py-2 text-sm w-full max-w-md lg:max-w-2xl"
-    >
-      <div
-        class="mx-auto flex w-full max-w-md items-center justify-between gap-4 px-4 lg:max-w-2xl"
-      >
+  <div class="flex h-dvh flex-col items-center [timeline-scope:--story-progress]">
+    <header class="w-full max-w-md shrink-0 border-b border-base-300 bg-base-100 py-2 text-sm lg:max-w-2xl">
+      <div class="mx-auto flex w-full max-w-md items-center justify-between gap-4 px-4 lg:max-w-2xl">
         <a href="/" class="btn btn-square btn-ghost" aria-label="Back to home">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
             <path
               fill="none"
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="m15 18l-6-6l6-6"></path>
+              d="m15 18l-6-6l6-6"
+            ></path>
           </svg>
         </a>
         <a href="#page1">{post.data.title}</a>
@@ -86,35 +74,26 @@ const { Content, headings } = await render(post);
           style="anchor-name:--hamburger-menu"
         >
           <span class="sr-only">Menu</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
             <path
               fill="none"
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M4 5h16M4 12h16M4 19h16"></path>
+              d="M4 5h16M4 12h16M4 19h16"
+            ></path>
           </svg>
         </button>
       </div>
     </header>
-    <div
-      class="story-progress h-1 shrink-0 origin-left bg-base-300 w-full max-w-md lg:max-w-2xl"
-    >
-    </div>
+    <div class="story-progress h-1 w-full max-w-md shrink-0 origin-left bg-base-300 lg:max-w-2xl"></div>
     <main
       class:list={[
         "story-content",
         post.data.direction === "vertical" ? "overflow-y-auto" : "",
         "flex min-h-0 w-full flex-1 flex-col",
-        post.data.direction === "vertical"
-          ? "[scroll-timeline:--story-progress_block]"
-          : ""
+        post.data.direction === "vertical" ? "[scroll-timeline:--story-progress_block]" : "",
       ]}
       data-story-id={post.id}
       data-direction={post.data.direction}
@@ -122,8 +101,8 @@ const { Content, headings } = await render(post);
       <article
         class:list={[
           post.data.direction === "horizontal" &&
-            "carousel  [scroll-timeline:--story-progress_inline]",
-          "relative min-h-0 flex-1 max-w-md lg:max-w-2xl mx-auto"
+            "carousel [scroll-timeline:--story-progress_inline]",
+          "relative mx-auto min-h-0 max-w-md flex-1 lg:max-w-2xl",
         ]}
       >
         <Content components={{ Story, Full, Image }} />
@@ -146,14 +125,12 @@ const { Content, headings } = await render(post);
     const isAnalyticsDisabled = import.meta.env.PUBLIC_ANALYTICS_DISABLED;
     if (!["true", "1", "yes"].includes(isAnalyticsDisabled)) {
       if (storyId) {
-        const utmSource = new URLSearchParams(window.location.search).get(
-          "utm_source"
-        );
+        const utmSource = new URLSearchParams(window.location.search).get("utm_source");
 
         actions
           .analytics({
             storyId,
-            utmSource: utmSource ?? undefined
+            utmSource: utmSource ?? undefined,
           })
           .catch(() => {});
       }
@@ -164,16 +141,12 @@ const { Content, headings } = await render(post);
       const pathname = location.pathname;
       const bookmarkKey = formatBookmarkStorageKey(pathname);
       const bookmark = localStorage.getItem(bookmarkKey);
-      window.history.replaceState(
-        null,
-        "",
-        bookmark ? `#${bookmark}` : pathname
-      );
+      window.history.replaceState(null, "", bookmark ? `#${bookmark}` : pathname);
       if (bookmark) {
         const el = document.querySelector(`#${bookmark}`);
         if (el) {
           el.scrollIntoView({
-            behavior: import.meta.env.DEV ? "instant" : "smooth"
+            behavior: import.meta.env.DEV ? "instant" : "smooth",
           });
         }
       }
@@ -193,27 +166,20 @@ const { Content, headings } = await render(post);
     }
 
     if (direction === "vertical") {
-      const pages = Array.from(
-        article.querySelectorAll<HTMLElement>(".carousel-item[id^='page']")
-      );
+      const pages = Array.from(article.querySelectorAll<HTMLElement>("[id^='page']"));
       let updateScheduled = false;
 
       const updatePageHash = () => {
         updateScheduled = false;
 
-        const readingLine =
-          article.getBoundingClientRect().top + article.clientHeight * 0.25;
+        const readingLine = article.getBoundingClientRect().top + article.clientHeight * 0.25;
         const activePage = pages.find((page) => {
           const bounds = page.getBoundingClientRect();
           return bounds.top <= readingLine && bounds.bottom > readingLine;
         });
 
         if (activePage && location.hash !== `#${activePage.id}`) {
-          window.history.replaceState(
-            window.history.state,
-            "",
-            `#${activePage.id}`
-          );
+          window.history.replaceState(window.history.state, "", `#${activePage.id}`);
         }
       };
 
@@ -224,7 +190,7 @@ const { Content, headings } = await render(post);
           updateScheduled = true;
           requestAnimationFrame(updatePageHash);
         },
-        { passive: true }
+        { passive: true },
       );
 
       if (!location.hash) updatePageHash();
@@ -262,11 +228,7 @@ const { Content, headings } = await render(post);
       opacity 150ms 300ms,
       transform 150ms 300ms,
       visibility 0s linear 450ms;
-    background-color: color-mix(
-      in oklab,
-      var(--color-base-100) 78%,
-      transparent
-    );
+    background-color: color-mix(in oklab, var(--color-base-100) 78%, transparent);
     border: 1px solid var(--color-base-300);
     border-radius: 0.5rem;
     padding: 0.5rem 0.75rem;
@@ -334,11 +296,7 @@ const { Content, headings } = await render(post);
 
   :global(.story-content .footnote-dismiss:is(:hover, :focus-visible)) {
     opacity: 1;
-    background-color: color-mix(
-      in oklab,
-      var(--color-base-content) 12%,
-      transparent
-    );
+    background-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
   }
 
   :global(.story-content .footnote-body > :first-child) {
@@ -349,10 +307,7 @@ const { Content, headings } = await render(post);
     margin-bottom: 0;
   }
 
-  :global(
-    .story-content:has([data-footnote-ref]:is(:hover, :focus, :focus-visible))
-      .footnotes
-  ),
+  :global(.story-content:has([data-footnote-ref]:is(:hover, :focus, :focus-visible)) .footnotes),
   :global(.story-content .footnotes:is(:hover, :focus-within)),
   :global(.story-content:has(.footnotes li:target) .footnotes) {
     opacity: 0.9;

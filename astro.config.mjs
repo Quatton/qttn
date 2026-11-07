@@ -67,6 +67,20 @@ export default defineConfig({
       cssVariable: "--font-plex-mono",
       provider: fontProviders.fontsource(),
     },
+    {
+      name: "IBM Plex Sans Thai",
+      cssVariable: "--font-plex-sans-thai",
+      provider: fontProviders.fontsource(),
+      weights: ["400", "500", "700"],
+      subsets: ["thai", "latin"],
+    },
+    {
+      name: "Noto Sans JP",
+      cssVariable: "--font-noto-sans-jp",
+      provider: fontProviders.fontsource(),
+      weights: ["400", "500", "700"],
+      subsets: ["japanese", "latin"],
+    },
   ],
   integrations: [mdx(), react()],
 });
