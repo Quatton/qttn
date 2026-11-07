@@ -245,12 +245,20 @@ export function Share({ documentId }: Props) {
         )}
       </button>
       <dialog ref={dialogRef} className="modal">
-        <div className="modal-box">
+        <div className="modal-box max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <h2 className="text-lg font-bold">Sharing isn’t available here</h2>
-          <p className="py-4">
-            You can copy a link to this page, or download a screenshot and copy
-            the link.
+          <p className="py-4 text-sm">
+            Copy the page link below, or press and hold the screenshot to save
+            it. You can also use the download link, but some browsers like
+            Instagram in-app browser may not allow you to download files.
           </p>
+          {downloadUrl && (
+            <img
+              src={downloadUrl}
+              alt={`Screenshot of page ${documentId}`}
+              className="mx-auto my-2 block max-h-[55dvh] max-w-full rounded-lg object-contain"
+            />
+          )}
           <div className="flex flex-wrap justify-end gap-2">
             <button
               className="btn"
