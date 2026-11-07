@@ -11,6 +11,7 @@ export function Share({ documentId }: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const screenshotRef = useRef<Promise<Blob> | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
   function getPageUrl() {
     const url = new URL(location.href);
@@ -76,18 +77,27 @@ export function Share({ documentId }: Props) {
     }
   }
 
-  async function downloadScreenshot() {
+  async function prepareScreenshotDownload() {
+    if (downloadUrl) return;
+
     setStatus("sharing");
     try {
-      const downloadUrl = URL.createObjectURL(await getScreenshot());
-      const link = window.document.createElement("a");
-      link.href = downloadUrl;
-      link.download = getScreenshotFilename();
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-      await navigator.clipboard.writeText(getPageUrl());
-      setStatus("downloaded");
-      setTimeout(() => dialogRef.current?.close(), 1200);
+      setDownloadUrl(URL.createObjectURL(await getScreenshot()));
+      setStatus("idle");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  function copyLinkAfterDownload() {
+    try {
+      void navigator.clipboard
+        .writeText(getPageUrl())
+        .then(() => {
+          setStatus("downloaded");
+          setTimeout(() => dialogRef.current?.close(), 1200);
+        })
+        .catch(() => setStatus("error"));
     } catch {
       setStatus("error");
     }
@@ -96,6 +106,7 @@ export function Share({ documentId }: Props) {
   async function handleClick() {
     if (status === "sharing") return;
     if (!navigator.share) {
+      void prepareScreenshotDownload();
       dialogRef.current?.showModal();
       return;
     }
@@ -135,6 +146,11 @@ export function Share({ documentId }: Props) {
       }
     }
   }
+
+  useEffect(() => {
+    if (!downloadUrl) return;
+    return () => URL.revokeObjectURL(downloadUrl);
+  }, [downloadUrl]);
 
   useEffect(() => {
     if (
@@ -243,19 +259,20 @@ export function Share({ documentId }: Props) {
             >
               {status === "copied" ? <>{checkIcon} Copy link</> : "Copy link"}
             </button>
-            <button
-              className="btn btn-primary"
-              onClick={downloadScreenshot}
-              disabled={status === "sharing"}
-            >
-              {status === "sharing" ? (
-                <span className="loading size-5 loading-spinner" />
-              ) : status === "downloaded" ? (
-                <>{checkIcon} Copy link & Download Screenshot</>
-              ) : (
-                "Copy link & Download Screenshot"
-              )}
-            </button>
+            {downloadUrl && (
+              <a
+                className="btn btn-primary"
+                href={downloadUrl}
+                download={getScreenshotFilename()}
+                onClick={copyLinkAfterDownload}
+              >
+                {status === "downloaded" ? (
+                  <>{checkIcon} Copy link & Download Screenshot</>
+                ) : (
+                  "Copy link & Download Screenshot"
+                )}
+              </a>
+            )}
           </div>
         </div>
         <form method="dialog" className="modal-backdrop">
