@@ -5,13 +5,12 @@ interface Props {
   documentId: string;
 }
 
-type Status = "idle" | "sharing" | "shared" | "copied" | "downloaded" | "error";
+type Status = "idle" | "sharing" | "shared" | "copied" | "error";
 
 export function Share({ documentId }: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const screenshotRef = useRef<Promise<Blob> | null>(null);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
   function getPageUrl() {
     const url = new URL(location.href);
@@ -77,36 +76,9 @@ export function Share({ documentId }: Props) {
     }
   }
 
-  async function prepareScreenshotDownload() {
-    if (downloadUrl) return;
-
-    setStatus("sharing");
-    try {
-      setDownloadUrl(URL.createObjectURL(await getScreenshot()));
-      setStatus("idle");
-    } catch {
-      setStatus("error");
-    }
-  }
-
-  function copyLinkAfterDownload() {
-    try {
-      void navigator.clipboard
-        .writeText(getPageUrl())
-        .then(() => {
-          setStatus("downloaded");
-          setTimeout(() => dialogRef.current?.close(), 1200);
-        })
-        .catch(() => setStatus("error"));
-    } catch {
-      setStatus("error");
-    }
-  }
-
   async function handleClick() {
     if (status === "sharing") return;
     if (!navigator.share) {
-      void prepareScreenshotDownload();
       dialogRef.current?.showModal();
       return;
     }
@@ -148,17 +120,7 @@ export function Share({ documentId }: Props) {
   }
 
   useEffect(() => {
-    if (!downloadUrl) return;
-    return () => URL.revokeObjectURL(downloadUrl);
-  }, [downloadUrl]);
-
-  useEffect(() => {
-    if (
-      status === "shared" ||
-      status === "copied" ||
-      status === "downloaded" ||
-      status === "error"
-    ) {
+    if (status === "shared" || status === "copied" || status === "error") {
       const timeout = setTimeout(() => setStatus("idle"), 2000);
       return () => clearTimeout(timeout);
     }
@@ -171,11 +133,9 @@ export function Share({ documentId }: Props) {
         ? "Page shared"
         : status === "copied"
           ? "Link copied"
-          : status === "downloaded"
-            ? "Screenshot downloaded; link copied"
-            : status === "error"
-              ? "Unable to share page"
-              : "Share page";
+          : status === "error"
+            ? "Unable to share page"
+            : "Share page";
 
   const checkIcon = (
     <svg
@@ -245,42 +205,16 @@ export function Share({ documentId }: Props) {
         )}
       </button>
       <dialog ref={dialogRef} className="modal">
-        <div className="modal-box max-h-[calc(100dvh-2rem)] overflow-y-auto">
+        <div className="modal-box">
           <h2 className="text-lg font-bold">Sharing isn’t available here</h2>
-          <p className="py-4 text-sm">
-            Copy the page link below, or press and hold the screenshot to save
-            it. You can also use the download link, but some browsers like
-            Instagram in-app browser may not allow you to download files.
+          <p className="py-4">
+            Sharing the image requires you to open this page in an external
+            browser. You can copy the link to this page:
           </p>
-          {downloadUrl && (
-            <img
-              src={downloadUrl}
-              alt={`Screenshot of page ${documentId}`}
-              className="mx-auto my-2 block max-h-[55dvh] max-w-full rounded-lg object-contain"
-            />
-          )}
-          <div className="flex flex-wrap justify-end gap-2">
-            <button
-              className="btn"
-              onClick={copyPageLink}
-              disabled={status === "sharing"}
-            >
+          <div className="flex justify-end">
+            <button className="btn btn-primary" onClick={copyPageLink}>
               {status === "copied" ? <>{checkIcon} Copy link</> : "Copy link"}
             </button>
-            {downloadUrl && (
-              <a
-                className="btn btn-primary"
-                href={downloadUrl}
-                download={getScreenshotFilename()}
-                onClick={copyLinkAfterDownload}
-              >
-                {status === "downloaded" ? (
-                  <>{checkIcon} Copy link & Download Screenshot</>
-                ) : (
-                  "Copy link & Download Screenshot"
-                )}
-              </a>
-            )}
           </div>
         </div>
         <form method="dialog" className="modal-backdrop">
