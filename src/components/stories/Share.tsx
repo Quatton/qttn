@@ -28,13 +28,11 @@ export function Share({ documentId }: Props) {
     const screenshot = html2canvas(target, {
       logging: false,
       onclone: (clonedDocument) => {
-        clonedDocument
-          .querySelectorAll(".screenshot-hidden")
-          .forEach((element) => {
-            if (element instanceof HTMLElement) element.style.display = "none";
-          });
+        clonedDocument.querySelectorAll(".screenshot-hidden").forEach((element) => {
+          if (element instanceof HTMLElement) element.style.display = "none";
+        });
       },
-      useCORS: true
+      useCORS: true,
     })
       .then(
         (canvas) =>
@@ -43,7 +41,7 @@ export function Share({ documentId }: Props) {
               if (value) resolve(value);
               else reject(new Error("Could not create a share image."));
             }, "image/png");
-          })
+          }),
       )
       .catch((error: unknown) => {
         screenshotRef.current = null;
@@ -56,8 +54,7 @@ export function Share({ documentId }: Props) {
 
   function getScreenshotFilename() {
     const target = window.document.getElementById(documentId);
-    const title =
-      target?.querySelector("h1")?.textContent?.trim() || document.title;
+    const title = target?.querySelector("h1")?.textContent?.trim() || document.title;
     const filename = title
       .replace(/[<>:"/\\|?*]/g, "")
       .replace(/\p{Cc}/gu, "")
@@ -88,13 +85,13 @@ export function Share({ documentId }: Props) {
     try {
       const blob = await getScreenshot();
       const file = new File([blob], getScreenshotFilename(), {
-        type: "image/png"
+        type: "image/png",
       });
       const shareData = {
         title: document.title,
         text: document.title,
         url: getPageUrl(),
-        files: [file]
+        files: [file],
       };
 
       // copy link to clipboard before sharing, so that the user can paste it if the share fails
@@ -106,7 +103,7 @@ export function Share({ documentId }: Props) {
         await navigator.share({
           title: shareData.title,
           text: shareData.text,
-          url: shareData.url
+          url: shareData.url,
         });
       }
       setStatus("shared");
@@ -208,8 +205,8 @@ export function Share({ documentId }: Props) {
         <div className="modal-box">
           <h2 className="text-lg font-bold">Sharing isn’t available here</h2>
           <p className="py-4">
-            Sharing the image requires you to open this page in an external
-            browser. You can copy the link to this page:
+            Sharing the image requires you to open this page in an external browser. You can copy
+            the link to this page:
           </p>
           <div className="flex justify-end">
             <button className="btn btn-primary" onClick={copyPageLink}>

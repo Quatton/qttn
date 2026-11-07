@@ -14,6 +14,7 @@ const stories = defineCollection({
     total: z.number().optional().default(0),
     issue: z.number().optional().default(1),
     direction: z.enum(["vertical", "horizontal"]).optional().default("horizontal"),
+    translated: z.boolean().default(false),
   }),
 });
 

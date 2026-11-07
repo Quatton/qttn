@@ -7,7 +7,7 @@ import { getCollection } from "astro:content";
 const posts = await getCollection("stories");
 
 const publishedPosts = posts.filter(
-  (post) => import.meta.env.DEV || !!post.data.publishedAt
+  (post) => import.meta.env.DEV || (!!post.data.publishedAt && !post.data.translated),
 ) as Array<(typeof posts)[number] & { data: { publishedAt: Date } }>;
 
 publishedPosts.forEach((post) => {
@@ -17,33 +17,30 @@ publishedPosts.forEach((post) => {
 publishedPosts.sort((a, b) =>
   a.data.publishedAt === b.data.publishedAt
     ? a.data.issue - b.data.issue
-    : b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
+    : b.data.publishedAt.getTime() - a.data.publishedAt.getTime(),
 );
 ---
 
 <Layout title="Home">
-  <Header class="max-w-3xl mx-auto" />
-  <div class="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto px-4">
-    {
-      publishedPosts.map((post) => (
-        <a
-          href={`/stories/${post.id}`}
-          class="card card-border bg-base-100 hover:bg-base-200 hover:-translate-y-1
-          transition-transform duration-200 ease-in-out cursor-pointer p-1"
-        >
-          <div class="flex items-center justify-between">
-            <div class="text-xs badge">
-              {formatDate(post.data.publishedAt ?? post.data.createdAt)}
-            </div>
+  <Header class="mx-auto max-w-3xl" />
+  <div class="mx-auto grid max-w-3xl gap-4 px-4 md:grid-cols-3">
+    {publishedPosts.map((post) => (
+      <a
+        href={`/stories/${post.id}`}
+        class="card cursor-pointer bg-base-100 p-1 transition-transform duration-200 ease-in-out card-border hover:-translate-y-1 hover:bg-base-200"
+      >
+        <div class="flex items-center justify-between">
+          <div class="badge text-xs">
+            {formatDate(post.data.publishedAt ?? post.data.createdAt)}
+          </div>
 
-            <div class="text-xs badge">{post.data.total}</div>
-          </div>
-          <div class="card-body prose flex flex-col items-center text-center">
-            <h2 class="font-serif">{post.data.title}</h2>
-            <p class="text-xs">{post.data.description}</p>
-          </div>
-        </a>
-      ))
-    }
+          <div class="badge text-xs">{post.data.total}</div>
+        </div>
+        <div class="card-body prose flex flex-col items-center text-center">
+          <h2 class="font-serif">{post.data.title}</h2>
+          <p class="text-xs">{post.data.description}</p>
+        </div>
+      </a>
+    ))}
   </div>
 </Layout>
