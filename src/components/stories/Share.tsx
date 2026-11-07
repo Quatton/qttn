@@ -10,11 +10,60 @@ type Status = "idle" | "sharing" | "shared" | "copied" | "downloaded" | "error";
 export function Share({ documentId }: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const screenshotRef = useRef<Promise<Blob> | null>(null);
 
   function getPageUrl() {
     const url = new URL(location.href);
     url.hash = documentId;
     return url.toString();
+  }
+
+  function getScreenshot(): Promise<Blob> {
+    const cachedScreenshot = screenshotRef.current;
+    if (cachedScreenshot) return cachedScreenshot;
+
+    const target = window.document.getElementById(documentId);
+    if (!target) throw new Error("Could not find the story to capture.");
+
+    const screenshot = html2canvas(target, {
+      logging: false,
+      onclone: (clonedDocument) => {
+        clonedDocument
+          .querySelectorAll(".screenshot-hidden")
+          .forEach((element) => {
+            if (element instanceof HTMLElement) element.style.display = "none";
+          });
+      },
+      useCORS: true
+    })
+      .then(
+        (canvas) =>
+          new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((value) => {
+              if (value) resolve(value);
+              else reject(new Error("Could not create a share image."));
+            }, "image/png");
+          })
+      )
+      .catch((error: unknown) => {
+        screenshotRef.current = null;
+        throw error;
+      });
+
+    screenshotRef.current = screenshot;
+    return screenshot;
+  }
+
+  function getScreenshotFilename() {
+    const target = window.document.getElementById(documentId);
+    const title =
+      target?.querySelector("h1")?.textContent?.trim() || document.title;
+    const filename = title
+      .replace(/[<>:"/\\|?*]/g, "")
+      .replace(/\p{Cc}/gu, "")
+      .replace(/\s+/g, " ")
+      .replace(/[. ]+$/, "");
+    return `${filename || "Screenshot"} - ${documentId}.png`;
   }
 
   async function copyPageLink() {
@@ -28,42 +77,12 @@ export function Share({ documentId }: Props) {
   }
 
   async function downloadScreenshot() {
-    const target = window.document.getElementById(documentId);
-    if (!target) {
-      setStatus("error");
-      return;
-    }
-
     setStatus("sharing");
     try {
-      const canvas = await html2canvas(target, {
-        logging: false,
-        onclone: (clonedDocument) => {
-          clonedDocument
-            .querySelectorAll(".screenshot-hidden")
-            .forEach((element) => {
-              if (element instanceof HTMLElement)
-                element.style.display = "none";
-            });
-        },
-        useCORS: true
-      });
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((value) => {
-          if (value) resolve(value);
-          else reject(new Error("Could not create a share image."));
-        }, "image/png");
-      });
-      const downloadUrl = URL.createObjectURL(blob);
+      const downloadUrl = URL.createObjectURL(await getScreenshot());
       const link = window.document.createElement("a");
       link.href = downloadUrl;
-      const title = target.querySelector("h1")?.textContent?.trim() || document.title;
-      const filename = title
-        .replace(/[<>:"/\\|?*]/g, "")
-        .replace(/\p{Cc}/gu, "")
-        .replace(/\s+/g, " ")
-        .replace(/[. ]+$/, "");
-      link.download = `${filename || "Screenshot"}.png`;
+      link.download = getScreenshotFilename();
       link.click();
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
       await navigator.clipboard.writeText(getPageUrl());
@@ -81,59 +100,33 @@ export function Share({ documentId }: Props) {
       return;
     }
 
-    const document = window.document.getElementById(documentId);
-    if (!document) {
-      setStatus("error");
-      return;
-    }
-
     setStatus("sharing");
 
     try {
-      const canvas = await html2canvas(document, {
-        logging: false,
-        onclone: (clonedDocument) => {
-          clonedDocument
-            .querySelectorAll(".screenshot-hidden")
-            .forEach((element) => {
-              if (element instanceof HTMLElement)
-                element.style.display = "none";
-            });
-        },
-        useCORS: true
-      });
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((value) => {
-          if (value) resolve(value);
-          else reject(new Error("Could not create a share image."));
-        }, "image/png");
-      });
-      const url = new URL(location.href);
-      url.hash = documentId;
-      const file = new File([blob], `${documentId}.png`, {
+      const blob = await getScreenshot();
+      const file = new File([blob], getScreenshotFilename(), {
         type: "image/png"
       });
       const shareData = {
         title: document.title,
         text: document.title,
-        url: url.toString(),
+        url: getPageUrl(),
         files: [file]
       };
 
-      if (
-        navigator.share &&
-        (!navigator.canShare || navigator.canShare({ files: shareData.files }))
-      ) {
+      // copy link to clipboard before sharing, so that the user can paste it if the share fails
+      await navigator.clipboard.writeText(getPageUrl());
+
+      if (navigator.canShare({ files: shareData.files })) {
         await navigator.share(shareData);
-        setStatus("shared");
-      } else if (navigator.share) {
+      } else {
         await navigator.share({
           title: shareData.title,
           text: shareData.text,
           url: shareData.url
         });
-        setStatus("shared");
       }
+      setStatus("shared");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         setStatus("idle");
@@ -248,13 +241,7 @@ export function Share({ documentId }: Props) {
               onClick={copyPageLink}
               disabled={status === "sharing"}
             >
-              {status === "copied" ? (
-                <>
-                  {checkIcon} Link copied
-                </>
-              ) : (
-                "Copy link"
-              )}
+              {status === "copied" ? <>{checkIcon} Copy link</> : "Copy link"}
             </button>
             <button
               className="btn btn-primary"
@@ -264,11 +251,9 @@ export function Share({ documentId }: Props) {
               {status === "sharing" ? (
                 <span className="loading size-5 loading-spinner" />
               ) : status === "downloaded" ? (
-                <>
-                  {checkIcon} Screenshot downloaded; link copied
-                </>
+                <>{checkIcon} Copy link & Download Screenshot</>
               ) : (
-                "Download screenshot + copy link"
+                "Copy link & Download Screenshot"
               )}
             </button>
           </div>
